@@ -166,38 +166,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Role Field */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontWeight: '500',
-                fontSize: '14px',
-                color: '#111',
-                marginBottom: '8px'
-              }}>I want to</label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  fontSize: '15px',
-                  padding: '12px 16px',
-                  borderRadius: '4px',
-                  border: '1px solid #CCCCCC',
-                  cursor: 'pointer',
-                  background: 'white',
-                  outline: 'none'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#111'}
-                onBlur={(e) => e.target.style.borderColor = '#CCCCCC'}
-              >
-                <option value="customer">Browse and Buy Products</option>
-                <option value="seller">Sell My Products</option>
-              </select>
-            </div>
-
             {/* Password Field */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{

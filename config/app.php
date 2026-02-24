@@ -58,6 +58,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Response Cache Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Enable response caching for better performance with multiple concurrent
+    | users. Cache lifetime is in seconds.
+    |
+    */
+
+    'response_cache_enabled' => env('RESPONSE_CACHE_ENABLED', true),
+    'response_cache_lifetime' => env('RESPONSE_CACHE_LIFETIME', 3600),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -218,7 +231,7 @@ return [
         'Queue' => Illuminate\Support\Facades\Queue::class,
         'RateLimiter' => Illuminate\Support\Facades\RateLimiter::class,
         'Redirect' => Illuminate\Support\Facades\Redirect::class,
-        // 'Redis' => Illuminate\Support\Facades\Redis::class,
+        'Redis' => Illuminate\Support\Facades\Redis::class,
         'Request' => Illuminate\Support\Facades\Request::class,
         'Response' => Illuminate\Support\Facades\Response::class,
         'Route' => Illuminate\Support\Facades\Route::class,

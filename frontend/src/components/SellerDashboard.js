@@ -31,6 +31,7 @@ const SellerDashboard = () => {
     stock: ''
   });
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,17 +45,22 @@ const SellerDashboard = () => {
   }, [navigate]);
 
   const fetchData = async () => {
+    setInitialLoading(true);
     try {
-      const userRes = await axios.get('/api/user');
+      // Fetch all data in parallel for faster loading
+      const [userRes, productsRes, ordersRes] = await Promise.all([
+        axios.get('/api/user'),
+        axios.get('/api/products'),
+        axios.get('/api/orders')
+      ]);
+      
       setUser(userRes.data);
       
       // Fetch only products created by this seller
-      const productsRes = await axios.get('/api/products');
       const allProducts = productsRes.data.data || [];
       const sellerProducts = allProducts.filter(p => p.seller_id === userRes.data.id);
       setProducts(sellerProducts);
       
-      const ordersRes = await axios.get('/api/orders');
       const ordersList = ordersRes.data.data || [];
       setOrders(ordersList);
       
@@ -64,8 +70,10 @@ const SellerDashboard = () => {
       const pendingOrders = ordersList.filter(o => o.status !== 'completed').length;
       
       setStats({ totalSales: totalSales.toFixed(2), activeProducts, pendingOrders });
+      setInitialLoading(false);
     } catch (error) {
       console.error('Failed to fetch seller data:', error);
+      setInitialLoading(false);
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         window.location.href = '/login';
@@ -241,7 +249,22 @@ const SellerDashboard = () => {
     });
   };
 
-  if (!user) return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}><div className="spinner"></div></div>;
+  if (initialLoading || !user) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#FAFAFA'
+      }}>
+        <div style={{textAlign: 'center'}}>
+          <div className="spinner-border" style={{width: '50px', height: '50px', borderWidth: '3px', color: '#111'}} />
+          <p style={{marginTop: '20px', fontSize: '18px', fontWeight: '600', color: '#111'}}>Loading Dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAFA' }}>

@@ -23,8 +23,11 @@ use App\Http\Controllers\API\ReportController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::get('products', [ProductController::class, 'index']);
-Route::get('products/filter-options', [ProductController::class, 'getFilterOptions']);
+// Public routes with caching for better performance
+Route::middleware(['response.cache:300'])->group(function () {
+    Route::get('products', [ProductController::class, 'index']);
+    Route::get('products/filter-options', [ProductController::class, 'getFilterOptions']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

@@ -10,16 +10,20 @@ const ProductList = () => {
   const [hoveredProduct, setHoveredProduct] = useState(null);
   const [notification, setNotification] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [loading, setLoading] = useState(true);
 
   const fetchProducts = useCallback(() => {
+    setLoading(true);
     axios.get('/api/products', { params: filters })
       .then(res => {
         const list = Array.isArray(res?.data?.data) ? res.data.data : [];
         setProducts(list);
+        setLoading(false);
       })
       .catch(err => {
         console.warn('Failed to fetch products:', err && err.message ? err.message : err);
         setProducts([]);
+        setLoading(false);
       });
   }, [filters]);
 
@@ -176,6 +180,32 @@ const ProductList = () => {
       </div>
 
       {/* STAGGERED GRID - Nike Style */}
+      {loading ? (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '400px',
+          fontSize: '18px',
+          fontWeight: '600',
+          color: '#111'
+        }}>
+          <div>
+            <div className="spinner-border" style={{width: '50px', height: '50px', borderWidth: '3px'}} />
+            <p style={{marginTop: '20px'}}>Loading products...</p>
+          </div>
+        </div>
+      ) : products.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          color: '#999'
+        }}>
+          <i className="fas fa-box-open" style={{fontSize: '48px', marginBottom: '16px', display: 'block'}}></i>
+          <p style={{fontSize: '18px', fontWeight: '600'}}>No products found</p>
+          <p style={{fontSize: '14px'}}>Try adjusting your filters</p>
+        </div>
+      ) : (
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -377,24 +407,6 @@ const ProductList = () => {
           </div>
         ))}
       </div>
-
-      {/* No Products State */}
-      {products.length === 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: 'var(--spacing-2xl)',
-          color: '#666666'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-lg)', opacity: 0.5 }}>
-            <i className="fas fa-shoe-prints"></i>
-          </div>
-          <p style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, textTransform: 'uppercase' }}>
-            No Shoes Found
-          </p>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: '#999999' }}>
-            Try adjusting your filters or check back soon for new drops
-          </p>
-        </div>
       )}
     </div>
   );

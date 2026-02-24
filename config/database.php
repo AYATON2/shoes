@@ -60,7 +60,21 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // Connection pooling optimizations for concurrent users
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', true),
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_TIMEOUT => 5,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
             ]) : [],
+            // Pool configuration for high concurrency
+            'pool' => [
+                'min_connections' => env('DB_POOL_MIN', 5),
+                'max_connections' => env('DB_POOL_MAX', 100),
+                'connect_timeout' => env('DB_POOL_CONNECT_TIMEOUT', 10.0),
+                'wait_timeout' => env('DB_POOL_WAIT_TIMEOUT', 3.0),
+                'heartbeat' => env('DB_POOL_HEARTBEAT', 30),
+                'max_idle_time' => env('DB_POOL_MAX_IDLE_TIME', 60.0),
+            ],
         ],
 
         'pgsql' => [

@@ -11,6 +11,7 @@ const CustomerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [profileData, setProfileData] = useState({ name: '', email: '' });
   const [message, setMessage] = useState('');
@@ -34,12 +35,17 @@ const CustomerDashboard = () => {
   }, [activeTab]);
 
   const loadUserData = () => {
+    setInitialLoading(true);
     axios.get('/api/user')
       .then(res => {
         setUser(res.data);
         setProfileData({ name: res.data.name, email: res.data.email });
+        setInitialLoading(false);
       })
-      .catch(() => navigate('/login'));
+      .catch(() => {
+        setInitialLoading(false);
+        navigate('/login');
+      });
   };
 
   const loadCart = () => {
@@ -81,10 +87,19 @@ const CustomerDashboard = () => {
     navigate('/login');
   };
 
-  if (!user) {
+  if (initialLoading || !user) {
     return (
-      <div className="d-flex justify-content-center mt-5">
-        <div className="spinner-border" />
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#FAFAFA'
+      }}>
+        <div style={{textAlign: 'center'}}>
+          <div className="spinner-border" style={{width: '50px', height: '50px', borderWidth: '3px', color: '#111'}} />
+          <p style={{marginTop: '20px', fontSize: '18px', fontWeight: '600', color: '#111'}}>Loading...</p>
+        </div>
       </div>
     );
   }
