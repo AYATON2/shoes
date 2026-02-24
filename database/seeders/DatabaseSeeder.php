@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -32,24 +33,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'customer@stepup.com',
             'password' => bcrypt('password'),
             'role' => 'customer',
-        ]);
-
-        $product = \App\Models\Product::create([
-            'name' => 'Nike Air Max',
-            'brand' => 'Nike',
-            'type' => 'Running',
-            'material' => 'Mesh',
-            'description' => 'Comfortable running shoes',
-            'price' => 120.00,
-            'seller_id' => 2,
-        ]);
-
-        \App\Models\Sku::create([
-            'product_id' => $product->id,
-            'size' => '10',
-            'colorway' => 'Black',
-            'width' => 'Medium',
-            'stock' => 10,
         ]);
     }
 }

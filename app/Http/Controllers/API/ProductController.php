@@ -13,14 +13,17 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with('skus');
-        if ($request->has('brand')) {
+        if ($request->has('brand') && $request->brand) {
             $query->where('brand', $request->brand);
         }
-        if ($request->has('type')) {
+        if ($request->has('type') && $request->type) {
             $query->where('type', $request->type);
         }
-        if ($request->has('performance_tech')) {
+        if ($request->has('performance_tech') && $request->performance_tech) {
             $query->where('performance_tech', $request->performance_tech);
+        }
+        if ($request->has('gender') && $request->gender) {
+            $query->where('gender', $request->gender);
         }
         $products = $query->paginate(20);
         return response()->json($products);
@@ -35,30 +38,38 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Product::class); // For sellers
-        $skus = json_decode($request->skus, true);
+        
+        // Parse SKUs safely
+        $skus = [];
+        if ($request->has('skus')) {
+            $skus = json_decode($request->skus, true) ?? [];
+        }
+        
+        // Validate input
         $validator = Validator::make(array_merge($request->all(), ['skus' => $skus]), [
-            'name' => 'required|string',
-            'brand' => 'required|string',
-            'type' => 'required|string',
-            'material' => 'required|string',
-            'description' => 'required|string',
-            'price' => 'required|numeric',
+            'name' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
+            'type' => 'nullable|string|max:255',
+            'material' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'performance_tech' => 'nullable|string',
+            'performance_tech' => 'nullable|string|max:255',
             'release_date' => 'nullable|date',
-            'gender' => 'nullable|string',
-            'age_group' => 'nullable|string',
-            'skus' => 'required|array',
-            'skus.*.size' => 'required|string',
-            'skus.*.color' => 'required|string',
-            'skus.*.width' => 'required|string',
-            'skus.*.stock' => 'required|integer',
+            'gender' => 'nullable|string|max:50',
+            'age_group' => 'nullable|string|max:50',
+            'skus' => 'required|array|min:1',
+            'skus.*.size' => 'required|string|max:50',
+            'skus.*.color' => 'required|string|max:100',
+            'skus.*.width' => 'nullable|string|max:50',
+            'skus.*.stock' => 'required|integer|min:0',
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Create product
         $data = $request->only(['name', 'brand', 'type', 'material', 'description', 'price', 'performance_tech', 'release_date', 'gender', 'age_group']);
         $data['seller_id'] = auth()->id();
 
@@ -68,18 +79,100 @@ class ProductController extends Controller
 
         $product = Product::create($data);
 
+        // Create SKUs
         foreach ($skus as $skuData) {
             Sku::create($skuData + ['product_id' => $product->id]);
         }
 
-        return response()->json($product->load('skus'), 201);
+        return response()->json(['data' => $product->load('skus')], 201);
     }
 
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
-        $this->authorize('update', $product);
-        // Similar to store
+        
+        // Check authorization
+        if (!($request->user()->id === $product->seller_id || $request->user()->role === 'admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        // Parse SKUs from JSON string if needed (before validation)
+        $skus = is_string($request->skus) ? json_decode($request->skus, true) : $request->skus;
+        
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string',
+            'price' => 'required|numeric',
+            'brand' => 'nullable|string',
+            'type' => 'nullable|string',
+            'material' => 'nullable|string',
+            'description' => 'nullable|string',
+            'gender' => 'nullable|string',
+            'image' => 'nullable|image',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        
+        // Validate SKUs separately
+        if (!is_array($skus) || count($skus) < 1) {
+            return response()->json(['errors' => ['skus' => ['At least one SKU is required']]], 422);
+        }
+        
+        foreach ($skus as $index => $sku) {
+            if (empty($sku['size']) || empty($sku['color']) || !isset($sku['stock'])) {
+                return response()->json(['errors' => ['skus' => ['Each SKU must have size, color, and stock']]], 422);
+            }
+            if (!is_numeric($sku['stock']) || $sku['stock'] < 0) {
+                return response()->json(['errors' => ['skus' => ['Stock must be a positive number']]], 422);
+            }
+        }
+
+        // Handle image upload if provided
+        $data = $request->only(['name', 'price', 'brand', 'type', 'material', 'description', 'gender']);
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $data['image'] = $path;
+        }
+
+        // Update product
+        $product->update($data);
+
+        // Update SKUs - don't delete ones that are in orders
+        // Get existing SKU IDs
+        $existingSkuIds = $product->skus->pluck('id')->toArray();
+        $newSkuIds = [];
+        
+        foreach ($skus as $skuData) {
+            // Try to find existing SKU with same size and color
+            $existingSku = $product->skus()
+                ->where('size', $skuData['size'])
+                ->where('color', $skuData['color'])
+                ->where('width', $skuData['width'] ?? null)
+                ->first();
+            
+            if ($existingSku) {
+                // Update existing SKU
+                $existingSku->update(['stock' => $skuData['stock']]);
+                $newSkuIds[] = $existingSku->id;
+            } else {
+                // Create new SKU
+                $newSku = Sku::create($skuData + ['product_id' => $product->id]);
+                $newSkuIds[] = $newSku->id;
+            }
+        }
+        
+        // Delete SKUs that are not in the new list and not referenced in orders
+        $skusToDelete = array_diff($existingSkuIds, $newSkuIds);
+        if (!empty($skusToDelete)) {
+            // Only delete SKUs that don't have order items
+            $product->skus()
+                ->whereIn('id', $skusToDelete)
+                ->whereDoesntHave('orderItems')
+                ->delete();
+        }
+
+        return response()->json(['data' => $product->load('skus')], 200);
     }
 
     public function destroy($id)

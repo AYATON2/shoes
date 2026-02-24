@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import AdminUsers from './AdminUsers';
+import AdminProducts from './AdminProducts';
+import AdminReports from './AdminReports';
+import AdminProfile from './AdminProfile';
 import axios from 'axios';
 
 const AdminDashboard = () => {
@@ -9,18 +13,15 @@ const AdminDashboard = () => {
   const [orderStatusReport, setOrderStatusReport] = useState([]);
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
   const navigate = useNavigate();
-  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Check authentication on component mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
       return;
     }
-    // Only fetch data if authenticated
     fetchData();
   }, [navigate]);
 
@@ -33,14 +34,10 @@ const AdminDashboard = () => {
       setUsers(usersRes.data);
       
       const productsRes = await axios.get('/api/products');
-      setProducts(productsRes.data.data);
-      
-      const ordersRes = await axios.get('/api/orders');
-      setOrders(ordersRes.data.data);
+      setProducts(productsRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       if (error.response?.status === 401) {
-        // Unauthorized - redirect to login
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
@@ -64,390 +61,449 @@ const AdminDashboard = () => {
       localStorage.removeItem('token');
       window.location.href = '/';
     }).catch(err => {
-      console.error('Logout failed:', err);
-      // Force logout even if API call fails
       localStorage.removeItem('token');
       window.location.href = '/';
     });
   };
 
-  if (!user) return <div className="d-flex justify-content-center"><div className="spinner-border" role="status"><span className="sr-only">Loading...</span></div></div>;
+  if (!user) return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}><div className="spinner"></div></div>;
 
   return (
-    <div className="dashboard-container">
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAFA' }}>
       {/* Sidebar */}
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo-section">
-            <i className="fas fa-crown text-warning"></i>
-            <h3 className="text-gradient mb-0">Admin Panel</h3>
-          </div>
-          <div className="sidebar-actions">
-            <button className="btn btn-sm btn-outline-light" onClick={handleLogout} title="Logout">
-              <i className="fas fa-sign-out-alt"></i>
-            </button>
+      <aside style={{
+        width: '260px',
+        background: '#111',
+        color: '#FFF',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'fixed',
+        height: '100vh',
+        left: 0,
+        top: 0
+      }}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <i className="fas fa-crown"></i>
+            Admin Panel
           </div>
         </div>
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${location.pathname === '/admin-dashboard' ? 'active' : ''}`} onClick={() => navigate('/admin-dashboard')}>
-            <i className="fas fa-tachometer-alt"></i>
+        <nav style={{ flex: 1, padding: '16px 0' }}>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'dashboard' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('dashboard')}>
+            <i className="fas fa-tachometer-alt" style={{ width: '20px' }}></i>
             <span>Dashboard</span>
           </button>
-          <button className={`nav-item ${location.pathname === '/admin-users' ? 'active' : ''}`} onClick={() => navigate('/admin-users')}>
-            <i className="fas fa-users"></i>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'users' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'users' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('users')}>
+            <i className="fas fa-users" style={{ width: '20px' }}></i>
             <span>Users</span>
           </button>
-          <button className={`nav-item ${location.pathname === '/admin-products' ? 'active' : ''}`} onClick={() => navigate('/admin-products')}>
-            <i className="fas fa-box"></i>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'products' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'products' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('products')}>
+            <i className="fas fa-box" style={{ width: '20px' }}></i>
             <span>Products</span>
           </button>
-          <button className={`nav-item ${location.pathname === '/admin-reports' ? 'active' : ''}`} onClick={() => navigate('/admin-reports')}>
-            <i className="fas fa-chart-bar"></i>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'reports' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'reports' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('reports')}>
+            <i className="fas fa-chart-bar" style={{ width: '20px' }}></i>
             <span>Reports</span>
           </button>
-          <button className={`nav-item ${location.pathname === '/admin-profile' ? 'active' : ''}`} onClick={() => navigate('/admin-profile')}>
-            <i className="fas fa-user"></i>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'profile' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'profile' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('profile')}>
+            <i className="fas fa-user" style={{ width: '20px' }}></i>
             <span>Profile</span>
           </button>
         </nav>
-      </div>
+        <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <button onClick={handleLogout} style={{
+            width: '100%',
+            padding: '12px 24px',
+            background: 'rgba(255,255,255,0.1)',
+            border: 'none',
+            color: '#FFF',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            borderRadius: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+          >
+            <i className="fas fa-sign-out-alt"></i>
+            Logout
+          </button>
+        </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="main-content">
-        {/* Header */}
-        <div className="dashboard-header">
-          <div className="header-content">
-            <h1 className="dashboard-title">
-              <i className="fas fa-chart-line text-primary"></i>
-              Dashboard Overview
-            </h1>
-            <p className="dashboard-subtitle">Welcome back, {user?.name}! Here's what's happening with your platform.</p>
-          </div>
-          <div className="header-actions">
-            <div className="date-display">
-              <i className="fas fa-calendar-alt"></i>
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="stats-grid">
-          <div className="stat-card primary">
-            <div className="stat-icon">
-              <i className="fas fa-users"></i>
-            </div>
-            <div className="stat-content">
-              <h3 className="stat-number">{users.length}</h3>
-              <p className="stat-label">Total Users</p>
-              <div className="stat-trend positive">
-                <i className="fas fa-arrow-up"></i>
-                <span>+12%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="stat-card success">
-            <div className="stat-icon">
-              <i className="fas fa-box"></i>
-            </div>
-            <div className="stat-content">
-              <h3 className="stat-number">{products.length}</h3>
-              <p className="stat-label">Total Products</p>
-              <div className="stat-trend positive">
-                <i className="fas fa-arrow-up"></i>
-                <span>+8%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="stat-card warning">
-            <div className="stat-icon">
-              <i className="fas fa-shopping-cart"></i>
-            </div>
-            <div className="stat-content">
-              <h3 className="stat-number">{orders.length}</h3>
-              <p className="stat-label">Total Orders</p>
-              <div className="stat-trend positive">
-                <i className="fas fa-arrow-up"></i>
-                <span>+15%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="stat-card danger">
-            <div className="stat-icon">
-              <i className="fas fa-dollar-sign"></i>
-            </div>
-            <div className="stat-content">
-              <h3 className="stat-number">${orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0).toFixed(2)}</h3>
-              <p className="stat-label">Total Revenue</p>
-              <div className="stat-trend positive">
-                <i className="fas fa-arrow-up"></i>
-                <span>+23%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Quick Overview Tables */}
-        <div className="overview-section">
-          <div className="section-header">
-            <h2 className="section-title">
-              <i className="fas fa-eye"></i>
-              Quick Overview
-            </h2>
-            <p className="section-subtitle">Recent activity and key metrics at a glance</p>
-          </div>
-
-          <div className="overview-grid">
-            <div className="overview-card">
-              <div className="card-header-modern">
-                <div className="card-icon">
-                  <i className="fas fa-users"></i>
+      <main style={{ marginLeft: '260px', flex: 1, padding: '32px' }}>
+        {activeTab === 'dashboard' && (
+          <div className="fade-in">
+            {/* Welcome Hero Section */}
+            <div style={{
+              background: 'linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-light) 100%)',
+              color: 'white',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--spacing-2xl)',
+              marginBottom: 'var(--spacing-2xl)',
+              boxShadow: 'var(--shadow-lg)'
+            }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div style={{flex: 1}}>
+                  <h1 style={{
+                    fontSize: 'var(--font-size-4xl)',
+                    fontWeight: 700,
+                    margin: 0,
+                    marginBottom: 'var(--spacing-md)',
+                    color: 'white'
+                  }}>Welcome back, {user?.name}!</h1>
+                  <p style={{
+                    fontSize: 'var(--font-size-lg)',
+                    margin: 0,
+                    opacity: 0.95,
+                    lineHeight: 1.6
+                  }}>Here's what's happening with your platform today. Monitor your users, products, orders, and revenue in real-time.</p>
                 </div>
-                <div className="card-title-section">
-                  <h3>User Management</h3>
-                  <p>Manage user accounts and permissions</p>
+                <div style={{
+                  fontSize: '4rem',
+                  opacity: 0.15,
+                  marginLeft: 'var(--spacing-lg)'
+                }}>
+                  <i className="fas fa-crown"></i>
                 </div>
-                <button className="btn btn-outline-primary btn-sm" onClick={() => navigate('/admin-users')}>
-                  <i className="fas fa-arrow-right"></i>
-                </button>
               </div>
-              <div className="table-container">
-                <table className="modern-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.slice(0, 5).map(u => (
-                      <tr key={u.id}>
-                        <td>
-                          <div className="user-cell">
-                            <div className="user-avatar">
-                              {u.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span>{u.name}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`role-badge ${u.role}`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${u.active ? 'active' : 'inactive'}`}>
-                            {u.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="metrics-grid" style={{marginBottom: 'var(--spacing-2xl)'}}>
+              <div className="metric-card">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                  <div>
+                    <p className="metric-label">Total Users</p>
+                    <p className="metric-value">{users.length}</p>
+                    <p className="metric-change positive">
+                      <i className="fas fa-arrow-up"></i> +12%
+                    </p>
+                  </div>
+                  <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', opacity: 0.2}}>
+                    <i className="fas fa-users"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                  <div>
+                    <p className="metric-label">Total Products</p>
+                    <p className="metric-value">{products.length}</p>
+                    <p className="metric-change positive">
+                      <i className="fas fa-arrow-up"></i> +8%
+                    </p>
+                  </div>
+                  <div style={{fontSize: '2.5rem', color: 'var(--success-green)', opacity: 0.2}}>
+                    <i className="fas fa-box"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                  <div>
+                    <p className="metric-label">Total Products</p>
+                    <p className="metric-value">{products.length}</p>
+                    <p className="metric-change positive">
+                      <i className="fas fa-arrow-up"></i> +8%
+                    </p>
+                  </div>
+                  <div style={{fontSize: '2.5rem', color: 'var(--info-cyan)', opacity: 0.2}}>
+                    <i className="fas fa-boxes"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                  <div>
+                    <p className="metric-label">Active Users</p>
+                    <p className="metric-value">{users.length}</p>
+                    <p className="metric-change positive">
+                      <i className="fas fa-arrow-up"></i> +12%
+                    </p>
+                  </div>
+                  <div style={{fontSize: '2.5rem', color: 'var(--success-green)', opacity: 0.2}}>
+                    <i className="fas fa-user-check"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Overview Cards */}
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-2xl)'}}>
+              {/* Users Overview */}
+              <div className="card">
+                <div className="card-header">
+                  <h3 style={{margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)'}}>
+                    <span style={{width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'var(--primary-light)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                      <i className="fas fa-users"></i>
+                    </span>
+                    Recent Users
+                  </h3>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('users')}>View All</button>
+                </div>
+                <div className="card-body">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users.slice(0, 5).map(u => (
+                        <tr key={u.id}>
+                          <td>{u.name}</td>
+                          <td><span className="badge badge-primary">{u.role}</span></td>
+                          <td><span className="badge badge-success">Active</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
-            <div className="overview-card">
-              <div className="card-header-modern">
-                <div className="card-icon">
-                  <i className="fas fa-box"></i>
+              {/* Products Overview */}
+              <div className="card">
+                <div className="card-header">
+                  <h3 style={{margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)'}}>
+                    <span style={{width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'var(--success-green)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                      <i className="fas fa-box"></i>
+                    </span>
+                    Recent Products
+                  </h3>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('products')}>View All</button>
                 </div>
-                <div className="card-title-section">
-                  <h3>Product Management</h3>
-                  <p>Monitor and manage your product catalog</p>
-                </div>
-                <button className="btn btn-outline-success btn-sm" onClick={() => navigate('/admin-products')}>
-                  <i className="fas fa-arrow-right"></i>
-                </button>
-              </div>
-              <div className="table-container">
-                <table className="modern-table">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Brand</th>
-                      <th>Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.slice(0, 5).map(p => (
-                      <tr key={p.id}>
-                        <td>
-                          <div className="product-cell">
-                            <div className="product-image">
-                              <i className="fas fa-image"></i>
-                            </div>
-                            <span>{p.name}</span>
-                          </div>
-                        </td>
-                        <td>{p.brand}</td>
-                        <td className="price-cell">${p.price}</td>
+                <div className="card-body">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Brand</th>
+                        <th>Price</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {products.slice(0, 5).map(p => (
+                        <tr key={p.id}>
+                          <td>{p.name}</td>
+                          <td>{p.brand}</td>
+                          <td style={{fontWeight: 600, color: 'var(--success-green)'}}>${p.price}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Reports Section */}
+            <div>
+              <h2 style={{fontSize: 'var(--font-size-2xl)', fontWeight: 700, marginBottom: 'var(--spacing-lg)'}}>Reports & Analytics</h2>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--spacing-lg)'}}>
+                <div className="card">
+                  <div className="card-header">
+                    <h4 style={{margin: 0}}>
+                      <i className="fas fa-warehouse"></i> Inventory Report
+                    </h4>
+                  </div>
+                  <div className="card-body">
+                    <button className="btn btn-primary w-full mb-lg" onClick={fetchInventory}>
+                      <i className="fas fa-refresh"></i> Generate Report
+                    </button>
+                    {inventoryReport.length > 0 && (
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Stock</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inventoryReport.slice(0, 3).map(item => (
+                            <tr key={item.id}>
+                              <td>{item.name}</td>
+                              <td>
+                                <span className={`badge ${item.stock > 10 ? 'badge-success' : item.stock > 0 ? 'badge-warning' : 'badge-danger'}`}>
+                                  {item.stock} units
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <h4 style={{margin: 0}}>
+                      <i className="fas fa-chart-line"></i> Sales Report
+                    </h4>
+                  </div>
+                  <div className="card-body">
+                    <button className="btn btn-primary w-full mb-lg" onClick={fetchSales}>
+                      <i className="fas fa-refresh"></i> Generate Report
+                    </button>
+                    {salesReport.length > 0 && (
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Sales</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {salesReport.slice(0, 3).map(item => (
+                            <tr key={item.id}>
+                              <td>#{item.product_id}</td>
+                              <td style={{fontWeight: 600, color: 'var(--success-green)'}}>${item.total_sales}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <h4 style={{margin: 0}}>
+                      <i className="fas fa-clipboard-list"></i> Order Status
+                    </h4>
+                  </div>
+                  <div className="card-body">
+                    <button className="btn btn-primary w-full mb-lg" onClick={fetchOrderStatus}>
+                      <i className="fas fa-refresh"></i> Generate Report
+                    </button>
+                    {orderStatusReport.length > 0 && (
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Order</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orderStatusReport.slice(0, 3).map(item => (
+                            <tr key={item.id}>
+                              <td>#{item.id}</td>
+                              <td><span className="badge badge-info">{item.status}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        {/* Reports Section */}
-        <div className="reports-section">
-          <div className="section-header">
-            <h2 className="section-title">
-              <i className="fas fa-chart-bar"></i>
-              Analytics & Reports
-            </h2>
-            <p className="section-subtitle">Generate detailed reports and insights</p>
-          </div>
+        )}
 
-          <div className="reports-grid">
-            <div className="report-card">
-              <div className="report-header">
-                <div className="report-icon inventory">
-                  <i className="fas fa-warehouse"></i>
-                </div>
-                <div className="report-info">
-                  <h4>Inventory Report</h4>
-                  <p>Track stock levels and inventory status</p>
-                </div>
-              </div>
-              <div className="report-actions">
-                <button className="btn btn-warning btn-block" onClick={fetchInventory}>
-                  <i className="fas fa-play"></i>
-                  Generate Report
-                </button>
-              </div>
-              {inventoryReport.length > 0 && (
-                <div className="report-results">
-                  <div className="results-header">
-                    <span>{inventoryReport.length} items found</span>
-                  </div>
-                  <div className="results-table">
-                    <table className="modern-table compact">
-                      <thead>
-                        <tr>
-                          <th>Product</th>
-                          <th>Stock</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inventoryReport.slice(0, 3).map(item => (
-                          <tr key={item.id}>
-                            <td>{item.name}</td>
-                            <td>
-                              <span className={`stock-badge ${item.stock > 10 ? 'good' : item.stock > 0 ? 'low' : 'out'}`}>
-                                {item.stock}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="report-card">
-              <div className="report-header">
-                <div className="report-icon sales">
-                  <i className="fas fa-chart-line"></i>
-                </div>
-                <div className="report-info">
-                  <h4>Sales Report</h4>
-                  <p>Analyze sales performance and trends</p>
-                </div>
-              </div>
-              <div className="report-actions">
-                <button className="btn btn-info btn-block" onClick={fetchSales}>
-                  <i className="fas fa-play"></i>
-                  Generate Report
-                </button>
-              </div>
-              {salesReport.length > 0 && (
-                <div className="report-results">
-                  <div className="results-header">
-                    <span>{salesReport.length} products analyzed</span>
-                  </div>
-                  <div className="results-table">
-                    <table className="modern-table compact">
-                      <thead>
-                        <tr>
-                          <th>Product ID</th>
-                          <th>Total Sales</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {salesReport.slice(0, 3).map(item => (
-                          <tr key={item.id}>
-                            <td>#{item.product_id}</td>
-                            <td className="sales-amount">${item.total_sales}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="report-card">
-              <div className="report-header">
-                <div className="report-icon orders">
-                  <i className="fas fa-clipboard-list"></i>
-                </div>
-                <div className="report-info">
-                  <h4>Order Status Report</h4>
-                  <p>Monitor order fulfillment and status</p>
-                </div>
-              </div>
-              <div className="report-actions">
-                <button className="btn btn-secondary btn-block" onClick={fetchOrderStatus}>
-                  <i className="fas fa-play"></i>
-                  Generate Report
-                </button>
-              </div>
-              {orderStatusReport.length > 0 && (
-                <div className="report-results">
-                  <div className="results-header">
-                    <span>{orderStatusReport.length} orders tracked</span>
-                  </div>
-                  <div className="results-table">
-                    <table className="modern-table compact">
-                      <thead>
-                        <tr>
-                          <th>Order ID</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orderStatusReport.slice(0, 3).map(item => (
-                          <tr key={item.id}>
-                            <td>#{item.id}</td>
-                            <td>
-                              <span className={`status-badge ${item.status.toLowerCase()}`}>
-                                {item.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-    </div>
+        {activeTab === 'users' && <AdminUsers />}
+        {activeTab === 'products' && <AdminProducts />}
+        {activeTab === 'reports' && <AdminReports />}
+        {activeTab === 'profile' && <AdminProfile />}
+      </main>
     </div>
   );
 };

@@ -55,7 +55,11 @@ const AdminProducts = () => {
           <tbody>
             {products.map(p => (
               <tr key={p.id}>
-                <td>{p.name}</td>
+                  <td>
+                    <button className="btn btn-link p-0" onClick={() => navigate(`/admin-product/${p.id}`)}>
+                      {p.name}
+                    </button>
+                  </td>
                 <td>{p.brand}</td>
                 <td>${p.price}</td>
                 <td>{p.seller?.name || 'N/A'}</td>

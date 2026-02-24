@@ -14,6 +14,7 @@ import AdminUsers from './components/AdminUsers';
 import AdminProducts from './components/AdminProducts';
 import AdminReports from './components/AdminReports';
 import AdminProfile from './components/AdminProfile';
+import AdminProductDetail from './components/AdminProductDetail';
 import Checkout from './components/Checkout';
 import Profile from './components/Profile';
 
@@ -39,6 +40,7 @@ function AppContent() {
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/admin-users" element={<AdminUsers />} />
           <Route path="/admin-products" element={<AdminProducts />} />
+          <Route path="/admin-product/:id" element={<AdminProductDetail />} />
           <Route path="/admin-reports" element={<AdminReports />} />
           <Route path="/admin-profile" element={<AdminProfile />} />
           <Route path="/checkout" element={<Checkout />} />

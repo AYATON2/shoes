@@ -6,9 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
+    public function index()
+    {
+        // Only admins can view all users
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $users = User::all();
+        return response()->json($users);
+    }
+
     public function updateProfile(Request $request)
     {
         $user = auth()->user();
@@ -36,6 +48,13 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
         $user->update(['active' => false]);
+        return $user;
+    }
+
+    public function activate(User $user)
+    {
+        $this->authorize('update', $user);
+        $user->update(['active' => true]);
         return $user;
     }
 

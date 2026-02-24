@@ -108,14 +108,22 @@ class OrderController extends Controller
     public function update(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        $this->authorize('update', $order);
+        
+        // Check authorization - allow admin or seller of products in the order
+        $user = $request->user();
+        if (!($user->role === 'admin' || 
+              ($user->role === 'seller' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
+                  $q->where('seller_id', $user->id);
+              })->exists()))) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:pending,shipped,delivered,cancelled',
+            'status' => 'required|in:received,quality_check,shipped,delivered',
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         $order->update($request->only('status'));
