@@ -2,7 +2,27 @@
 
 A high-performance Nike-style e-commerce platform for footwear, built with Laravel 8 and React 18, optimized for **50+ concurrent users** with **HTTP/3 (QUIC)** support.
 
-## 🚀 Features
+## � Cross-Platform Progressive Web App (PWA)
+
+**Works on any device, any platform, any browser!**
+
+✅ **iOS** - Install via Safari "Add to Home Screen"  
+✅ **Android** - Install via Chrome "Install app"  
+✅ **Windows** - Desktop app via Edge/Chrome  
+✅ **macOS** - Install via Safari "Add to Dock" or Chrome  
+✅ **Linux** - Desktop app via Chromium/Chrome/Edge  
+✅ **All Browsers** - Chrome, Firefox, Safari, Edge, Opera, Brave (99%+ coverage)  
+
+### PWA Features
+- 📲 **Install as Native App** - Works like a mobile/desktop app
+- ⚡ **Offline Support** - Access products even without internet
+- 🚀 **Fast Loading** - Instant page loads with service worker caching
+- 🔔 **Push Notifications** - Order updates (Android, Windows)
+- 📱 **Responsive Design** - Optimized for all screen sizes
+
+📖 **Installation Guide**: See [CROSS-PLATFORM-GUIDE.md](CROSS-PLATFORM-GUIDE.md) for detailed instructions
+
+## �🚀 Features
 
 ### Customer Features
 - **Product Browsing**: Nike-style grid layout with filtering by size, color, brand, category
@@ -113,6 +133,7 @@ See comprehensive guides:
 
 ## 📚 Documentation
 
+- **[CROSS-PLATFORM-GUIDE.md](CROSS-PLATFORM-GUIDE.md)** - Install and use on iOS, Android, Windows, macOS, Linux
 - **[PERFORMANCE-SETUP.md](PERFORMANCE-SETUP.md)** - Complete production deployment guide with HTTP/3
 - **[OPTIMIZATION-SUMMARY.md](OPTIMIZATION-SUMMARY.md)** - Overview of all performance optimizations
 - **[WINDOWS-DEVELOPMENT.md](WINDOWS-DEVELOPMENT.md)** - Windows development environment setup
