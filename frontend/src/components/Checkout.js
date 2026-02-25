@@ -15,6 +15,8 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [showGCashModal, setShowGCashModal] = useState(false);
+  const [gcashPaymentData, setGCashPaymentData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,18 +82,53 @@ const Checkout = () => {
     // First create the address
     axios.post('/api/addresses', shippingAddress)
       .then(addressRes => {
+        console.log('Address created successfully:', addressRes.data);
+        // Handle both direct response and data wrapper
+        const addressData = addressRes.data.data || addressRes.data;
+        const addressId = addressData?.id;
+        if (!addressId) {
+          throw new Error('No address ID returned from server: ' + JSON.stringify(addressRes.data));
+        }
+        console.log('Using address ID:', addressId);
         // Then create the order with the new address ID
         return axios.post('/api/orders', {
           items,
-          shipping_address_id: addressRes.data.id || addressRes.data.data.id,
+          shipping_address_id: addressId,
           payment_method: paymentMethod
         });
       })
       .then(res => {
-        setNotification({ message: 'Order placed successfully!', type: 'success' });
-        localStorage.removeItem('cart');
-        setCart([]);
-        setTimeout(() => navigate('/customer-dashboard'), 2000);
+        const orderData = res.data.data || res.data;
+        console.log('Order created successfully:', orderData);
+        console.log('Order shipping address:', orderData.shippingAddress);
+        
+        // Handle different payment methods
+        if (paymentMethod === 'gcash') {
+          // Show GCash payment modal
+          const referenceNumber = `ORD-${orderData.id}-${Date.now()}`;
+          
+          setGCashPaymentData({
+            orderId: orderData.id,
+            amount: total,
+            referenceNumber: referenceNumber,
+            merchantName: 'StepUp Footwear',
+            merchantNumber: '09285749453'
+          });
+          setShowGCashModal(true);
+          setLoading(false);
+        } else if (paymentMethod === 'cod') {
+          // Cash on Delivery - clear cart and show success
+          localStorage.removeItem('cart');
+          setCart([]);
+          setNotification({ 
+            message: 'Order placed successfully! You will pay upon delivery.', 
+            type: 'success' 
+          });
+          setLoading(false);
+          setTimeout(() => {
+            window.location.href = '/customer-dashboard';
+          }, 2000);
+        }
       })
       .catch(err => {
         console.error('Order placement error:', err.response?.data || err.message);
@@ -425,7 +462,7 @@ const Checkout = () => {
 
                 {/* Payment Method */}
                 <div style={{marginBottom: '20px'}}>
-                  <label style={{
+                  <label htmlFor="paymentMethod" style={{
                     display: 'block',
                     fontSize: '13px',
                     fontWeight: '600',
@@ -436,6 +473,8 @@ const Checkout = () => {
                     Payment Method
                   </label>
                   <select
+                    id="paymentMethod"
+                    name="paymentMethod"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     style={{
@@ -444,11 +483,15 @@ const Checkout = () => {
                       border: '1px solid #DDD',
                       borderRadius: '8px',
                       fontSize: '14px',
+                      background: '#FFF',
+                      color: '#111',
+                      fontWeight: '600',
+                      cursor: 'pointer',
                       boxSizing: 'border-box'
                     }}
                   >
-                    <option value="cod">Cash on Delivery</option>
-                    <option value="gcash">GCash</option>
+                    <option value="cod">💵 Cash on Delivery</option>
+                    <option value="gcash">📱 GCash Payment</option>
                   </select>
                 </div>
 
@@ -515,6 +558,294 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* GCash Payment Modal */}
+      {showGCashModal && gcashPaymentData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+          overflow: 'auto',
+          backdropFilter: 'blur(2px)'
+        }}
+        onMouseEnter={() => {
+          document.body.style.overflow = 'hidden';
+          document.documentElement.style.overflow = 'hidden';
+        }}
+        onMouseLeave={() => {
+          document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
+        }}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            maxWidth: '500px',
+            width: '100%',
+            padding: '24px',
+            paddingTop: '50px',
+            position: 'relative',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+          }}>
+            {/* Close Button - Big Orange X */}
+            <button
+              onClick={() => setShowGCashModal(false)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                background: '#FF6B00',
+                border: 'none',
+                fontSize: '28px',
+                cursor: 'pointer',
+                color: '#FFFFFF',
+                padding: '0',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '42px',
+                height: '42px',
+                transition: 'all 0.2s',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#E55A00';
+                e.currentTarget.style.transform = 'scale(1.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#FF6B00';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              title="Close"
+            >
+              ×
+            </button>
+
+            {/* Header */}
+            <div style={{textAlign: 'center', marginBottom: '24px'}}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                background: 'linear-gradient(135deg, #007DFF, #00C6FF)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                fontSize: '28px',
+                color: '#FFF'
+              }}>
+                💳
+              </div>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#111',
+                margin: '0 0 8px 0'
+              }}>
+                GCash Payment
+              </h2>
+              <p style={{
+                fontSize: '14px',
+                color: '#666',
+                margin: 0
+              }}>
+                Scan QR code to complete payment
+              </p>
+            </div>
+
+            {/* Payment Info Box - QR Code Image */}
+            <div style={{
+              background: '#F5F5F5',
+              padding: '24px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              textAlign: 'center'
+            }}>
+              <p style={{
+                fontSize: '12px',
+                color: '#999',
+                margin: '0 0 16px 0',
+                textTransform: 'uppercase',
+                fontWeight: '600'
+              }}>
+                Scan to Pay:
+              </p>
+              
+              {/* GCash QR Code - Merchant */}
+              <div style={{
+                background: '#FFFFFF',
+                padding: '20px',
+                borderRadius: '12px',
+                display: 'inline-block',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                minWidth: '200px',
+                textAlign: 'center'
+              }}>
+                <img
+                  src="/gcash-qr.png"
+                  alt="GCash QR Code"
+                  style={{
+                    width: '180px',
+                    height: '180px',
+                    objectFit: 'contain',
+                    border: '1px solid #EEE',
+                    display: 'block'
+                  }}
+                />
+              </div>
+
+              {/* Amount to Pay */}
+              <div style={{
+                marginTop: '20px',
+                padding: '16px',
+                background: '#FFFFFF',
+                borderRadius: '8px'
+              }}>
+                <p style={{fontSize: '12px', color: '#999', margin: '0 0 8px 0'}}>Amount to Pay</p>
+                <p style={{fontSize: '28px', fontWeight: '700', color: '#FF6B00', margin: 0}}>
+                  ₱{gcashPaymentData.amount.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            {/* Payment Details */}
+            <div style={{
+              background: '#F9F9F9',
+              padding: '16px',
+              borderRadius: '8px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '8px',
+                fontSize: '14px'
+              }}>
+                <span style={{color: '#666'}}>Amount to Pay:</span>
+                <span style={{fontWeight: '700', fontSize: '18px', color: '#FF6B00'}}>
+                  ₱{gcashPaymentData.amount.toFixed(2)}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '8px',
+                fontSize: '13px'
+              }}>
+                <span style={{color: '#666'}}>Reference Number:</span>
+                <span style={{fontWeight: '600', color: '#111', fontFamily: 'monospace'}}>
+                  {gcashPaymentData.referenceNumber}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '13px'
+              }}>
+                <span style={{color: '#666'}}>Merchant:</span>
+                <span style={{fontWeight: '600', color: '#111'}}>
+                  {gcashPaymentData.merchantName}
+                </span>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div style={{
+              background: '#E3F2FD',
+              padding: '16px',
+              borderRadius: '8px',
+              marginBottom: '24px'
+            }}>
+              <h3 style={{
+                fontSize: '13px',
+                fontWeight: '700',
+                color: '#1976D2',
+                margin: '0 0 12px 0',
+                textTransform: 'uppercase'
+              }}>
+                How to Pay:
+              </h3>
+              <ol style={{
+                margin: 0,
+                paddingLeft: '20px',
+                fontSize: '13px',
+                color: '#555',
+                lineHeight: '1.8'
+              }}>
+                <li>Open your <strong>GCash App</strong></li>
+                <li>Tap <strong>"Send Money"</strong> or <strong>"Scan QR"</strong></li>
+                <li>Scan the QR code above OR enter amount: <strong>₱{gcashPaymentData.amount.toFixed(2)}</strong></li>
+                <li>Review payment details and confirm</li>
+                <li>Your order will be confirmed immediately</li>
+              </ol>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{display: 'flex', gap: '12px'}}>
+              <button
+                onClick={() => {
+                  setNotification({ message: 'Payment completed! Your order has been placed. ✅', type: 'success' });
+                  setShowGCashModal(false);
+                  localStorage.removeItem('cart');
+                  setCart([]);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#111',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✓ Payment Done
+              </button>
+              <button
+                onClick={() => setShowGCashModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#F5F5F5',
+                  color: '#666',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Warning */}
+            <p style={{
+              fontSize: '11px',
+              color: '#999',
+              textAlign: 'center',
+              margin: '16px 0 0 0',
+              lineHeight: '1.6'
+            }}>
+              ⚠️ Make sure to save your reference number for tracking. Your order will be confirmed after payment verification.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

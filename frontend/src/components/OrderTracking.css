@@ -1,0 +1,124 @@
+/* OrderTracking Component Styles */
+
+.order-tracking-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.order-tracking-header {
+  margin-bottom: 40px;
+}
+
+.order-tracking-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.order-tracking-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.notification-badge {
+  background: #E3F2FD;
+  border: 1px solid #2196F3;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 30px;
+}
+
+.notification-item {
+  background: #FFF;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border-left: 4px solid #2196F3;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.order-card {
+  background: #FFF;
+  border: 1px solid #EEE;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.order-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.status-timeline {
+  position: relative;
+  margin: 20px 0;
+  padding: 20px 0;
+}
+
+.status-timeline::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #EEE;
+}
+
+.status-timeline::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  height: 2px;
+  background: #FF6B00;
+  width: 100%;
+  transition: width 0.5s ease;
+}
+
+.status-item {
+  text-align: center;
+  flex: 1;
+}
+
+.status-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #EEE;
+  border: 3px solid #FFF;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFF;
+  font-size: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-circle.active {
+  background: #FF6B00;
+}
+
+@media (max-width: 768px) {
+  .order-tracking-header h1 {
+    font-size: 24px;
+  }
+
+  .order-card {
+    padding: 16px;
+  }
+
+  .status-timeline {
+    padding: 16px 0;
+  }
+}

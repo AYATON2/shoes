@@ -8,6 +8,8 @@ use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\AddressController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReportController;
+use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\SaleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,4 +48,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/users/{user}/activate', [UserController::class, 'activate']);
     Route::patch('/users/{user}/approve', [UserController::class, 'approve']);
     Route::patch('/users/{user}/suspend', [UserController::class, 'suspend']);
+    
+    // Notification routes
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread', [NotificationController::class, 'unread']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    
+    // Sale routes
+    Route::get('/sales', [SaleController::class, 'index']);
+    Route::get('/sales/active', [SaleController::class, 'getActiveSales']);
+    Route::get('/products/{productId}/sales', [SaleController::class, 'getProductSales']);
+    Route::post('/sales', [SaleController::class, 'store']);
+    Route::put('/sales/{id}', [SaleController::class, 'update']);
+    Route::delete('/sales/{id}', [SaleController::class, 'destroy']);
+    Route::patch('/sales/{id}/toggle', [SaleController::class, 'toggleActive']);
 });

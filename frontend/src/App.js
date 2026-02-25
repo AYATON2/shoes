@@ -17,6 +17,7 @@ import AdminProfile from './components/AdminProfile';
 import AdminProductDetail from './components/AdminProductDetail';
 import Checkout from './components/Checkout';
 import Profile from './components/Profile';
+import OrderTracking from './components/OrderTracking';
 
 function AppContent() {
   const location = useLocation();
@@ -25,6 +26,7 @@ function AppContent() {
                      location.pathname !== '/login' && 
                      location.pathname !== '/register' && 
                      location.pathname !== '/seller-dashboard' &&
+                     location.pathname !== '/order-tracking' &&
                      !location.pathname.startsWith('/admin');
   return (
     <div className="App">
@@ -45,6 +47,7 @@ function AppContent() {
           <Route path="/admin-profile" element={<AdminProfile />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/order-tracking" element={<OrderTracking />} />
         </Routes>
       </div>
     );

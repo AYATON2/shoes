@@ -30,7 +30,15 @@ class AddressController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $address = Address::create($request->all() + ['user_id' => auth()->id()]);
+        $address = Address::create([
+            'user_id' => auth()->id(),
+            'street' => $request->street,
+            'city' => $request->city,
+            'state' => $request->state,
+            'zip' => $request->zip,
+            'country' => $request->country,
+            'is_default' => $request->is_default ?? false,
+        ]);
 
         if ($request->is_default) {
             Address::where('user_id', auth()->id())->where('id', '!=', $address->id)->update(['is_default' => false]);

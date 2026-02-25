@@ -1,0 +1,154 @@
+/* OrderManagement Component Styles */
+
+.order-management-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.order-management-header {
+  margin-bottom: 30px;
+}
+
+.order-management-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.order-management-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 2px solid #EEE;
+  margin-bottom: 30px;
+  overflow-x: auto;
+}
+
+.filter-tab {
+  background: none;
+  border: none;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.filter-tab.active {
+  font-weight: 700;
+  color: #FF6B00;
+  border-bottom: 3px solid #FF6B00;
+}
+
+.order-item {
+  background: #FFF;
+  border: 1px solid #EEE;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.order-item:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.order-info {
+  flex: 1;
+}
+
+.order-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.order-info p {
+  margin: 5px 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFF;
+  white-space: nowrap;
+}
+
+.status-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.status-button {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.status-button:disabled {
+  background: #EEE;
+  color: #999;
+  cursor: default;
+}
+
+.status-button:not(:disabled) {
+  background: #FF6B00;
+  color: #FFF;
+}
+
+.status-button:not(:disabled):hover {
+  background: #E55A00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (max-width: 768px) {
+  .order-management-header h1 {
+    font-size: 24px;
+  }
+
+  .order-header {
+    flex-direction: column;
+  }
+
+  .filter-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
