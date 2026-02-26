@@ -34,6 +34,39 @@ const Header = () => {
     });
   };
 
+  const goToDashboard = async () => {
+    try {
+      // Fetch fresh user data to ensure we have the correct role
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      
+      const response = await axios.get('/api/user');
+      const freshUser = response.data;
+      setUser(freshUser); // Update the state with fresh data
+      
+      // Navigate based on the fresh user role
+      if (freshUser.role === 'customer') {
+        navigate('/customer-dashboard');
+      } else if (freshUser.role === 'seller') {
+        navigate('/seller-dashboard');
+      } else if (freshUser.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        // Default to customer dashboard if role is unknown
+        navigate('/customer-dashboard');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // If fetching user fails, clear token and redirect to login
+      localStorage.removeItem('token');
+      setUser(null);
+      navigate('/login');
+    }
+  };
+
   return (
     <>
     <header style={{
@@ -97,14 +130,21 @@ const Header = () => {
           
           {user ? (
             <>
-              <Link to={user.role === 'customer' ? '/customer-dashboard' : user.role === 'seller' ? '/seller-dashboard' : '/admin-dashboard'} style={{
+              <button onClick={goToDashboard} style={{
+                background: 'transparent',
                 color: '#111',
-                textDecoration: 'none',
+                border: 'none',
+                padding: '0',
                 fontSize: '15px',
-                fontWeight: '500'
-              }}>
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'none'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#757575'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#111'}
+              >
                 Dashboard
-              </Link>
+              </button>
               <button onClick={() => setProfilePanelOpen(true)} style={{
                 background: 'transparent',
                 border: 'none',

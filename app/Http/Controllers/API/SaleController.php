@@ -70,7 +70,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'nullable|exists:products,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'discount_amount' => 'nullable|numeric|min:0',
@@ -84,11 +84,28 @@ class SaleController extends Controller
         }
 
         $user = auth()->user();
-        $product = Product::findOrFail($request->product_id);
 
-        // Check authorization - seller can only create sales for their products
-        if ($user->role === 'seller' && $product->seller_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        // For product-specific sales, check product ownership
+        if ($request->product_id) {
+            $product = Product::findOrFail($request->product_id);
+
+            // Check authorization - seller can only create sales for their products
+            if ($user->role === 'seller' && $product->seller_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Calculate sale price for product-specific sale
+            $originalPrice = $product->price;
+            $salePrice = $originalPrice;
+
+            if ($request->discount_percentage) {
+                $salePrice = $originalPrice - ($originalPrice * ($request->discount_percentage / 100));
+            } elseif ($request->discount_amount) {
+                $salePrice = $originalPrice - $request->discount_amount;
+            }
+        } else {
+            // Store-wide sale - no specific product
+            $salePrice = null;
         }
 
         // Validate that at least one discount type is provided
@@ -96,16 +113,6 @@ class SaleController extends Controller
             return response()->json([
                 'message' => 'Either discount_amount or discount_percentage must be provided'
             ], 422);
-        }
-
-        // Calculate sale price
-        $originalPrice = $product->price;
-        $salePrice = $originalPrice;
-
-        if ($request->discount_percentage) {
-            $salePrice = $originalPrice - ($originalPrice * ($request->discount_percentage / 100));
-        } elseif ($request->discount_amount) {
-            $salePrice = $originalPrice - $request->discount_amount;
         }
 
         $sale = Sale::create([
@@ -118,7 +125,7 @@ class SaleController extends Controller
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'is_active' => true,
-            'sale_price' => max(0, $salePrice) // Ensure price doesn't go below 0
+            'sale_price' => $salePrice !== null ? max(0, $salePrice) : null // Ensure price doesn't go below 0
         ]);
 
         if ($this->shouldNotifySaleActivation($sale)) {
@@ -165,8 +172,8 @@ class SaleController extends Controller
             'is_active'
         ]));
 
-        // Recalculate sale price
-        if ($request->has('discount_amount') || $request->has('discount_percentage')) {
+        // Recalculate sale price (only for product-specific sales)
+        if ($sale->product_id && ($request->has('discount_amount') || $request->has('discount_percentage'))) {
             $product = $sale->product;
             $originalPrice = $product->price;
             $salePrice = $originalPrice;
@@ -235,19 +242,26 @@ class SaleController extends Controller
     private function createSaleNotifications(Sale $sale)
     {
         $sale->loadMissing('product', 'seller');
-        $productName = $sale->product->name ?? 'a product';
         $discountText = '';
         $discountAmount = $sale->discount_amount ? (float)$sale->discount_amount : 0.0;
         $discountPercentage = $sale->discount_percentage ? (float)$sale->discount_percentage : 0.0;
 
         if ($discountPercentage > 0) {
-            $discountText = " ({$discountPercentage}% off)";
+            $discountText = "{$discountPercentage}% off";
         } elseif ($discountAmount > 0) {
-            $discountText = ' (Save ₱' . number_format((float)$discountAmount, 2) . ')';
+            $discountText = 'Save ₱' . number_format((float)$discountAmount, 2);
         }
 
         $title = 'New Sale';
-        $message = "{$productName} is now on sale{$discountText}.";
+        if ($sale->product_id) {
+            // Product-specific sale
+            $productName = $sale->product->name ?? 'a product';
+            $message = "{$productName} is now on sale ({$discountText}).";
+        } else {
+            // Store-wide sale
+            $sellerName = $sale->seller->name ?? 'A seller';
+            $message = "{$sellerName} has a store-wide sale! {$discountText} on all products.";
+        }
         $now = now();
 
         User::where('role', 'customer')

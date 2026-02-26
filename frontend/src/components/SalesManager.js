@@ -9,7 +9,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [formData, setFormData] = useState({
-    product_id: productId || '',
+    product_id: null, // Always null for store-wide sales
     title: '',
     description: '',
     discount_amount: '',
@@ -44,11 +44,16 @@ const SalesManager = ({ productId = null, products = [] }) => {
     }
 
     try {
+      const payload = {
+        ...formData,
+        product_id: null // Always null for store-wide sales
+      };
+
       if (editingSale) {
-        await axios.put(`/api/sales/${editingSale.id}`, formData);
+        await axios.put(`/api/sales/${editingSale.id}`, payload);
         showNotification('Sale updated successfully!', 'success');
       } else {
-        await axios.post('/api/sales', formData);
+        await axios.post('/api/sales', payload);
         showNotification('Sale created successfully!', 'success');
       }
       fetchSales();
@@ -63,7 +68,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
   const handleEdit = (sale) => {
     setEditingSale(sale);
     setFormData({
-      product_id: sale.product_id,
+      product_id: null, // Always null for store-wide sales
       title: sale.title,
       description: sale.description || '',
       discount_amount: sale.discount_amount || '',
@@ -97,7 +102,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const resetForm = () => {
     setFormData({
-      product_id: productId || '',
+      product_id: null,
       title: '',
       description: '',
       discount_amount: '',
@@ -115,6 +120,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
   };
 
   const getProductName = (productId) => {
+    if (!productId) return 'All Products (Store-Wide)';
     const product = products.find(p => p.id === productId);
     return product ? product.name : `Product #${productId}`;
   };
@@ -156,9 +162,14 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#333', margin: 0 }}>
-          Sales & Promotions
-        </h1>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#333', margin: '0 0 4px 0' }}>
+            Sales & Promotions
+          </h1>
+          <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+            Create store-wide sales that apply to all your products (Holiday Sales, Flash Sales, etc.)
+          </p>
+        </div>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
@@ -187,39 +198,96 @@ const SalesManager = ({ productId = null, products = [] }) => {
           marginBottom: '30px',
           border: '1px solid #EEE'
         }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#333', margin: '0 0 20px 0' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#333', margin: '0 0 8px 0' }}>
             {editingSale ? 'Edit Sale' : 'Create New Sale'}
           </h2>
+          <p style={{ fontSize: '13px', color: '#666', margin: '0 0 20px 0', lineHeight: '1.6' }}>
+            Create a sale that applies to all products or individual products
+          </p>
 
           <form onSubmit={handleSubmit}>
-            {/* Product Selection */}
-            {!productId && (
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-                  Product *
+            {/* Sale Type Selection */}
+            <div style={{ 
+              marginBottom: '20px', 
+              padding: '16px', 
+              background: '#F5F5F5', 
+              borderRadius: '8px',
+              border: '1px solid #E0E0E0'
+            }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '12px', color: '#333' }}>
+                Sale Type *
+              </label>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <label style={{ 
+                  flex: 1,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  cursor: 'pointer',
+                  padding: '12px',
+                  background: formData.sale_type === 'store-wide' ? '#E3F2FD' : '#FFF',
+                  border: formData.sale_type === 'store-wide' ? '2px solid #2196F3' : '2px solid #E0E0E0',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="radio"
+                    name="sale_type"
+                    value="store-wide"
+                    checked={formData.sale_type === 'store-wide'}
+                    onChange={(e) => setFormData({ ...formData, sale_type: e.target.value, product_id: null })}
+                    style={{ marginRight: '8px', width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#333', fontSize: '14px' }}>🏬 Store-Wide</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>Apply to all products</div>
+                  </div>
                 </label>
-                <select
-                  value={formData.product_id}
-                  onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #DDD',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="">Select a product</option>
-                  {products.map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} - ₱{product.price}
-                    </option>
-                  ))}
-                </select>
+                
+                <label style={{ 
+                  flex: 1,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  cursor: 'pointer',
+                  padding: '12px',
+                  background: formData.sale_type === 'individual' ? '#FFF3E0' : '#FFF',
+                  border: formData.sale_type === 'individual' ? '2px solid #FF9800' : '2px solid #E0E0E0',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="radio"
+                    name="sale_type"
+                    value="individual"
+                    checked={formData.sale_type === 'individual'}
+                    onChange={(e) => setFormData({ ...formData, sale_type: e.target.value })}
+                    style={{ marginRight: '8px', width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#333', fontSize: '14px' }}>🏷️ Individual</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>For specific products</div>
+                  </div>
+                </label>
               </div>
-            )}
+            </div>
+
+            {/* Info Notice */}
+            <div style={{ 
+              marginBottom: '20px', 
+              padding: '16px', 
+              background: '#E3F2FD', 
+              borderRadius: '8px',
+              border: '1px solid #90CAF9'
+            }}>
+              <p style={{ 
+                margin: '0', 
+                fontSize: '13px', 
+                color: '#1565C0',
+                lineHeight: '1.6'
+              }}>
+                💡 <strong>Tip:</strong> Individual sales can be assigned to specific products later from the <strong>"My Products"</strong> tab.
+                Create the sale here, then go to each product to apply it.
+              </p>
+            </div>
 
             {/* Title */}
             <div style={{ marginBottom: '16px' }}>
@@ -230,7 +298,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter sale title"
+                placeholder="Enter sale title (e.g., 7/7 SALE, Holiday Sale 2026)"
                 required
                 style={{
                   width: '100%',
@@ -403,7 +471,8 @@ const SalesManager = ({ productId = null, products = [] }) => {
           borderRadius: '8px',
           color: '#999'
         }}>
-          <p style={{ fontSize: '16px' }}>No sales yet. Create one to get started!</p>
+          <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>No store-wide sales yet</p>
+          <p style={{ fontSize: '13px', margin: 0 }}>Create a holiday sale or flash promotion that applies to all your products!</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '16px' }}>
@@ -423,9 +492,24 @@ const SalesManager = ({ productId = null, products = [] }) => {
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '700', color: '#333' }}>
-                    {sale.title}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <h3 style={{ margin: '0', fontSize: '16px', fontWeight: '700', color: '#333' }}>
+                      {sale.title}
+                    </h3>
+                    {!sale.product_id && (
+                      <span style={{
+                        background: '#E3F2FD',
+                        color: '#1976D2',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        textTransform: 'uppercase'
+                      }}>
+                        STORE-WIDE
+                      </span>
+                    )}
+                  </div>
                   <p style={{ margin: '4px 0', fontSize: '13px', color: '#666' }}>
                     📦 {getProductName(sale.product_id)}
                   </p>
@@ -433,7 +517,9 @@ const SalesManager = ({ productId = null, products = [] }) => {
                     {sale.discount_percentage
                       ? `${sale.discount_percentage}% off`
                       : `₱${sale.discount_amount} off`}
-                    {' '} | Original: ₱{sale.product?.price} → Sale: ₱{sale.sale_price}
+                    {sale.product && sale.sale_price && (
+                      <span> | Original: ₱{sale.product?.price} → Sale: ₱{sale.sale_price}</span>
+                    )}
                   </p>
                   <p style={{ margin: '4px 0', fontSize: '12px', color: '#999' }}>
                     {new Date(sale.start_date).toLocaleDateString()} - {new Date(sale.end_date).toLocaleDateString()}
@@ -490,7 +576,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
                   <button
                     onClick={() => handleDelete(sale.id)}
                     style={{
-                      background: '#F44336',
+                      background: '#E53935',
                       color: '#FFF',
                       border: 'none',
                       padding: '6px 12px',
