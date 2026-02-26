@@ -84,10 +84,31 @@ const OrderManagement = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
+      const order = orders.find(o => o.id === orderId);
+      
+      // Check if GCash payment needs verification before quality check
+      if (newStatus === 'quality_check' && order.payment_method === 'gcash') {
+        if (!order.payment?.verified_at) {
+          alert('Please verify the GCash payment proof before moving to quality check.');
+          return;
+        }
+      }
+      
       await axios.put(`/api/orders/${orderId}`, { status: newStatus });
       fetchOrders();
     } catch (error) {
       console.error('Error updating order:', error);
+    }
+  };
+
+  const verifyPayment = async (orderId, action) => {
+    try {
+      const response = await axios.post(`/api/orders/${orderId}/verify-payment`, { action });
+      alert(response.data.message);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      alert(error.response?.data?.message || 'Error verifying payment');
     }
   };
 
@@ -225,6 +246,18 @@ const OrderManagement = () => {
                         🆕 NEW
                       </span>
                     )}
+                    {order.payment_method === 'gcash' && order.payment?.status === 'pending' && (
+                      <span style={{
+                        background: '#FFC107',
+                        color: '#FFFFFF',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: '700'
+                      }}>
+                        💳 Needs Verification
+                      </span>
+                    )}
                   </h3>
                   <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#999' }}>
                     Customer: {order.user?.name || 'Unknown'}
@@ -305,6 +338,102 @@ const OrderManagement = () => {
                       );
                     })()}
                   </div>
+
+                  {/* Payment Information */}
+                  {order.payment_method === 'gcash' && order.payment && (
+                    <div style={{ marginBottom: '20px', padding: '15px', background: '#FFF', borderRadius: '6px', border: '1px solid #EEE' }}>
+                      <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#333' }}>
+                        GCash Payment Information
+                      </h4>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#666' }}>
+                        <strong>Reference:</strong> {order.payment.gcash_reference || 'N/A'}
+                      </p>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#666' }}>
+                        <strong>Status:</strong> 
+                        <span style={{ 
+                          marginLeft: '8px',
+                          padding: '2px 8px', 
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          background: order.payment.status === 'completed' ? '#4CAF50' : 
+                                     order.payment.status === 'failed' ? '#FF6B6B' : '#FFC107',
+                          color: '#FFF'
+                        }}>
+                          {order.payment.status === 'completed' ? '✓ Verified' : 
+                           order.payment.status === 'failed' ? '✗ Rejected' : '⏳ Pending'}
+                        </span>
+                      </p>
+                      {order.payment.verified_at && (
+                        <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#999' }}>
+                          Verified on {new Date(order.payment.verified_at).toLocaleString()}
+                        </p>
+                      )}
+                      {order.payment.payment_screenshot && (
+                        <div>
+                          <p style={{ margin: '0 0 5px 0', fontSize: '13px', fontWeight: '600', color: '#333' }}>
+                            Payment Proof:
+                          </p>
+                          <img 
+                            src={`/${order.payment.payment_screenshot}`} 
+                            alt="Payment Proof" 
+                            style={{ 
+                              maxWidth: '100%', 
+                              maxHeight: '400px', 
+                              borderRadius: '8px',
+                              border: '2px solid #EEE',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => window.open(`/${order.payment.payment_screenshot}`, '_blank')}
+                          />
+                        </div>
+                      )}
+                      {order.payment.status === 'pending' && !order.payment.verified_at && (
+                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                          <button
+                            onClick={() => verifyPayment(order.id, 'approve')}
+                            style={{
+                              background: '#4CAF50',
+                              color: '#FFF',
+                              border: 'none',
+                              padding: '10px 20px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              transition: 'all 0.3s ease',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#45a049'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#4CAF50'}
+                          >
+                            ✓ Approve Payment
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to reject this payment? This will cancel the order.')) {
+                                verifyPayment(order.id, 'reject');
+                              }
+                            }}
+                            style={{
+                              background: '#FF6B6B',
+                              color: '#FFF',
+                              border: 'none',
+                              padding: '10px 20px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              transition: 'all 0.3s ease',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#E74C3C'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#FF6B6B'}
+                          >
+                            ✗ Reject Payment
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Status Update & Actions */}
                   <div style={{

@@ -5,6 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property float $discount_amount
+ * @property float $discount_percentage
+ * @property float $sale_price
+ * @property bool $is_active
+ * @property \Carbon\Carbon $start_date
+ * @property \Carbon\Carbon $end_date
+ */
 class Sale extends Model
 {
     use HasFactory;

@@ -590,7 +590,9 @@ const Checkout = () => {
             borderRadius: '16px',
             maxWidth: '500px',
             width: '100%',
-            padding: '24px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            padding: '20px',
             paddingTop: '50px',
             position: 'relative',
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
@@ -633,7 +635,7 @@ const Checkout = () => {
             </button>
 
             {/* Header */}
-            <div style={{textAlign: 'center', marginBottom: '24px'}}>
+            <div style={{textAlign: 'center', marginBottom: '16px'}}>
               <div style={{
                 width: '60px',
                 height: '60px',
@@ -668,9 +670,9 @@ const Checkout = () => {
             {/* Payment Info Box - QR Code Image */}
             <div style={{
               background: '#F5F5F5',
-              padding: '24px',
+              padding: '16px',
               borderRadius: '12px',
-              marginBottom: '24px',
+              marginBottom: '16px',
               textAlign: 'center'
             }}>
               <p style={{
@@ -686,30 +688,31 @@ const Checkout = () => {
               {/* GCash QR Code - Merchant */}
               <div style={{
                 background: '#FFFFFF',
-                padding: '20px',
+                padding: '16px',
                 borderRadius: '12px',
                 display: 'inline-block',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                minWidth: '200px',
                 textAlign: 'center'
               }}>
                 <img
-                  src="/gcash-qr.png"
+                  src="/gcash-qr.jpeg"
                   alt="GCash QR Code"
                   style={{
-                    width: '180px',
-                    height: '180px',
-                    objectFit: 'contain',
-                    border: '1px solid #EEE',
-                    display: 'block'
+                    width: '200px',
+                    height: '200px',
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                    border: '2px solid #EEE',
+                    display: 'block',
+                    margin: '0 auto'
                   }}
                 />
               </div>
 
               {/* Amount to Pay */}
               <div style={{
-                marginTop: '20px',
-                padding: '16px',
+                marginTop: '12px',
+                padding: '12px',
                 background: '#FFFFFF',
                 borderRadius: '8px'
               }}>
@@ -723,9 +726,9 @@ const Checkout = () => {
             {/* Payment Details */}
             <div style={{
               background: '#F9F9F9',
-              padding: '16px',
+              padding: '12px',
               borderRadius: '8px',
-              marginBottom: '24px'
+              marginBottom: '16px'
             }}>
               <div style={{
                 display: 'flex',
@@ -764,9 +767,9 @@ const Checkout = () => {
             {/* Instructions */}
             <div style={{
               background: '#E3F2FD',
-              padding: '16px',
+              padding: '12px',
               borderRadius: '8px',
-              marginBottom: '24px'
+              marginBottom: '16px'
             }}>
               <h3 style={{
                 fontSize: '13px',

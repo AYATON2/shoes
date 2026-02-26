@@ -237,11 +237,13 @@ class SaleController extends Controller
         $sale->loadMissing('product', 'seller');
         $productName = $sale->product->name ?? 'a product';
         $discountText = '';
+        $discountAmount = $sale->discount_amount ? (float)$sale->discount_amount : 0.0;
+        $discountPercentage = $sale->discount_percentage ? (float)$sale->discount_percentage : 0.0;
 
-        if ($sale->discount_percentage) {
-            $discountText = " ({$sale->discount_percentage}% off)";
-        } elseif ($sale->discount_amount) {
-            $discountText = ' (Save ₱' . number_format($sale->discount_amount, 2) . ')';
+        if ($discountPercentage > 0) {
+            $discountText = " ({$discountPercentage}% off)";
+        } elseif ($discountAmount > 0) {
+            $discountText = ' (Save ₱' . number_format((float)$discountAmount, 2) . ')';
         }
 
         $title = 'New Sale';

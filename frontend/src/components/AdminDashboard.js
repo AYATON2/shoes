@@ -239,7 +239,7 @@ const AdminDashboard = () => {
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div style={{flex: 1}}>
                   <h1 style={{
-                    fontSize: 'var(--font-size-4xl)',
+                    fontSize: 'var(--font-size-3xl)',
                     fontWeight: 700,
                     margin: 0,
                     marginBottom: 'var(--spacing-md)',

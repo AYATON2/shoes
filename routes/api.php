@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class)->except(['index']);
     Route::apiResource('orders', OrderController::class)->except(['destroy']);
     Route::get('/orders/{id}/invoice', [OrderController::class, 'invoice']);
+    Route::post('/orders/{orderId}/verify-payment', [OrderController::class, 'verifyPayment']);
     Route::apiResource('addresses', AddressController::class);
     Route::get('/reports/sales', [ReportController::class, 'salesReport']);
     Route::get('/reports/inventory', [ReportController::class, 'inventoryReport']);

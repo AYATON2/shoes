@@ -354,25 +354,6 @@ const SellerDashboard = () => {
           <button style={{
             width: '100%',
             padding: '14px 24px',
-            background: activeTab === 'manage-orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'manage-orders' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('manage-orders')}>
-            <i className="fas fa-truck" style={{ width: '20px' }}></i>
-            <span>Manage Orders</span>
-          </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
             background: activeTab === 'analytics' ? 'rgba(255,255,255,0.1)' : 'transparent',
             border: 'none',
             color: '#FFF',
@@ -470,7 +451,7 @@ const SellerDashboard = () => {
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div style={{flex: 1}}>
                   <h1 style={{
-                    fontSize: 'var(--font-size-4xl)',
+                    fontSize: 'var(--font-size-3xl)',
                     fontWeight: 700,
                     margin: 0,
                     marginBottom: 'var(--spacing-md)',
@@ -664,12 +645,6 @@ const SellerDashboard = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'manage-orders' && (
-          <div className="fade-in">
-            <OrderManagement />
           </div>
         )}
 
