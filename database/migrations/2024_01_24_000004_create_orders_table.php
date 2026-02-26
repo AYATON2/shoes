@@ -18,7 +18,7 @@ class CreateOrdersTable extends Migration
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->decimal('total', 10, 2);
-            $table->enum('status', ['received', 'quality_check', 'shipped', 'delivered'])->default('received');
+            $table->enum('status', ['received', 'quality_check', 'shipped', 'delivered', 'cancelled'])->default('received');
             $table->unsignedBigInteger('shipping_address_id');
             $table->foreign('shipping_address_id')->references('id')->on('addresses');
             $table->enum('payment_method', ['gcash', 'cod']);

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
+import SalesManager from './SalesManager';
+import OrderManagement from './OrderManagement';
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -9,7 +11,14 @@ const SellerDashboard = () => {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({ totalSales: 0, activeProducts: 0, pendingOrders: 0 });
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabState] = useState(() => {
+    return localStorage.getItem('sellerDashboardTab') || 'dashboard';
+  });
+  
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    localStorage.setItem('sellerDashboardTab', tab);
+  };
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [notification, setNotification] = useState(null);
@@ -47,20 +56,18 @@ const SellerDashboard = () => {
   const fetchData = async () => {
     setInitialLoading(true);
     try {
-      // Fetch all data in parallel for faster loading
-      const [userRes, productsRes, ordersRes] = await Promise.all([
-        axios.get('/api/user'),
-        axios.get('/api/products'),
-        axios.get('/api/orders')
-      ]);
-      
+      // Fetch user data
+      const userRes = await axios.get('/api/user');
       setUser(userRes.data);
       
-      // Fetch only products created by this seller
+      // Fetch ALL products (no pagination limit) for this seller
+      const productsRes = await axios.get('/api/products?limit=1000');
       const allProducts = productsRes.data.data || [];
       const sellerProducts = allProducts.filter(p => p.seller_id === userRes.data.id);
       setProducts(sellerProducts);
       
+      // Fetch orders
+      const ordersRes = await axios.get('/api/orders');
       const ordersList = ordersRes.data.data || [];
       setOrders(ordersList);
       
@@ -347,7 +354,7 @@ const SellerDashboard = () => {
           <button style={{
             width: '100%',
             padding: '14px 24px',
-            background: activeTab === 'orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            background: activeTab === 'manage-orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
             border: 'none',
             color: '#FFF',
             textAlign: 'left',
@@ -357,11 +364,11 @@ const SellerDashboard = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            borderLeft: activeTab === 'orders' ? '3px solid #FFF' : '3px solid transparent',
+            borderLeft: activeTab === 'manage-orders' ? '3px solid #FFF' : '3px solid transparent',
             transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('orders')}>
-            <i className="fas fa-shopping-cart" style={{ width: '20px' }}></i>
-            <span>Orders</span>
+          }} onClick={() => setActiveTab('manage-orders')}>
+            <i className="fas fa-truck" style={{ width: '20px' }}></i>
+            <span>Manage Orders</span>
           </button>
           <button style={{
             width: '100%',
@@ -381,6 +388,25 @@ const SellerDashboard = () => {
           }} onClick={() => setActiveTab('analytics')}>
             <i className="fas fa-chart-bar" style={{ width: '20px' }}></i>
             <span>Analytics</span>
+          </button>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'sales' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'sales' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('sales')}>
+            <i className="fas fa-tag" style={{ width: '20px' }}></i>
+            <span>Sales & Promotions</span>
           </button>
           <button style={{
             width: '100%',
@@ -542,14 +568,14 @@ const SellerDashboard = () => {
                     <button className="btn btn-primary w-full" onClick={() => setActiveTab('products')}>
                       <i className="fas fa-plus"></i> Add Product
                     </button>
-                    <button className="btn btn-secondary w-full" onClick={() => setActiveTab('orders')}>
+                    <button className="btn btn-secondary w-full" onClick={() => setActiveTab('manage-orders')}>
                       <i className="fas fa-eye"></i> View Orders
+                    </button>
+                    <button className="btn btn-secondary w-full" onClick={() => setActiveTab('sales')}>
+                      <i className="fas fa-tag"></i> Sales & Promos
                     </button>
                     <button className="btn btn-secondary w-full" onClick={() => setActiveTab('analytics')}>
                       <i className="fas fa-chart-bar"></i> Analytics
-                    </button>
-                    <button className="btn btn-secondary w-full" onClick={() => setActiveTab('profile')}>
-                      <i className="fas fa-cog"></i> Settings
                     </button>
                   </div>
                 </div>
@@ -559,7 +585,7 @@ const SellerDashboard = () => {
               <div className="card">
                 <div className="card-header">
                   <h3 style={{margin: 0}}>Recent Orders</h3>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('orders')}>View All</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('manage-orders')}>View All</button>
                 </div>
                 <div className="card-body">
                   {orders.length > 0 ? (
@@ -641,59 +667,9 @@ const SellerDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'orders' && (
+        {activeTab === 'manage-orders' && (
           <div className="fade-in">
-            <div style={{marginBottom: 'var(--spacing-lg)'}}>
-              <h2 style={{fontSize: 'var(--font-size-2xl)', fontWeight: 700}}>Orders Management</h2>
-              <p style={{color: 'var(--gray-600)'}}>Manage and track all your orders</p>
-            </div>
-            <div className="card">
-              <div className="card-body">
-                {orders.length > 0 ? (
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.map(order => (
-                        <tr key={order.id}>
-                          <td>#{order.id}</td>
-                          <td>Customer</td>
-                          <td style={{fontWeight: 600}}>₱{parseFloat(order.total || 0).toFixed(2)}</td>
-                          <td>
-                            <select
-                              value={order.status}
-                              onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                              style={{padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-300)', background: 'white', cursor: 'pointer'}}
-                            >
-                              <option value="received">Received</option>
-                              <option value="quality_check">Quality Check</option>
-                              <option value="shipped">Shipped</option>
-                              <option value="delivered">Delivered</option>
-                            </select>
-                          </td>
-                          <td>
-                            <button className="btn btn-ghost btn-sm">
-                              <i className="fas fa-eye"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="empty-state">
-                    <p className="text-muted">No orders yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <OrderManagement />
           </div>
         )}
 
@@ -835,6 +811,12 @@ const SellerDashboard = () => {
                 <p>Analytics charts coming soon...</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'sales' && (
+          <div className="fade-in">
+            <SalesManager products={products} />
           </div>
         )}
 

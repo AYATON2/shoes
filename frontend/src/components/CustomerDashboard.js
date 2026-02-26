@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import ProductList from './ProductList';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [user, setUser] = useState(null);
   const [cart, setCart] = useState([]);
@@ -15,6 +16,17 @@ const CustomerDashboard = () => {
   const [editMode, setEditMode] = useState(false);
   const [profileData, setProfileData] = useState({ name: '', email: '' });
   const [message, setMessage] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
+
+  const getAuthConfig = () => {
+    const token = localStorage.getItem('token');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,10 +34,30 @@ const CustomerDashboard = () => {
       navigate('/login');
       return;
     }
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     loadUserData();
     loadCart();
+    fetchNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  useEffect(() => {
+    if (showNotificationsPanel) {
+      fetchNotifications();
+      const interval = setInterval(() => {
+        fetchNotifications();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [showNotificationsPanel]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (activeTab === 'orders' && orders.length === 0) {
@@ -36,7 +68,7 @@ const CustomerDashboard = () => {
 
   const loadUserData = () => {
     setInitialLoading(true);
-    axios.get('/api/user')
+    axios.get('/api/user', getAuthConfig())
       .then(res => {
         setUser(res.data);
         setProfileData({ name: res.data.name, email: res.data.email });
@@ -52,9 +84,61 @@ const CustomerDashboard = () => {
     setCart(JSON.parse(localStorage.getItem('cart') || '[]'));
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get('/api/notifications', getAuthConfig());
+      const data = response.data.data || response.data.notifications || response.data || [];
+      setNotifications(data);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      setNotifications([]);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+    if (!notificationId) {
+      return;
+    }
+    try {
+      await axios.put(`/api/notifications/${notificationId}/read`, null, getAuthConfig());
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const deleteNotification = async (notificationId) => {
+    if (!notificationId) {
+      return;
+    }
+    try {
+      await axios.delete(`/api/notifications/${notificationId}`, getAuthConfig());
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await axios.put('/api/notifications/read-all', null, getAuthConfig());
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const toggleNotificationsPanel = () => {
+    const nextState = !showNotificationsPanel;
+    setShowNotificationsPanel(nextState);
+    if (nextState) {
+      fetchNotifications();
+    }
+  };
+
   const loadOrders = () => {
     setLoadingOrders(true);
-    axios.get('/api/orders')
+    axios.get('/api/orders', getAuthConfig())
       .then(res => {
         setOrders(res.data.data || res.data);
         setLoadingOrders(false);
@@ -68,7 +152,7 @@ const CustomerDashboard = () => {
   const handleProfileUpdate = (e) => {
     e.preventDefault();
     setMessage('');
-    axios.put('/api/user', profileData)
+    axios.put('/api/user', profileData, getAuthConfig())
       .then(res => {
         setUser(res.data);
         setEditMode(false);
@@ -146,6 +230,64 @@ const CustomerDashboard = () => {
               fontSize: '15px',
               fontWeight: '500'
             }}>Browse</Link>
+            <button
+              onClick={toggleNotificationsPanel}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#111',
+                cursor: 'pointer',
+                fontSize: '15px',
+                display: 'inline-flex',
+                alignItems: 'center'
+              }}
+              aria-label="Notifications"
+              title="Notifications"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+              </svg>
+            </button>
+            <button
+              onClick={() => navigate('/customer-dashboard?tab=settings')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#111',
+                cursor: 'pointer',
+                fontSize: '15px',
+                display: 'inline-flex',
+                alignItems: 'center'
+              }}
+              aria-label="Profile settings"
+              title="Profile settings"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="7" r="4" />
+                <path d="M4 21a8 8 0 0116 0" />
+              </svg>
+            </button>
             <Link to="/checkout" style={{
               color: '#111',
               textDecoration: 'none',
@@ -183,6 +325,172 @@ const CustomerDashboard = () => {
           </nav>
         </div>
       </header>
+
+      {showNotificationsPanel && (
+        <div style={{
+          position: 'fixed',
+          top: '68px',
+          right: '20px',
+          width: '420px',
+          maxWidth: 'calc(100vw - 40px)',
+          maxHeight: 'calc(100vh - 100px)',
+          background: '#FFF',
+          border: '1px solid #E5E5E5',
+          borderRadius: '8px',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15)',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #E5E5E5',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111' }}>
+              Notifications
+            </h3>
+            <button
+              onClick={() => setShowNotificationsPanel(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '24px',
+                lineHeight: '1',
+                padding: 0
+              }}
+              aria-label="Close notifications"
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Actions Bar */}
+          <div style={{
+            padding: '10px 20px',
+            borderBottom: '1px solid #E5E5E5',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#FAFAFA'
+          }}>
+            <span style={{ fontSize: '13px', color: '#666' }}>
+              {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={markAllNotificationsAsRead}
+              style={{
+                background: 'none',
+                color: '#111',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '13px',
+                textDecoration: 'underline',
+                padding: 0
+              }}
+            >
+              Mark all as read
+            </button>
+          </div>
+
+          {/* Scrollable List */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          }}>
+            {notifications.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#999' }}>No notifications</p>
+              </div>
+            ) : (
+              notifications.map((notif, idx) => (
+                <div
+                  key={notif.id || idx}
+                  style={{
+                    padding: '16px 20px',
+                    borderBottom: idx !== notifications.length - 1 ? '1px solid #F0F0F0' : 'none',
+                    background: notif.read ? '#FAFAFA' : '#FFF',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#F5F5F5'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = notif.read ? '#FAFAFA' : '#FFF'}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <p style={{
+                      margin: 0,
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      color: '#111',
+                      flex: 1
+                    }}>
+                      {notif.title}
+                    </p>
+                    {!notif.read && (
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#1976D2',
+                        marginLeft: '8px',
+                        marginTop: '4px',
+                        flexShrink: 0
+                      }}></span>
+                    )}
+                  </div>
+                  <p style={{
+                    margin: '0 0 12px 0',
+                    fontSize: '13px',
+                    color: '#666',
+                    lineHeight: '1.5',
+                    whiteSpace: 'pre-line'
+                  }}>
+                    {notif.message}
+                  </p>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => markNotificationAsRead(notif.id)}
+                      style={{
+                        background: 'none',
+                        color: '#666',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Mark as read
+                    </button>
+                    <span style={{ color: '#E0E0E0' }}>•</span>
+                    <button
+                      onClick={() => deleteNotification(notif.id)}
+                      style={{
+                        background: 'none',
+                        color: '#666',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* MODERN WELCOME HERO SECTION */}
       <div style={{
@@ -283,6 +591,24 @@ const CustomerDashboard = () => {
               {tab.label}
             </button>
           ))}
+          <button
+            onClick={() => navigate('/order-tracking')}
+            style={{
+              flex: 1,
+              padding: '16px 20px',
+              border: 'none',
+              background: 'transparent',
+              color: '#999',
+              borderBottom: 'none',
+              fontWeight: '500',
+              fontSize: '15px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            <i className='fas fa-truck' style={{marginRight: '6px'}}></i>
+            Track Orders
+          </button>
         </div>
       </div>
 
@@ -392,13 +718,23 @@ const CustomerDashboard = () => {
                     </div>
                     {order.order_items && order.order_items.length > 0 && (
                       <div style={{marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F0F0F0'}}>
-                        <p style={{fontSize: '13px', color: '#999', margin: '0 0 8px 0', textTransform: 'uppercase'}}>Items ({order.order_items.length})</p>
-                        <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+                        <p style={{fontSize: '13px', color: '#999', margin: '0 0 12px 0', textTransform: 'uppercase'}}>Items ({order.order_items.length})</p>
+                        <div style={{display: 'grid', gap: '8px'}}>
                           {order.order_items.map((item, idx) => (
-                            <span key={idx} style={{fontSize: '14px', color: '#555'}}>
-                              {item.quantity}x {item.sku?.product?.name || 'Product'}
-                              {idx < order.order_items.length - 1 && ', '}
-                            </span>
+                            <div key={idx} style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              paddingBottom: '8px',
+                              borderBottom: idx < order.order_items.length - 1 ? '1px solid #F5F5F5' : 'none',
+                              fontSize: '14px'
+                            }}>
+                              <span style={{color: '#555', flex: 1}}>
+                                {item.quantity}x {item.sku?.product?.name || 'Product'}
+                              </span>
+                              <span style={{color: '#111', fontWeight: '600', marginLeft: '12px'}}>
+                                ₱{(parseFloat(item.price) * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
                           ))}
                         </div>
                       </div>

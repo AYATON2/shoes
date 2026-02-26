@@ -25,4 +25,19 @@ class Product extends Model
     {
         return $this->hasMany(UserCollection::class);
     }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    // Get active sale for this product
+    public function activeSale()
+    {
+        return $this->sales()
+            ->where('is_active', true)
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->first();
+    }
 }
