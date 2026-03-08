@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
 import SalesManager from './SalesManager';
 import OrderManagement from './OrderManagement';
 import ProductManager from './ProductManager';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -43,19 +44,11 @@ const SellerDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
+  const fetchData = useCallback(async (showInitialLoader = false) => {
+    if (showInitialLoader) {
+      setInitialLoading(true);
     }
-    // Set authorization header for all requests
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchData();
-  }, [navigate]);
 
-  const fetchData = async () => {
-    setInitialLoading(true);
     try {
       // Fetch user data
       const userRes = await axios.get('/api/user');
@@ -63,7 +56,6 @@ const SellerDashboard = () => {
       
       // Security check: Ensure only sellers can access this dashboard
       if (userData.role !== 'seller') {
-        console.warn('Access denied: User is not a seller');
         // Redirect to the appropriate dashboard based on role
         if (userData.role === 'customer') {
           navigate('/customer-dashboard');
@@ -76,19 +68,18 @@ const SellerDashboard = () => {
       }
       
       setUser(userData);
-      console.log('SellerDashboard: User:', userData);
       
-      // Fetch ALL products (no pagination limit) for this seller
-      const productsRes = await axios.get('/api/products?limit=1000');
+      // Fetch dashboard data in parallel to reduce loading time.
+      const [productsRes, ordersRes] = await Promise.all([
+        axios.get('/api/products?limit=1000'),
+        axios.get('/api/orders')
+      ]);
+
       const allProducts = productsRes.data.data || [];
-      console.log('SellerDashboard: All products from API:', allProducts);
       
       const sellerProducts = allProducts.filter(p => p.seller_id === userData.id);
-      console.log('SellerDashboard: Filtered seller products:', sellerProducts);
       setProducts(sellerProducts);
       
-      // Fetch orders
-      const ordersRes = await axios.get('/api/orders');
       const ordersList = ordersRes.data.data || [];
       setOrders(ordersList);
       
@@ -98,29 +89,30 @@ const SellerDashboard = () => {
       const pendingOrders = ordersList.filter(o => o.status !== 'completed').length;
       
       setStats({ totalSales: totalSales.toFixed(2), activeProducts, pendingOrders });
-      setInitialLoading(false);
     } catch (error) {
       console.error('Failed to fetch seller data:', error);
-      setInitialLoading(false);
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
+    } finally {
+      if (showInitialLoader) {
+        setInitialLoading(false);
+      }
     }
-  };
+  }, [navigate]);
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    axios.put(`/api/orders/${orderId}`, { status: newStatus })
-      .then(() => {
-        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-        setNotification({ message: 'Order status updated successfully!', type: 'success' });
-      })
-      .catch(err => {
-        console.error('Order status update error:', err.response?.data);
-        const errorMsg = err.response?.data?.errors?.status?.[0] || 'Failed to update order status';
-        setNotification({ message: errorMsg, type: 'error' });
-      });
-  };
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    // Set authorization header for all requests
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    fetchData(true);
+  }, [fetchData, navigate]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -165,6 +157,29 @@ const SellerDashboard = () => {
       ...formData,
       skus: formData.skus.filter((_, i) => i !== index)
     });
+  };
+
+  const handleEditProductFromManager = (product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name || '',
+      description: product.description || '',
+      brand: product.brand || '',
+      type: product.type || '',
+      price: product.price != null ? String(product.price) : '',
+      gender: product.gender || 'Men',
+      image: null,
+      imagePreview: product.image ? buildApiAssetUrl(`/storage/${product.image}`) : null,
+      skus: Array.isArray(product.skus)
+        ? product.skus.map((sku) => ({
+            size: sku.size || '',
+            color: sku.color || '',
+            width: sku.width || '',
+            stock: parseInt(sku.stock, 10) || 0
+          }))
+        : []
+    });
+    setShowAddProductForm(true);
   };
 
   const handleAddProduct = async (e) => {
@@ -410,6 +425,25 @@ const SellerDashboard = () => {
           }} onClick={() => setActiveTab('sales')}>
             <i className="fas fa-tag" style={{ width: '20px' }}></i>
             <span>Sales & Promotions</span>
+          </button>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'manage-orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'manage-orders' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('manage-orders')}>
+            <i className="fas fa-shopping-bag" style={{ width: '20px' }}></i>
+            <span>Order Management</span>
           </button>
           <button style={{
             width: '100%',
@@ -688,6 +722,8 @@ const SellerDashboard = () => {
               products={products} 
               onProductsUpdate={fetchData}
               onAddProductClick={() => setShowAddProductForm(true)}
+              onEditProductClick={handleEditProductFromManager}
+              onOpenSalesTab={() => setActiveTab('sales')}
             />
           </div>
         )}
@@ -695,6 +731,12 @@ const SellerDashboard = () => {
         {activeTab === 'sales' && (
           <div className="fade-in">
             <SalesManager products={products} />
+          </div>
+        )}
+
+        {activeTab === 'manage-orders' && (
+          <div className="fade-in">
+            <OrderManagement />
           </div>
         )}
 

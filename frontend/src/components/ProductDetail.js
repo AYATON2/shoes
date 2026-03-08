@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -14,15 +15,15 @@ const ProductDetail = () => {
   const [selectedSku, setSelectedSku] = useState(null);
   const [notification, setNotification] = useState(null);
 
+  // Check authentication on component mount
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     axios.get(`/api/products/${id}`).then(res => setProduct(res.data));
-  }, [id]);
-
-  // Get unique sizes and colors from SKUs
-  const getUniqueSizes = () => {
-    if (!product?.skus) return [];
-    return [...new Set(product.skus.map(sku => sku.size))].sort();
-  };
+  }, [id, navigate]);
 
   const getUniqueColors = () => {
     if (!product?.skus) return [];
@@ -34,14 +35,6 @@ const ProductDetail = () => {
     return product.skus
       .filter(sku => sku.color === color && sku.stock > 0)
       .sort((a, b) => parseFloat(a.size) - parseFloat(b.size));
-  };
-
-  const getSizeColors = (size) => {
-    if (!product?.skus || !size) return [];
-    return product.skus
-      .filter(sku => sku.size === size && sku.stock > 0)
-      .map(sku => sku.color)
-      .filter(c => c);
   };
 
   const handleColorSelect = (color) => {
@@ -271,7 +264,7 @@ const ProductDetail = () => {
             </div>
           )}
           <img
-            src={product.image ? `http://localhost:8000/storage/${product.image}` : '/default.jpg'}
+            src={product.image ? buildApiAssetUrl(`/storage/${product.image}`) : '/default.jpg'}
             alt={product.name}
             style={{
               width: '100%',
@@ -362,6 +355,22 @@ const ProductDetail = () => {
                   ₱{parseFloat(product.price).toFixed(2)}
                 </div>
               )}
+            </div>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              background: (selectedSku ? selectedSku.stock : Number(product.stock || 0)) > 0 ? '#E8F5E9' : '#FFEBEE',
+              color: (selectedSku ? selectedSku.stock : Number(product.stock || 0)) > 0 ? '#2E7D32' : '#C62828',
+              fontSize: '13px',
+              fontWeight: '700',
+              marginBottom: '20px'
+            }}>
+              {selectedSku
+                ? `${selectedSku.stock} in stock for selected option`
+                : `${Number(product.stock || 0)} total in stock`}
             </div>
             
             {product.description && (

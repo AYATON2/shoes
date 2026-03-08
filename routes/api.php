@@ -25,9 +25,11 @@ use App\Http\Controllers\API\SaleController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Public routes with caching for better performance
+// Products should be real-time so stock/sale updates are immediately visible.
+Route::get('products', [ProductController::class, 'index']);
+
+// Filter options can stay cached.
 Route::middleware(['response.cache:300'])->group(function () {
-    Route::get('products', [ProductController::class, 'index']);
     Route::get('products/filter-options', [ProductController::class, 'getFilterOptions']);
 });
 
@@ -39,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class)->except(['index']);
     Route::apiResource('orders', OrderController::class)->except(['destroy']);
     Route::get('/orders/{id}/invoice', [OrderController::class, 'invoice']);
+    Route::post('/orders/{id}/verify-payment', [OrderController::class, 'verifyPayment']);
     Route::apiResource('addresses', AddressController::class);
     Route::get('/reports/sales', [ReportController::class, 'salesReport']);
     Route::get('/reports/inventory', [ReportController::class, 'inventoryReport']);

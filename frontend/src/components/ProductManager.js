@@ -1,7 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
-const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProductClick }) => {
+const ProductManager = ({
+  products: passedProducts,
+  onProductsUpdate,
+  onAddProductClick,
+  onEditProductClick,
+  onOpenSalesTab
+}) => {
   const [products, setProducts] = useState(passedProducts || []);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -13,38 +20,31 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedSaleId, setSelectedSaleId] = useState('');
 
-  useEffect(() => {
-    // If products are passed as props, use them
-    if (passedProducts && passedProducts.length > 0) {
-      console.log('ProductManager: Using passed products:', passedProducts);
-      setProducts(passedProducts);
-    } else if (!passedProducts) {
-      // If no props provided, fetch them
-      console.log('ProductManager: No products passed as props, fetching...');
-      fetchProducts();
-    } else {
-      // Props provided but empty array
-      console.log('ProductManager: Empty products array passed');
-      setProducts([]);
-    }
-    // Fetch available sales
-    fetchSales();
-  }, [passedProducts]);
+  const showNotification = useCallback((message, type) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  }, []);
 
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       const response = await axios.get('/api/sales');
       const allSales = response.data.data || response.data || [];
-      // Filter to only active sales without specific products (templates)
-      const activeSales = allSales.filter(s => s.is_active && !s.product_id);
+      
+      // Filter to only active sales without specific products (templates) and not expired
+      const now = new Date();
+      const activeSales = allSales.filter(s => {
+        const endDate = new Date(s.end_date);
+        return s.is_active && !s.product_id && endDate >= now;
+      });
+      
       setSales(activeSales);
       console.log('Available sales:', activeSales);
     } catch (error) {
       console.error('Error fetching sales:', error);
     }
-  };
+  }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       console.log('ProductManager: Fetching products from API...');
@@ -65,7 +65,25 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotification]);
+
+  useEffect(() => {
+    // If products are passed as props, use them
+    if (passedProducts && passedProducts.length > 0) {
+      console.log('ProductManager: Using passed products:', passedProducts);
+      setProducts(passedProducts);
+    } else if (!passedProducts) {
+      // If no props provided, fetch them
+      console.log('ProductManager: No products passed as props, fetching...');
+      fetchProducts();
+    } else {
+      // Props provided but empty array
+      console.log('ProductManager: Empty products array passed');
+      setProducts([]);
+    }
+    // Fetch available sales
+    fetchSales();
+  }, [fetchProducts, fetchSales, passedProducts]);
 
   const handleUpdateStock = async (productId, newStock) => {
     try {
@@ -93,12 +111,15 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
     }
   };
 
-  const showNotification = (message, type) => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
   const handleOpenSaleModal = (product) => {
+    if (sales.length === 0) {
+      showNotification('No active sales found. Please create one in Sales & Promotions.', 'error');
+      if (onOpenSalesTab) {
+        onOpenSalesTab();
+      }
+      return;
+    }
+
     setSelectedProduct(product);
     setSelectedSaleId('');
     setShowSaleModal(true);
@@ -201,7 +222,7 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
               Manage Products
             </h2>
             <p style={{ color: '#666', fontSize: '15px', margin: 0 }}>
-              Update stock levels and manage sales for your products
+              Edit product details, adjust stock, and manage sales for your products
             </p>
           </div>
           {onAddProductClick && (
@@ -318,7 +339,7 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
                 }}>
                   {product.image ? (
                     <img
-                      src={`http://localhost:8000/storage/${product.image}`}
+                      src={buildApiAssetUrl(`/storage/${product.image}`)}
                       alt={product.name}
                       style={{
                         width: '100%',
@@ -460,7 +481,28 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
                   ) : (
                     <div>
                       {/* Action buttons grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginBottom: '8px' }}>
+                        <button
+                          onClick={() => onEditProductClick && onEditProductClick(product)}
+                          disabled={!onEditProductClick}
+                          style={{
+                            padding: '10px 12px',
+                            background: '#1976D2',
+                            color: '#FFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: onEditProductClick ? 'pointer' : 'not-allowed',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            transition: 'opacity 0.2s',
+                            opacity: onEditProductClick ? 1 : 0.5
+                          }}
+                          onMouseEnter={(e) => onEditProductClick && (e.currentTarget.style.opacity = '0.8')}
+                          onMouseLeave={(e) => onEditProductClick && (e.currentTarget.style.opacity = '1')}
+                        >
+                          ✏️ Edit
+                        </button>
+
                         <button
                           onClick={() => {
                             setEditingProduct(product.id);
@@ -506,20 +548,19 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
                         ) : (
                           <button
                             onClick={() => handleOpenSaleModal(product)}
-                            disabled={sales.length === 0}
                             style={{
                               padding: '10px 12px',
-                              background: sales.length === 0 ? '#CCC' : '#FF6B00',
+                              background: '#FF6B00',
                               color: '#FFF',
                               border: 'none',
                               borderRadius: '6px',
-                              cursor: sales.length === 0 ? 'not-allowed' : 'pointer',
+                              cursor: 'pointer',
                               fontSize: '13px',
                               fontWeight: '600',
                               transition: 'opacity 0.2s'
                             }}
-                            onMouseEnter={(e) => sales.length > 0 && (e.currentTarget.style.opacity = '0.8')}
-                            onMouseLeave={(e) => sales.length > 0 && (e.currentTarget.style.opacity = '1')}
+                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
+                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                           >
                             🏷️ Put on Sale
                           </button>
@@ -576,36 +617,51 @@ const ProductManager = ({ products: passedProducts, onProductsUpdate, onAddProdu
 
             {/* Sales List */}
             <div style={{ marginBottom: '20px' }}>
-              {sales.map(sale => (
-                <label 
-                  key={sale.id}
-                  style={{
-                    display: 'block',
-                    padding: '12px',
-                    border: selectedSaleId === sale.id ? '2px solid #FF6B00' : '1px solid #E5E5E5',
-                    borderRadius: '8px',
-                    marginBottom: '12px',
-                    cursor: 'pointer',
-                    background: selectedSaleId === sale.id ? '#FFF3E0' : '#FFF',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="sale"
-                    value={sale.id}
-                    checked={selectedSaleId === sale.id}
-                    onChange={(e) => setSelectedSaleId(sale.id)}
-                    style={{ marginRight: '10px' }}
-                  />
-                  <strong>{sale.title}</strong>
-                  <div style={{ fontSize: '13px', color: '#666', marginLeft: '26px',  marginTop: '4px' }}>
-                    {sale.discount_percentage ? `${sale.discount_percentage}% off` : `₱${sale.discount_amount} off`}
-                    <br />
-                    {new Date(sale.start_date).toLocaleDateString()} - {new Date(sale.end_date).toLocaleDateString()}
-                  </div>
-                </label>
-              ))}
+              {sales.length === 0 ? (
+                <div style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  background: '#F5F5F5',
+                  borderRadius: '8px',
+                  color: '#666'
+                }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: '600' }}>No active sales available</p>
+                  <p style={{ margin: 0, fontSize: '13px' }}>
+                    Create a new sale in the "Sales & Promotions" tab first, then you can apply it to products here.
+                  </p>
+                </div>
+              ) : (
+                sales.map(sale => (
+                  <label 
+                    key={sale.id}
+                    style={{
+                      display: 'block',
+                      padding: '12px',
+                      border: selectedSaleId === sale.id ? '2px solid #FF6B00' : '1px solid #E5E5E5',
+                      borderRadius: '8px',
+                      marginBottom: '12px',
+                      cursor: 'pointer',
+                      background: selectedSaleId === sale.id ? '#FFF3E0' : '#FFF',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="sale"
+                      value={sale.id}
+                      checked={selectedSaleId === sale.id}
+                      onChange={(e) => setSelectedSaleId(sale.id)}
+                      style={{ marginRight: '10px' }}
+                    />
+                    <strong>{sale.title}</strong>
+                    <div style={{ fontSize: '13px', color: '#666', marginLeft: '26px',  marginTop: '4px' }}>
+                      {sale.discount_percentage ? `${sale.discount_percentage}% off` : `₱${sale.discount_amount} off`}
+                      <br />
+                      {new Date(sale.start_date).toLocaleDateString()} - {new Date(sale.end_date).toLocaleDateString()}
+                    </div>
+                  </label>
+                ))
+              )}
             </div>
 
             {/* Action Buttons */}

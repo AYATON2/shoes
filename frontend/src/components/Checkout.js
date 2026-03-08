@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const Checkout = () => {
   const [cart, setCart] = useState(JSON.parse(localStorage.getItem('cart') || '[]'));
@@ -17,6 +18,8 @@ const Checkout = () => {
   const [notification, setNotification] = useState(null);
   const [showGCashModal, setShowGCashModal] = useState(false);
   const [gcashPaymentData, setGCashPaymentData] = useState(null);
+  const [gcashReference, setGCashReference] = useState('');
+  const [gcashScreenshotFile, setGCashScreenshotFile] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,8 +62,72 @@ const Checkout = () => {
     return { subtotal, shippingFee, total: subtotal + shippingFee };
   };
 
+  const getOrderErrorMessage = (err) => {
+    let errorMsg = 'Order failed. Please try again.';
+
+    if (err.response?.data?.errors) {
+      const errors = err.response.data.errors;
+      errorMsg = Object.values(errors).flat().join(', ');
+    } else if (err.response?.data?.error) {
+      errorMsg = err.response.data.error;
+    } else if (err.response?.data?.message) {
+      errorMsg = err.response.data.message;
+    }
+
+    return errorMsg;
+  };
+
+  const createOrderRequest = async ({ gcashReferenceValue = null, gcashScreenshot = null } = {}) => {
+    const items = cart.map(item => ({
+      sku_id: item.sku_id,
+      quantity: item.quantity
+    }));
+
+    // Create shipping address first
+    const addressRes = await axios.post('/api/addresses', shippingAddress);
+    const addressData = addressRes.data.data || addressRes.data;
+    const addressId = addressData?.id;
+
+    if (!addressId) {
+      throw new Error('No address ID returned from server');
+    }
+
+    if (paymentMethod === 'gcash') {
+      const formData = new FormData();
+      formData.append('items', JSON.stringify(items));
+      formData.append('shipping_address_id', String(addressId));
+      formData.append('payment_method', 'gcash');
+      formData.append('gcash_reference', gcashReferenceValue || '');
+      if (gcashScreenshot) {
+        formData.append('payment_screenshot', gcashScreenshot);
+      }
+
+      return axios.post('/api/orders', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    }
+
+    return axios.post('/api/orders', {
+      items,
+      shipping_address_id: addressId,
+      payment_method: paymentMethod
+    });
+  };
+
+  const completeCheckout = (message) => {
+    localStorage.removeItem('cart');
+    setCart([]);
+    setNotification({ message, type: 'success' });
+    setTimeout(() => {
+      window.location.href = '/customer-dashboard';
+    }, 2000);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const { total } = calculateTotal();
     
     if (cart.length === 0) {
       setNotification({ message: 'Your cart is empty!', type: 'error' });
@@ -73,78 +140,60 @@ const Checkout = () => {
       return;
     }
 
-    setLoading(true);
-    const items = cart.map(item => ({
-      sku_id: item.sku_id,
-      quantity: item.quantity
-    }));
+    // For GCash, open payment form first, then place order after proof upload.
+    if (paymentMethod === 'gcash') {
+      const referenceNumber = `GCASH-${Date.now()}`;
+      setGCashPaymentData({
+        amount: total,
+        referenceNumber,
+        merchantName: 'StepUp Footwear',
+        merchantNumber: '09285749453'
+      });
+      setGCashReference(referenceNumber);
+      setGCashScreenshotFile(null);
+      setShowGCashModal(true);
+      return;
+    }
 
-    // First create the address
-    axios.post('/api/addresses', shippingAddress)
-      .then(addressRes => {
-        console.log('Address created successfully:', addressRes.data);
-        // Handle both direct response and data wrapper
-        const addressData = addressRes.data.data || addressRes.data;
-        const addressId = addressData?.id;
-        if (!addressId) {
-          throw new Error('No address ID returned from server: ' + JSON.stringify(addressRes.data));
-        }
-        console.log('Using address ID:', addressId);
-        // Then create the order with the new address ID
-        return axios.post('/api/orders', {
-          items,
-          shipping_address_id: addressId,
-          payment_method: paymentMethod
-        });
-      })
-      .then(res => {
-        const orderData = res.data.data || res.data;
-        console.log('Order created successfully:', orderData);
-        console.log('Order shipping address:', orderData.shippingAddress);
-        
-        // Handle different payment methods
-        if (paymentMethod === 'gcash') {
-          // Show GCash payment modal
-          const referenceNumber = `ORD-${orderData.id}-${Date.now()}`;
-          
-          setGCashPaymentData({
-            orderId: orderData.id,
-            amount: total,
-            referenceNumber: referenceNumber,
-            merchantName: 'StepUp Footwear',
-            merchantNumber: '09285749453'
-          });
-          setShowGCashModal(true);
-          setLoading(false);
-        } else if (paymentMethod === 'cod') {
-          // Cash on Delivery - clear cart and show success
-          localStorage.removeItem('cart');
-          setCart([]);
-          setNotification({ 
-            message: 'Order placed successfully! You will pay upon delivery.', 
-            type: 'success' 
-          });
-          setLoading(false);
-          setTimeout(() => {
-            window.location.href = '/customer-dashboard';
-          }, 2000);
-        }
+    setLoading(true);
+    createOrderRequest()
+      .then(() => {
+        completeCheckout('Order placed successfully! You will pay upon delivery.');
       })
       .catch(err => {
         console.error('Order placement error:', err.response?.data || err.message);
-        let errorMsg = 'Order failed. Please try again.';
-        
-        if (err.response?.data?.errors) {
-          // Validation errors
-          const errors = err.response.data.errors;
-          errorMsg = Object.values(errors).flat().join(', ');
-        } else if (err.response?.data?.error) {
-          errorMsg = err.response.data.error;
-        } else if (err.response?.data?.message) {
-          errorMsg = err.response.data.message;
-        }
-        
-        setNotification({ message: errorMsg, type: 'error' });
+        setNotification({ message: getOrderErrorMessage(err), type: 'error' });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  const handleGCashProceed = () => {
+    if (!gcashReference.trim()) {
+      setNotification({ message: 'Please enter GCash reference number.', type: 'error' });
+      return;
+    }
+
+    if (!gcashScreenshotFile) {
+      setNotification({ message: 'Please upload your GCash payment screenshot.', type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+    createOrderRequest({
+      gcashReferenceValue: gcashReference.trim(),
+      gcashScreenshot: gcashScreenshotFile
+    })
+      .then(() => {
+        setShowGCashModal(false);
+        completeCheckout('Payment submitted! Your order is now pending verification.');
+      })
+      .catch(err => {
+        console.error('GCash order placement error:', err.response?.data || err.message);
+        setNotification({ message: getOrderErrorMessage(err), type: 'error' });
+      })
+      .finally(() => {
         setLoading(false);
       });
   };
@@ -210,7 +259,7 @@ const Checkout = () => {
                     {/* Product Image */}
                     {item.image && (
                       <img
-                        src={`http://localhost:8000/storage/${item.image}`}
+                        src={buildApiAssetUrl(`/storage/${item.image}`)}
                         alt={item.name}
                         style={{
                           width: '100px',
@@ -795,15 +844,64 @@ const Checkout = () => {
               </ol>
             </div>
 
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: '#333',
+                marginBottom: '6px',
+                textTransform: 'uppercase'
+              }}>
+                GCash Reference Number
+              </label>
+              <input
+                type="text"
+                value={gcashReference}
+                onChange={(e) => setGCashReference(e.target.value)}
+                placeholder="Enter GCash reference number"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #DDD',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: '#333',
+                marginBottom: '6px',
+                textTransform: 'uppercase'
+              }}>
+                Upload Payment Screenshot
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg"
+                onChange={(e) => setGCashScreenshotFile(e.target.files?.[0] || null)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  fontSize: '13px'
+                }}
+              />
+              <p style={{ fontSize: '11px', color: '#777', margin: '6px 0 0 0' }}>
+                Accepted formats: JPG, JPEG, PNG (max 5MB)
+              </p>
+            </div>
+
             {/* Action Buttons */}
             <div style={{display: 'flex', gap: '12px'}}>
               <button
-                onClick={() => {
-                  setNotification({ message: 'Payment completed! Your order has been placed. ✅', type: 'success' });
-                  setShowGCashModal(false);
-                  localStorage.removeItem('cart');
-                  setCart([]);
-                }}
+                onClick={handleGCashProceed}
+                disabled={loading}
                 style={{
                   flex: 1,
                   padding: '12px',
@@ -813,10 +911,11 @@ const Checkout = () => {
                   borderRadius: '8px',
                   fontWeight: '600',
                   fontSize: '14px',
-                  cursor: 'pointer'
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1
                 }}
               >
-                ✓ Payment Done
+                {loading ? 'Submitting...' : 'Proceed'}
               </button>
               <button
                 onClick={() => setShowGCashModal(false)}

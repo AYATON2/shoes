@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ProductList = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ brands: [], types: [], performance_tech: [] });
@@ -11,6 +13,14 @@ const ProductList = () => {
   const [notification, setNotification] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
@@ -299,10 +309,9 @@ const ProductList = () => {
               )}
               {product.image ? (
                 <img 
-                  src={`http://localhost:8000/storage/${product.image}`}
+                  src={buildApiAssetUrl(`/storage/${product.image}`)}
                   alt={product.name}
                   onError={(e) => {
-                    console.error(`Failed to load image: http://localhost:8000/storage/${product.image}`);
                     e.target.src = '/default.jpg';
                   }}
                   style={{
@@ -373,6 +382,19 @@ const ProductList = () => {
                 }}>
                   {product.description ? product.description.substring(0, 80) + '...' : 'Premium Quality'}
                 </p>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  marginBottom: '12px',
+                  background: Number(product.stock || 0) > 0 ? '#E8F5E9' : '#FFEBEE',
+                  color: Number(product.stock || 0) > 0 ? '#2E7D32' : '#C62828'
+                }}>
+                  {Number(product.stock || 0)} in stock
+                </div>
               </div>
 
               {/* Price & Hidden UI */}

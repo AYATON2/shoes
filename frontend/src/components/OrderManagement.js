@@ -1,18 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './OrderManagement.css';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [selectedOrders, setSelectedOrders] = useState(new Set());
   const [filterStatus, setFilterStatus] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
-  const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const [notifiedOrderIds, setNotifiedOrderIds] = useState(new Set());
   const navigate = useNavigate();
+
+  const fetchOrders = useCallback(async (isInitialLoad = false) => {
+    try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
+      const response = await axios.get('/api/orders', { timeout: 10000 });
+      const newOrders = response.data.data || response.data;
+
+      // Check if truly new orders (not seen before)
+      const newOrderIds = new Set(newOrders.map(o => o.id));
+      const neverNotifiedOrders = newOrders.filter(o => !notifiedOrderIds.has(o.id) && isInitialLoad === false);
+
+      if (neverNotifiedOrders.length > 0) {
+        setNotifiedOrderIds(prev => new Set([...prev, ...newOrderIds]));
+      }
+
+      // Mark all current orders as notified on load
+      if (isInitialLoad) {
+        setNotifiedOrderIds(newOrderIds);
+      }
+
+      setOrders(newOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [notifiedOrderIds]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,47 +62,7 @@ const OrderManagement = () => {
     // Auto-refresh orders every 3 seconds for real-time feel
     const interval = setInterval(() => fetchOrders(false), 3000);
     return () => clearInterval(interval);
-  }, []);
-
-  const fetchOrders = async (isInitialLoad = false) => {
-    try {
-      if (isInitialLoad) {
-        setLoading(true);
-      } else {
-        setSyncing(true);
-      }
-      
-      const response = await axios.get('/api/orders', { timeout: 10000 });
-      const newOrders = response.data.data || response.data;
-      
-      console.log('Orders fetched. Count:', newOrders.length);
-      if (newOrders.length > 0) {
-        console.log('First order:', newOrders[0]);
-        console.log('First order shippingAddress:', newOrders[0].shippingAddress);
-      }
-      
-      // Check if truly new orders (not seen before)
-      const newOrderIds = new Set(newOrders.map(o => o.id));
-      const neverNotifiedOrders = newOrders.filter(o => !notifiedOrderIds.has(o.id) && isInitialLoad === false);
-      
-      if (neverNotifiedOrders.length > 0) {
-        setNotifiedOrderIds(prev => new Set([...prev, ...newOrderIds]));
-      }
-      
-      // Mark all current orders as notified on load
-      if (isInitialLoad) {
-        setNotifiedOrderIds(newOrderIds);
-      }
-      
-      setPreviousOrderCount(newOrders.length);
-      setOrders(newOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
-      setSyncing(false);
-    }
-  };
+  }, [fetchOrders, navigate]);
 
   const isNewOrder = (createdAt) => {
     const orderTime = new Date(createdAt);
@@ -124,16 +112,6 @@ const OrderManagement = () => {
         console.error('Error cancelling order:', error.response?.data || error.message);
       }
     }
-  };
-
-  const handleOrderSelect = (orderId) => {
-    const newSelected = new Set(selectedOrders);
-    if (newSelected.has(orderId)) {
-      newSelected.delete(orderId);
-    } else {
-      newSelected.add(orderId);
-    }
-    setSelectedOrders(newSelected);
   };
 
   const getStatusColor = (status) => {
@@ -374,8 +352,11 @@ const OrderManagement = () => {
                           <p style={{ margin: '0 0 5px 0', fontSize: '13px', fontWeight: '600', color: '#333' }}>
                             Payment Proof:
                           </p>
+                          {(() => {
+                            const proofUrl = buildApiAssetUrl(order.payment.payment_screenshot);
+                            return (
                           <img 
-                            src={`/${order.payment.payment_screenshot}`} 
+                            src={proofUrl}
                             alt="Payment Proof" 
                             style={{ 
                               maxWidth: '100%', 
@@ -384,8 +365,10 @@ const OrderManagement = () => {
                               border: '2px solid #EEE',
                               cursor: 'pointer'
                             }}
-                            onClick={() => window.open(`/${order.payment.payment_screenshot}`, '_blank')}
+                            onClick={() => window.open(proofUrl, '_blank')}
                           />
+                            );
+                          })()}
                         </div>
                       )}
                       {order.payment.status === 'pending' && !order.payment.verified_at && (
