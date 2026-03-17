@@ -1,7 +1,18 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  const handleShopNow = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/products');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div style={{ background: '#FFFFFF', minHeight: '100vh' }}>
       
@@ -42,8 +53,8 @@ const Home = () => {
             Discover the perfect pair that matches your style. Premium quality, authentic brands, delivered to your doorstep.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link
-              to="/products"
+            <button
+              onClick={handleShopNow}
               style={{
                 background: '#111',
                 color: '#FFF',
@@ -53,13 +64,15 @@ const Home = () => {
                 textDecoration: 'none',
                 borderRadius: '30px',
                 display: 'inline-block',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                border: 'none',
+                cursor: 'pointer'
               }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
               Shop Now
-            </Link>
+            </button>
             <Link
               to="/register"
               style={{

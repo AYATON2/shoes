@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ProductList = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ brands: [], types: [], performance_tech: [] });
@@ -11,6 +13,14 @@ const ProductList = () => {
   const [notification, setNotification] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
@@ -237,14 +247,71 @@ const ProductList = () => {
               height: '280px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              position: 'relative'
             }}>
+              {/* SALE Badge - Lazada/Shopee Style */}
+              {product.sales && product.sales.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: '#FF4444',
+                  color: '#FFF',
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  boxShadow: '0 4px 12px rgba(255, 68, 68, 0.5)',
+                  zIndex: 3,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  minWidth: '60px',
+                  textAlign: 'center'
+                }}>
+                  <span style={{ fontSize: '10px', fontWeight: '600' }}>SALE</span>
+                  <span style={{ fontSize: '16px', fontWeight: '900', lineHeight: '1' }}>
+                    {product.sales[0].discount_percentage 
+                      ? `${Math.round(product.sales[0].discount_percentage)}%`
+                      : `₱${product.sales[0].discount_amount}`}
+                  </span>
+                  <span style={{ fontSize: '10px', fontWeight: '600' }}>OFF</span>
+                </div>
+              )}
+              
+              {/* HOT/TRENDING Badge */}
+              {product.is_trending && (
+                <div style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: '12px',
+                  background: 'linear-gradient(135deg, #FF6B00 0%, #F4511E 100%)',
+                  color: '#FFF',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '11px',
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  boxShadow: '0 4px 12px rgba(255, 68, 68, 0.4)',
+                  zIndex: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span style={{ fontSize: '14px' }}>🔥</span>
+                  HOT
+                </div>
+              )}
               {product.image ? (
                 <img 
-                  src={`http://localhost:8000/storage/${product.image}`}
+                  src={buildApiAssetUrl(`/storage/${product.image}`)}
                   alt={product.name}
                   onError={(e) => {
-                    console.error(`Failed to load image: http://localhost:8000/storage/${product.image}`);
                     e.target.src = '/default.jpg';
                   }}
                   style={{
@@ -315,18 +382,78 @@ const ProductList = () => {
                 }}>
                   {product.description ? product.description.substring(0, 80) + '...' : 'Premium Quality'}
                 </p>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  marginBottom: '12px',
+                  background: Number(product.stock || 0) > 0 ? '#E8F5E9' : '#FFEBEE',
+                  color: Number(product.stock || 0) > 0 ? '#2E7D32' : '#C62828'
+                }}>
+                  {Number(product.stock || 0)} in stock
+                </div>
               </div>
 
               {/* Price & Hidden UI */}
               <div>
-                <div style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 900,
-                  color: '#FF6B00',
-                  marginBottom: 'var(--spacing-md)',
-                  textTransform: 'uppercase'
-                }}>
-                  ${product.price}
+                {/* Sale Badge */}
+                {product.sales && product.sales.length > 0 && (
+                  <div style={{
+                    display: 'inline-block',
+                    background: '#E53935',
+                    color: '#FFF',
+                    padding: '4px 12px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {product.sales[0].discount_percentage 
+                      ? `${product.sales[0].discount_percentage}% OFF` 
+                      : `₱${product.sales[0].discount_amount} OFF`}
+                  </div>
+                )}
+                
+                {/* Price Display */}
+                <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                  {product.sales && product.sales.length > 0 ? (
+                    <>
+                      <div style={{
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        color: '#999',
+                        textDecoration: 'line-through',
+                        marginBottom: '4px'
+                      }}>
+                        ₱{parseFloat(product.price).toFixed(2)}
+                      </div>
+                      <div style={{
+                        fontSize: '1.5rem',
+                        fontWeight: '900',
+                        color: '#E53935',
+                        textTransform: 'uppercase'
+                      }}>
+                        ₱{product.sales[0].sale_price 
+                          ? parseFloat(product.sales[0].sale_price).toFixed(2)
+                          : (product.sales[0].discount_percentage
+                            ? (product.price - (product.price * product.sales[0].discount_percentage / 100)).toFixed(2)
+                            : (product.price - product.sales[0].discount_amount).toFixed(2))}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: '900',
+                      color: '#FF6B00',
+                      textTransform: 'uppercase'
+                    }}>
+                      ₱{parseFloat(product.price).toFixed(2)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Buttons appear on hover */}

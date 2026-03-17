@@ -5,9 +5,10 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { getApiBaseUrl } from './utils/apiUrl';
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = 'http://localhost:8000';
+axios.defaults.baseURL = getApiBaseUrl();
 
 const token = localStorage.getItem('token');
 if (token) {
@@ -59,12 +60,5 @@ if (window.navigator.standalone) {
 // doesn't break the UI when the API backend is not running.
 axios.interceptors.response.use(
   response => response,
-  error => {
-    if (!error.response) {
-      // Network error / backend not reachable — return a harmless fallback
-      console.warn('Suppressed API network error:', error.message);
-      return Promise.resolve({ data: {}, status: 503, statusText: 'Service Unavailable' });
-    }
-    return Promise.reject(error);
-  }
+  error => Promise.reject(error)
 );

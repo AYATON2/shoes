@@ -1,23 +1,24 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
-import Home from './components/Home';
-import ProductList from './components/ProductList';
-import ProductDetail from './components/ProductDetail';
-import Login from './components/Login';
-import Register from './components/Register';
-import CustomerDashboard from './components/CustomerDashboard';
-import SellerDashboard from './components/SellerDashboard';
-import AdminDashboard from './components/AdminDashboard';
-import AdminUsers from './components/AdminUsers';
-import AdminProducts from './components/AdminProducts';
-import AdminReports from './components/AdminReports';
-import AdminProfile from './components/AdminProfile';
-import AdminProductDetail from './components/AdminProductDetail';
-import Checkout from './components/Checkout';
-import Profile from './components/Profile';
-import OrderTracking from './components/OrderTracking';
+
+const Home = lazy(() => import('./components/Home'));
+const ProductList = lazy(() => import('./components/ProductList'));
+const ProductDetail = lazy(() => import('./components/ProductDetail'));
+const Login = lazy(() => import('./components/Login'));
+const Register = lazy(() => import('./components/Register'));
+const CustomerDashboard = lazy(() => import('./components/CustomerDashboard'));
+const SellerDashboard = lazy(() => import('./components/SellerDashboard'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const AdminUsers = lazy(() => import('./components/AdminUsers'));
+const AdminProducts = lazy(() => import('./components/AdminProducts'));
+const AdminReports = lazy(() => import('./components/AdminReports'));
+const AdminProfile = lazy(() => import('./components/AdminProfile'));
+const AdminProductDetail = lazy(() => import('./components/AdminProductDetail'));
+const Checkout = lazy(() => import('./components/Checkout'));
+const Profile = lazy(() => import('./components/Profile'));
+const OrderTracking = lazy(() => import('./components/OrderTracking'));
 
 function AppContent() {
   const location = useLocation();
@@ -31,7 +32,8 @@ function AppContent() {
   return (
     <div className="App">
       {showHeader && <Header />}
-      <Routes>
+      <Suspense fallback={<div style={{ padding: '24px', textAlign: 'center' }}>Loading...</div>}>
+        <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<ProductList />} />
           <Route path="/product/:id" element={<ProductDetail />} />
@@ -49,6 +51,7 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/order-tracking" element={<OrderTracking />} />
         </Routes>
+      </Suspense>
       </div>
     );
 }

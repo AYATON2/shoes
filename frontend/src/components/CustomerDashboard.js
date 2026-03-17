@@ -70,8 +70,24 @@ const CustomerDashboard = () => {
     setInitialLoading(true);
     axios.get('/api/user', getAuthConfig())
       .then(res => {
-        setUser(res.data);
-        setProfileData({ name: res.data.name, email: res.data.email });
+        const userData = res.data;
+        
+        // Security check: Ensure only customers can access this dashboard
+        if (userData.role !== 'customer') {
+          console.warn('Access denied: User is not a customer');
+          // Redirect to the appropriate dashboard based on role
+          if (userData.role === 'seller') {
+            navigate('/seller-dashboard');
+          } else if (userData.role === 'admin') {
+            navigate('/admin-dashboard');
+          } else {
+            navigate('/login');
+          }
+          return;
+        }
+        
+        setUser(userData);
+        setProfileData({ name: userData.name, email: userData.email });
         setInitialLoading(false);
       })
       .catch(() => {
@@ -230,6 +246,8 @@ const CustomerDashboard = () => {
               fontSize: '15px',
               fontWeight: '500'
             }}>Browse</Link>
+            
+            {/* Notification Bell Icon */}
             <button
               onClick={toggleNotificationsPanel}
               style={{
@@ -237,57 +255,39 @@ const CustomerDashboard = () => {
                 border: 'none',
                 color: '#111',
                 cursor: 'pointer',
-                fontSize: '15px',
+                fontSize: '20px',
                 display: 'inline-flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                position: 'relative',
+                padding: '4px 8px'
               }}
               aria-label="Notifications"
               title="Notifications"
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
+              🔔
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '2px',
+                  background: '#EA4335',
+                  color: '#FFF',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  borderRadius: '10px',
+                  padding: '2px 5px',
+                  minWidth: '16px',
+                  height: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: '1'
+                }}>
+                  {notifications.filter(n => !n.read).length > 99 ? '99+' : notifications.filter(n => !n.read).length}
+                </span>
+              )}
             </button>
-            <button
-              onClick={() => navigate('/customer-dashboard?tab=settings')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#111',
-                cursor: 'pointer',
-                fontSize: '15px',
-                display: 'inline-flex',
-                alignItems: 'center'
-              }}
-              aria-label="Profile settings"
-              title="Profile settings"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="7" r="4" />
-                <path d="M4 21a8 8 0 0116 0" />
-              </svg>
-            </button>
+            
             <Link to="/checkout" style={{
               color: '#111',
               textDecoration: 'none',
@@ -326,6 +326,23 @@ const CustomerDashboard = () => {
         </div>
       </header>
 
+      {/* Notification Overlay (backdrop) */}
+      {showNotificationsPanel && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'transparent',
+            zIndex: 9999
+          }}
+          onClick={() => setShowNotificationsPanel(false)}
+          aria-label="Close notifications"
+        />
+      )}
+
       {showNotificationsPanel && (
         <div style={{
           position: 'fixed',
@@ -333,24 +350,26 @@ const CustomerDashboard = () => {
           right: '20px',
           width: '420px',
           maxWidth: 'calc(100vw - 40px)',
-          maxHeight: 'calc(100vh - 100px)',
+          maxHeight: 'calc(100vh - 90px)',
           background: '#FFF',
           border: '1px solid #E5E5E5',
           borderRadius: '8px',
-          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15)',
-          zIndex: 1000,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+          zIndex: 10000,
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          overflow: 'hidden'
         }}>
           {/* Header */}
           <div style={{
-            padding: '16px 20px',
+            padding: '18px 20px',
             borderBottom: '1px solid #E5E5E5',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            background: '#FFF'
           }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#202124' }}>
               Notifications
             </h3>
             <button
@@ -358,12 +377,16 @@ const CustomerDashboard = () => {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#666',
+                color: '#5f6368',
                 cursor: 'pointer',
-                fontSize: '24px',
+                fontSize: '28px',
                 lineHeight: '1',
-                padding: 0
+                padding: '4px 8px',
+                borderRadius: '50%',
+                transition: 'background 0.2s'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#F1F3F4'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
               aria-label="Close notifications"
               title="Close"
             >
@@ -373,30 +396,36 @@ const CustomerDashboard = () => {
 
           {/* Actions Bar */}
           <div style={{
-            padding: '10px 20px',
+            padding: '12px 20px',
             borderBottom: '1px solid #E5E5E5',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: '#FAFAFA'
+            background: '#F8F9FA'
           }}>
-            <span style={{ fontSize: '13px', color: '#666' }}>
-              {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+            <span style={{ fontSize: '13px', color: '#5f6368', fontWeight: '500' }}>
+              {notifications.filter(n => !n.read).length} unread
             </span>
-            <button
-              onClick={markAllNotificationsAsRead}
-              style={{
-                background: 'none',
-                color: '#111',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '13px',
-                textDecoration: 'underline',
-                padding: 0
-              }}
-            >
-              Mark all as read
-            </button>
+            {notifications.filter(n => !n.read).length > 0 && (
+              <button
+                onClick={markAllNotificationsAsRead}
+                style={{
+                  background: 'none',
+                  color: '#1a73e8',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#e8f0fe'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              >
+                Mark all as read
+              </button>
+            )}
           </div>
 
           {/* Scrollable List */}
@@ -406,8 +435,21 @@ const CustomerDashboard = () => {
             overflowX: 'hidden'
           }}>
             {notifications.length === 0 ? (
-              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#999' }}>No notifications</p>
+              <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                <svg
+                  width="80"
+                  height="80"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#DADCE0"
+                  strokeWidth="1.5"
+                  style={{ margin: '0 auto 16px', display: 'block' }}
+                >
+                  <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
+                  <path d="M13.73 21a2 2 0 01-3.46 0" />
+                </svg>
+                <p style={{ margin: 0, fontSize: '16px', color: '#5f6368', fontWeight: '500' }}>No notifications</p>
+                <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#80868b' }}>You're all caught up!</p>
               </div>
             ) : (
               notifications.map((notif, idx) => (
@@ -415,75 +457,84 @@ const CustomerDashboard = () => {
                   key={notif.id || idx}
                   style={{
                     padding: '16px 20px',
-                    borderBottom: idx !== notifications.length - 1 ? '1px solid #F0F0F0' : 'none',
-                    background: notif.read ? '#FAFAFA' : '#FFF',
+                    borderBottom: idx !== notifications.length - 1 ? '1px solid #E8EAED' : 'none',
+                    background: notif.read ? '#FFF' : '#F1F3F4',
                     cursor: 'pointer',
-                    transition: 'background 0.2s ease'
+                    transition: 'background 0.15s ease',
+                    position: 'relative'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#F5F5F5'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = notif.read ? '#FAFAFA' : '#FFF'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#E8F0FE'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = notif.read ? '#FFF' : '#F1F3F4'}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <p style={{
-                      margin: 0,
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      color: '#111',
-                      flex: 1
-                    }}>
-                      {notif.title}
-                    </p>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                     {!notif.read && (
                       <span style={{
-                        width: '8px',
-                        height: '8px',
+                        width: '10px',
+                        height: '10px',
                         borderRadius: '50%',
-                        background: '#1976D2',
-                        marginLeft: '8px',
+                        background: '#1a73e8',
                         marginTop: '4px',
                         flexShrink: 0
                       }}></span>
                     )}
-                  </div>
-                  <p style={{
-                    margin: '0 0 12px 0',
-                    fontSize: '13px',
-                    color: '#666',
-                    lineHeight: '1.5',
-                    whiteSpace: 'pre-line'
-                  }}>
-                    {notif.message}
-                  </p>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <button
-                      onClick={() => markNotificationAsRead(notif.id)}
-                      style={{
-                        background: 'none',
-                        color: '#666',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}
-                    >
-                      Mark as read
-                    </button>
-                    <span style={{ color: '#E0E0E0' }}>•</span>
-                    <button
-                      onClick={() => deleteNotification(notif.id)}
-                      style={{
-                        background: 'none',
-                        color: '#666',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}
-                    >
-                      Delete
-                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        margin: '0 0 6px 0',
+                        fontWeight: notif.read ? '400' : '600',
+                        fontSize: '14px',
+                        color: '#202124',
+                        lineHeight: '1.4'
+                      }}>
+                        {notif.title}
+                      </p>
+                      <p style={{
+                        margin: '0 0 10px 0',
+                        fontSize: '13px',
+                        color: '#5f6368',
+                        lineHeight: '1.5',
+                        whiteSpace: 'pre-line'
+                      }}>
+                        {notif.message}
+                      </p>
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        {!notif.read && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); markNotificationAsRead(notif.id); }}
+                            style={{
+                              background: 'none',
+                              color: '#1a73e8',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              padding: '4px 0',
+                              transition: 'opacity 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          >
+                            Mark as read
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
+                          style={{
+                            background: 'none',
+                            color: '#5f6368',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            padding: '4px 0',
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))

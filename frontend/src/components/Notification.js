@@ -13,7 +13,7 @@ const Notification = ({ message, type = 'success', onClose }) => {
       right: '20px',
       padding: '16px 24px',
       borderRadius: '8px',
-      background: type === 'success' ? '#4CAF50' : type === 'error' ? '#F44336' : '#2196F3',
+      background: type === 'success' ? '#4CAF50' : type === 'error' ? '#E53935' : '#2196F3',
       color: '#FFF',
       fontSize: '15px',
       fontWeight: '500',

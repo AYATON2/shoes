@@ -17,7 +17,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'in:customer,seller,admin',
+            'role' => 'in:customer,seller',
         ]);
 
         if ($validator->fails()) {
@@ -38,25 +38,20 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        \Log::info('Login attempt', $request->all());
-
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
         if ($validator->fails()) {
-            \Log::info('Validation failed', $validator->errors()->toArray());
             return response()->json($validator->errors(), 422);
         }
 
         if (!Auth::attempt($request->only('email', 'password'))) {
-            \Log::info('Auth attempt failed');
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         $user = Auth::user();
-        \Log::info('User authenticated', ['user' => $user->id]);
         $token = $user->createToken('API Token')->plainTextToken;
 
         return response()->json(['user' => $user, 'token' => $token]);

@@ -9,7 +9,9 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'brand', 'type', 'material', 'description', 'price', 'image', 'seller_id', 'performance_tech', 'release_date', 'gender', 'age_group'];
+    protected $fillable = ['name', 'brand', 'type', 'material', 'description', 'price', 'image', 'seller_id', 'performance_tech', 'release_date', 'gender', 'age_group', 'is_trending', 'view_count'];
+
+    protected $appends = ['stock'];
 
     public function seller()
     {
@@ -39,5 +41,11 @@ class Product extends Model
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now())
             ->first();
+    }
+
+    // Computed stock attribute (sum of all SKU stocks)
+    public function getStockAttribute()
+    {
+        return $this->skus()->sum('stock');
     }
 }

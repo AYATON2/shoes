@@ -28,7 +28,23 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       const userRes = await axios.get('/api/user');
-      setUser(userRes.data);
+      const userData = userRes.data;
+      
+      // Security check: Ensure only admins can access this dashboard
+      if (userData.role !== 'admin') {
+        console.warn('Access denied: User is not an admin');
+        // Redirect to the appropriate dashboard based on role
+        if (userData.role === 'customer') {
+          navigate('/customer-dashboard');
+        } else if (userData.role === 'seller') {
+          navigate('/seller-dashboard');
+        } else {
+          navigate('/login');
+        }
+        return;
+      }
+      
+      setUser(userData);
       
       const usersRes = await axios.get('/api/users');
       setUsers(usersRes.data);
@@ -239,7 +255,7 @@ const AdminDashboard = () => {
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div style={{flex: 1}}>
                   <h1 style={{
-                    fontSize: 'var(--font-size-4xl)',
+                    fontSize: 'var(--font-size-3xl)',
                     fontWeight: 700,
                     margin: 0,
                     marginBottom: 'var(--spacing-md)',

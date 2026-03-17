@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
 import SalesManager from './SalesManager';
 import OrderManagement from './OrderManagement';
+import ProductManager from './ProductManager';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -42,32 +44,42 @@ const SellerDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
+  const fetchData = useCallback(async (showInitialLoader = false) => {
+    if (showInitialLoader) {
+      setInitialLoading(true);
     }
-    // Set authorization header for all requests
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchData();
-  }, [navigate]);
 
-  const fetchData = async () => {
-    setInitialLoading(true);
     try {
       // Fetch user data
       const userRes = await axios.get('/api/user');
-      setUser(userRes.data);
+      const userData = userRes.data;
       
-      // Fetch ALL products (no pagination limit) for this seller
-      const productsRes = await axios.get('/api/products?limit=1000');
+      // Security check: Ensure only sellers can access this dashboard
+      if (userData.role !== 'seller') {
+        // Redirect to the appropriate dashboard based on role
+        if (userData.role === 'customer') {
+          navigate('/customer-dashboard');
+        } else if (userData.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/login');
+        }
+        return;
+      }
+      
+      setUser(userData);
+      
+      // Fetch dashboard data in parallel to reduce loading time.
+      const [productsRes, ordersRes] = await Promise.all([
+        axios.get('/api/products?limit=1000'),
+        axios.get('/api/orders')
+      ]);
+
       const allProducts = productsRes.data.data || [];
-      const sellerProducts = allProducts.filter(p => p.seller_id === userRes.data.id);
+      
+      const sellerProducts = allProducts.filter(p => p.seller_id === userData.id);
       setProducts(sellerProducts);
       
-      // Fetch orders
-      const ordersRes = await axios.get('/api/orders');
       const ordersList = ordersRes.data.data || [];
       setOrders(ordersList);
       
@@ -77,29 +89,30 @@ const SellerDashboard = () => {
       const pendingOrders = ordersList.filter(o => o.status !== 'completed').length;
       
       setStats({ totalSales: totalSales.toFixed(2), activeProducts, pendingOrders });
-      setInitialLoading(false);
     } catch (error) {
       console.error('Failed to fetch seller data:', error);
-      setInitialLoading(false);
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
+    } finally {
+      if (showInitialLoader) {
+        setInitialLoading(false);
+      }
     }
-  };
+  }, [navigate]);
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    axios.put(`/api/orders/${orderId}`, { status: newStatus })
-      .then(() => {
-        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-        setNotification({ message: 'Order status updated successfully!', type: 'success' });
-      })
-      .catch(err => {
-        console.error('Order status update error:', err.response?.data);
-        const errorMsg = err.response?.data?.errors?.status?.[0] || 'Failed to update order status';
-        setNotification({ message: errorMsg, type: 'error' });
-      });
-  };
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    // Set authorization header for all requests
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    fetchData(true);
+  }, [fetchData, navigate]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -144,6 +157,29 @@ const SellerDashboard = () => {
       ...formData,
       skus: formData.skus.filter((_, i) => i !== index)
     });
+  };
+
+  const handleEditProductFromManager = (product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name || '',
+      description: product.description || '',
+      brand: product.brand || '',
+      type: product.type || '',
+      price: product.price != null ? String(product.price) : '',
+      gender: product.gender || 'Men',
+      image: null,
+      imagePreview: product.image ? buildApiAssetUrl(`/storage/${product.image}`) : null,
+      skus: Array.isArray(product.skus)
+        ? product.skus.map((sku) => ({
+            size: sku.size || '',
+            color: sku.color || '',
+            width: sku.width || '',
+            stock: parseInt(sku.stock, 10) || 0
+          }))
+        : []
+    });
+    setShowAddProductForm(true);
   };
 
   const handleAddProduct = async (e) => {
@@ -332,44 +368,7 @@ const SellerDashboard = () => {
             <i className="fas fa-tachometer-alt" style={{ width: '20px' }}></i>
             <span>Dashboard</span>
           </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'products' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'products' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('products')}>
-            <i className="fas fa-box" style={{ width: '20px' }}></i>
-            <span>My Products</span>
-          </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'manage-orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'manage-orders' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('manage-orders')}>
-            <i className="fas fa-truck" style={{ width: '20px' }}></i>
-            <span>Manage Orders</span>
-          </button>
+          {/* My Products removed - product management handled elsewhere */}
           <button style={{
             width: '100%',
             padding: '14px 24px',
@@ -392,6 +391,25 @@ const SellerDashboard = () => {
           <button style={{
             width: '100%',
             padding: '14px 24px',
+            background: activeTab === 'manage-products' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'manage-products' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('manage-products')}>
+            <i className="fas fa-boxes" style={{ width: '20px' }}></i>
+            <span>Manage Products</span>
+          </button>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
             background: activeTab === 'sales' ? 'rgba(255,255,255,0.1)' : 'transparent',
             border: 'none',
             color: '#FFF',
@@ -407,6 +425,25 @@ const SellerDashboard = () => {
           }} onClick={() => setActiveTab('sales')}>
             <i className="fas fa-tag" style={{ width: '20px' }}></i>
             <span>Sales & Promotions</span>
+          </button>
+          <button style={{
+            width: '100%',
+            padding: '14px 24px',
+            background: activeTab === 'manage-orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            border: 'none',
+            color: '#FFF',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderLeft: activeTab === 'manage-orders' ? '3px solid #FFF' : '3px solid transparent',
+            transition: 'all 0.2s'
+          }} onClick={() => setActiveTab('manage-orders')}>
+            <i className="fas fa-shopping-bag" style={{ width: '20px' }}></i>
+            <span>Order Management</span>
           </button>
           <button style={{
             width: '100%',
@@ -470,7 +507,7 @@ const SellerDashboard = () => {
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div style={{flex: 1}}>
                   <h1 style={{
-                    fontSize: 'var(--font-size-4xl)',
+                    fontSize: 'var(--font-size-3xl)',
                     fontWeight: 700,
                     margin: 0,
                     marginBottom: 'var(--spacing-md)',
@@ -565,9 +602,6 @@ const SellerDashboard = () => {
                 </div>
                 <div className="card-body">
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-md)'}}>
-                    <button className="btn btn-primary w-full" onClick={() => setActiveTab('products')}>
-                      <i className="fas fa-plus"></i> Add Product
-                    </button>
                     <button className="btn btn-secondary w-full" onClick={() => setActiveTab('manage-orders')}>
                       <i className="fas fa-eye"></i> View Orders
                     </button>
@@ -576,6 +610,9 @@ const SellerDashboard = () => {
                     </button>
                     <button className="btn btn-secondary w-full" onClick={() => setActiveTab('analytics')}>
                       <i className="fas fa-chart-bar"></i> Analytics
+                    </button>
+                    <button className="btn btn-secondary w-full" onClick={() => setActiveTab('profile')}>
+                      <i className="fas fa-cog"></i> Settings
                     </button>
                   </div>
                 </div>
@@ -625,7 +662,7 @@ const SellerDashboard = () => {
               <div className="card">
                 <div className="card-header">
                   <h3 style={{margin: 0}}>Your Top Products</h3>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('products')}>View All</button>
+                  {/* View All button removed */}
                 </div>
                 <div className="card-body">
                   {products.length > 0 ? (
@@ -655,146 +692,11 @@ const SellerDashboard = () => {
                     </table>
                   ) : (
                     <div className="empty-state">
-                      <p className="text-muted">No products yet. Create your first product!</p>
-                      <button className="btn btn-primary mt-lg" onClick={() => setActiveTab('products')}>
-                        Add Product
-                      </button>
+                      <p className="text-muted">No products yet. Go to product management to add products.</p>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'manage-orders' && (
-          <div className="fade-in">
-            <OrderManagement />
-          </div>
-        )}
-
-        {activeTab === 'products' && (
-          <div className="fade-in">
-            <div style={{marginBottom: 'var(--spacing-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <div>
-                <h2 style={{fontSize: 'var(--font-size-2xl)', fontWeight: 700, margin: 0}}>Your Products</h2>
-                <p style={{color: 'var(--gray-600)', margin: 0}}>Manage your product catalog</p>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingProduct(null);
-                  setFormData({
-                    name: '',
-                    description: '',
-                    brand: '',
-                    type: '',
-                    price: '',
-                    gender: 'Men',
-                    image: null,
-                    imagePreview: null,
-                    skus: []
-                  });
-                  setShowAddProductForm(true);
-                }}
-                style={{
-                  background: '#111',
-                  color: '#FFF',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '30px',
-                  fontWeight: '600',
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'none'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-              >
-                <i className="fas fa-plus"></i> Add New Product
-              </button>
-            </div>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 'var(--spacing-lg)'}}>
-              {products.map(product => (
-                <div className="card" key={product.id}>
-                  <div style={{
-                    height: '200px',
-                    background: '#F5F5F5',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                    borderBottom: '1px solid #E5E5E5'
-                  }}>
-                    {product.image ? (
-                      <img
-                        src={`http://localhost:8000/storage/${product.image}`}
-                        alt={product.name}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    ) : (
-                      <div style={{textAlign: 'center', color: '#999'}}>
-                        <i className="fas fa-image" style={{fontSize: '3rem', marginBottom: '8px'}}></i>
-                        <p style={{margin: 0, fontSize: '14px'}}>No Image</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="card-body">
-                    <h4 style={{margin: '0 0 var(--spacing-sm) 0'}}>{product.name}</h4>
-                    <p style={{color: 'var(--gray-600)', fontSize: 'var(--font-size-sm)', margin: '0 0 var(--spacing-md) 0'}}>{product.brand}</p>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)'}}>
-                      <span style={{fontSize: 'var(--font-size-xl)', fontWeight: 700, color: '#FF6B00'}}>₱{parseFloat(product.price).toFixed(2)}</span>
-                      <span className={`badge badge-${product.stock > 0 ? 'success' : 'danger'}`} style={{
-                        display: 'inline-block',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        background: product.stock > 0 ? '#E8F5E9' : '#FFEBEE',
-                        color: product.stock > 0 ? '#2E7D32' : '#C62828'
-                      }}>
-                        {product.stock} left
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        setEditingProduct(product);
-                        setFormData({
-                          name: product.name,
-                          description: product.description || '',
-                          brand: product.brand || '',
-                          type: product.type || '',
-                          price: product.price,
-                          gender: product.gender || 'Men',
-                          image: null,
-                          imagePreview: product.image ? `http://localhost:8000/storage/${product.image}` : null,
-                          skus: product.skus || []
-                        });
-                        setShowAddProductForm(true);
-                      }}
-                      className="btn btn-secondary w-full btn-sm" 
-                      style={{
-                        width: '100%',
-                        padding: '8px 16px',
-                        background: '#F5F5F5',
-                        border: '1px solid #DDD',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                        fontSize: '14px'
-                      }}
-                    >
-                      <i className="fas fa-edit"></i> Edit
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -814,9 +716,27 @@ const SellerDashboard = () => {
           </div>
         )}
 
+        {activeTab === 'manage-products' && (
+          <div className="fade-in">
+            <ProductManager 
+              products={products} 
+              onProductsUpdate={fetchData}
+              onAddProductClick={() => setShowAddProductForm(true)}
+              onEditProductClick={handleEditProductFromManager}
+              onOpenSalesTab={() => setActiveTab('sales')}
+            />
+          </div>
+        )}
+
         {activeTab === 'sales' && (
           <div className="fade-in">
             <SalesManager products={products} />
+          </div>
+        )}
+
+        {activeTab === 'manage-orders' && (
+          <div className="fade-in">
+            <OrderManagement />
           </div>
         )}
 
@@ -974,7 +894,7 @@ const SellerDashboard = () => {
                   color: '#111',
                   marginBottom: '8px'
                 }}>
-                  Product Name <span style={{color: '#F44336'}}>*</span>
+                  Product Name <span style={{color: '#E53935'}}>*</span>
                 </label>
                 <input
                   type="text"
@@ -1091,7 +1011,7 @@ const SellerDashboard = () => {
                   color: '#111',
                   marginBottom: '8px'
                 }}>
-                  Price (₱) <span style={{color: '#F44336'}}>*</span>
+                  Price (₱) <span style={{color: '#E53935'}}>*</span>
                 </label>
                 <input
                   type="number"
@@ -1124,7 +1044,7 @@ const SellerDashboard = () => {
                   color: '#111',
                   marginBottom: '8px'
                 }}>
-                  Category <span style={{color: '#F44336'}}>*</span>
+                  Category <span style={{color: '#E53935'}}>*</span>
                 </label>
                 <select
                   name="gender"
@@ -1328,7 +1248,7 @@ const SellerDashboard = () => {
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#F44336',
+                              color: '#E53935',
                               cursor: 'pointer',
                               fontSize: '16px',
                               padding: 0
@@ -1352,7 +1272,7 @@ const SellerDashboard = () => {
                   color: '#111',
                   marginBottom: '8px'
                 }}>
-                  Product Image {!editingProduct && <span style={{color: '#F44336'}}>*</span>}
+                  Product Image {!editingProduct && <span style={{color: '#E53935'}}>*</span>}
                   {editingProduct && <span style={{fontSize: '12px', fontWeight: '400', color: '#666'}}> (Click image to update)</span>}
                 </label>
                 <div style={{
