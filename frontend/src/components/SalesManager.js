@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './SalesManager.css';
 
@@ -18,11 +18,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
     end_date: ''
   });
 
-  useEffect(() => {
-    fetchSales();
-  }, []);
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/sales');
@@ -33,7 +29,11 @@ const SalesManager = ({ productId = null, products = [] }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -54,7 +54,7 @@ const AdminUsers = () => {
     <div className="container mt-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>User Management</h1>
-        <button className="btn btn-secondary" onClick={() => navigate('/admin-dashboard')}>
+        <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
           <i className="fas fa-arrow-left"></i> Back to Dashboard
         </button>
       </div>

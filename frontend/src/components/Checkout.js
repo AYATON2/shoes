@@ -120,9 +120,6 @@ const Checkout = () => {
     localStorage.removeItem('cart');
     setCart([]);
     setNotification({ message, type: 'success' });
-    setTimeout(() => {
-      window.location.href = '/customer-dashboard';
-    }, 2000);
   };
 
   const handleSubmit = (e) => {

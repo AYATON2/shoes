@@ -44,6 +44,19 @@ const SellerDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  const getCachedSeller = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.role === 'seller' ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
   const fetchData = useCallback(async (showInitialLoader = false) => {
     if (showInitialLoader) {
       setInitialLoading(true);
@@ -68,6 +81,7 @@ const SellerDashboard = () => {
       }
       
       setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       
       // Fetch dashboard data in parallel to reduce loading time.
       const [productsRes, ordersRes] = await Promise.all([
@@ -104,6 +118,13 @@ const SellerDashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const cachedSeller = getCachedSeller();
+
+    if (cachedSeller) {
+      setUser(cachedSeller);
+      setInitialLoading(false);
+    }
+
     if (!token) {
       navigate('/login');
       return;
@@ -111,7 +132,7 @@ const SellerDashboard = () => {
 
     // Set authorization header for all requests
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchData(true);
+    fetchData(!cachedSeller);
   }, [fetchData, navigate]);
 
   const handleImageChange = (e) => {

@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Address;
 use App\Models\Notification;
 use App\Models\Sku;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -176,6 +177,9 @@ class OrderController extends Controller
             }
 
             Payment::create($paymentData);
+
+            // Generate invoice for the order
+            InvoiceService::generateInvoice($order);
 
             DB::commit();
             return response()->json($order->load('orderItems.sku.product', 'shippingAddress', 'payment'), 201);

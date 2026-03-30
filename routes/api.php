@@ -10,6 +10,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\SaleController;
+use App\Http\Controllers\API\InvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,4 +69,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/sales/{id}', [SaleController::class, 'update']);
     Route::delete('/sales/{id}', [SaleController::class, 'destroy']);
     Route::patch('/sales/{id}/toggle', [SaleController::class, 'toggleActive']);
+    
+    // Invoice routes
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+    Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('invoices.download');
+    Route::post('/invoices/{invoice}/email', [InvoiceController::class, 'email']);
+    Route::post('/invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid']);
+    Route::post('/invoices/{invoice}/regenerate', [InvoiceController::class, 'regenerate']);
 });

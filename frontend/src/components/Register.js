@@ -36,9 +36,10 @@ const Register = () => {
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
           axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+          sessionStorage.setItem('justRegistered', 'true');
           
           const role = res.data.user.role;
-          if (role === 'customer') navigate('/customer-dashboard');
+          if (role === 'customer') navigate('/customer-dashboard', { state: { isNewAccount: true } });
           else if (role === 'seller') navigate('/seller-dashboard');
           else if (role === 'admin') navigate('/admin-dashboard');
           else navigate('/dashboard');

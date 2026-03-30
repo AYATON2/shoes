@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -18,6 +19,20 @@ const CustomerDashboard = () => {
   const [message, setMessage] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
+  const [isNewAccountGreeting, setIsNewAccountGreeting] = useState(false);
+
+  const getCachedUser = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.role === 'customer' ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
 
   const getAuthConfig = () => {
     const token = localStorage.getItem('token');
@@ -28,19 +43,29 @@ const CustomerDashboard = () => {
     };
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const cachedUser = getCachedUser();
+
+    if (cachedUser) {
+      setUser(cachedUser);
+      setProfileData({ name: cachedUser.name || '', email: cachedUser.email || '' });
+      setInitialLoading(false);
+    }
+
     if (!token) {
       navigate('/login');
       return;
     }
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    loadUserData();
+    loadUserData(!cachedUser);
     loadCart();
     fetchNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [navigate]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (showNotificationsPanel) {
       fetchNotifications();
@@ -66,8 +91,10 @@ const CustomerDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const loadUserData = () => {
-    setInitialLoading(true);
+  const loadUserData = (showLoader = true) => {
+    if (showLoader) {
+      setInitialLoading(true);
+    }
     axios.get('/api/user', getAuthConfig())
       .then(res => {
         const userData = res.data;
@@ -85,13 +112,29 @@ const CustomerDashboard = () => {
           }
           return;
         }
+
+        localStorage.setItem('user', JSON.stringify(userData));
+        // Show "Welcome" only on the first dashboard visit for this user in this browser.
+        const visitKey = `customerDashboardVisited:${userData.id || userData.email}`;
+        const hasVisited = localStorage.getItem(visitKey) === 'true';
+        const cameFromRegistration = location.state?.isNewAccount === true || sessionStorage.getItem('justRegistered') === 'true';
+        const shouldShowNewGreeting = !hasVisited || cameFromRegistration;
+        setIsNewAccountGreeting(shouldShowNewGreeting);
+        localStorage.setItem(visitKey, 'true');
+        if (sessionStorage.getItem('justRegistered') === 'true') {
+          sessionStorage.removeItem('justRegistered');
+        }
         
         setUser(userData);
         setProfileData({ name: userData.name, email: userData.email });
-        setInitialLoading(false);
+        if (showLoader) {
+          setInitialLoading(false);
+        }
       })
       .catch(() => {
-        setInitialLoading(false);
+        if (showLoader) {
+          setInitialLoading(false);
+        }
         navigate('/login');
       });
   };
@@ -557,7 +600,7 @@ const CustomerDashboard = () => {
             marginBottom: '16px',
             color: '#111',
             lineHeight: '1.2'
-          }}>Welcome Back, {user?.name}!</h1>
+          }}>{isNewAccountGreeting ? 'Welcome' : 'Welcome Back'}, {user?.name}!</h1>
           <p style={{
             fontSize: '18px',
             margin: 0,

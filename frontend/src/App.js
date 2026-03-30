@@ -19,6 +19,7 @@ const AdminProductDetail = lazy(() => import('./components/AdminProductDetail'))
 const Checkout = lazy(() => import('./components/Checkout'));
 const Profile = lazy(() => import('./components/Profile'));
 const OrderTracking = lazy(() => import('./components/OrderTracking'));
+const InvoiceDetail = lazy(() => import('./components/InvoiceDetail'));
 
 function AppContent() {
   const location = useLocation();
@@ -28,7 +29,8 @@ function AppContent() {
                      location.pathname !== '/register' && 
                      location.pathname !== '/seller-dashboard' &&
                      location.pathname !== '/order-tracking' &&
-                     !location.pathname.startsWith('/admin');
+                     !location.pathname.startsWith('/admin') &&
+                     !location.pathname.startsWith('/invoice');
   return (
     <div className="App">
       {showHeader && <Header />}
@@ -50,6 +52,7 @@ function AppContent() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/order-tracking" element={<OrderTracking />} />
+          <Route path="/invoice/:orderId" element={<InvoiceDetail />} />
         </Routes>
       </Suspense>
       </div>

@@ -37,7 +37,7 @@ const AdminProducts = () => {
     <div className="container mt-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Product Management</h1>
-        <button className="btn btn-secondary" onClick={() => navigate('/admin-dashboard')}>
+        <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
           <i className="fas fa-arrow-left"></i> Back to Dashboard
         </button>
       </div>
@@ -56,7 +56,7 @@ const AdminProducts = () => {
             {products.map(p => (
               <tr key={p.id}>
                   <td>
-                    <button className="btn btn-link p-0" onClick={() => navigate(`/admin-product/${p.id}`)}>
+                    <button className="btn btn-link p-0" onClick={() => navigate(`/product/${p.id}`)}>
                       {p.name}
                     </button>
                   </td>
