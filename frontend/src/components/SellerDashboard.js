@@ -1,11 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Bar, Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
 import Notification from './Notification';
 import SalesManager from './SalesManager';
 import OrderManagement from './OrderManagement';
 import ProductManager from './ProductManager';
 import { buildApiAssetUrl } from '../utils/apiUrl';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -43,6 +57,8 @@ const SellerDashboard = () => {
   });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [salesReport, setSalesReport] = useState({ reports: [], total_revenue: 0, total_items_sold: 0 });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const getCachedSeller = () => {
     try {
@@ -63,6 +79,8 @@ const SellerDashboard = () => {
     }
 
     try {
+      setAnalyticsLoading(true);
+
       // Fetch user data
       const userRes = await axios.get('/api/user');
       const userData = userRes.data;
@@ -84,9 +102,10 @@ const SellerDashboard = () => {
       localStorage.setItem('user', JSON.stringify(userData));
       
       // Fetch dashboard data in parallel to reduce loading time.
-      const [productsRes, ordersRes] = await Promise.all([
+      const [productsRes, ordersRes, sellerSalesRes] = await Promise.all([
         axios.get('/api/products?limit=1000'),
-        axios.get('/api/orders')
+        axios.get('/api/orders'),
+        axios.get('/api/reports/seller-sales')
       ]);
 
       const allProducts = productsRes.data.data || [];
@@ -96,6 +115,13 @@ const SellerDashboard = () => {
       
       const ordersList = ordersRes.data.data || [];
       setOrders(ordersList);
+
+      const sellerSalesData = sellerSalesRes.data || { reports: [], total_revenue: 0, total_items_sold: 0 };
+      setSalesReport({
+        reports: sellerSalesData.reports || [],
+        total_revenue: parseFloat(sellerSalesData.total_revenue || 0),
+        total_items_sold: parseInt(sellerSalesData.total_items_sold || 0, 10)
+      });
       
       // Calculate stats
       const totalSales = ordersList.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
@@ -110,11 +136,53 @@ const SellerDashboard = () => {
         window.location.href = '/login';
       }
     } finally {
+      setAnalyticsLoading(false);
       if (showInitialLoader) {
         setInitialLoading(false);
       }
     }
   }, [navigate]);
+
+  const chartLabels = salesReport.reports.map((item) => item.date);
+
+  const salesTrendData = {
+    labels: chartLabels,
+    datasets: [
+      {
+        label: 'Revenue (PHP)',
+        data: salesReport.reports.map((item) => parseFloat(item.revenue || 0)),
+        backgroundColor: 'rgba(37, 99, 235, 0.7)',
+        borderColor: 'rgba(37, 99, 235, 1)',
+        borderWidth: 1,
+        borderRadius: 6,
+      },
+    ],
+  };
+
+  const itemsSoldTrendData = {
+    labels: chartLabels,
+    datasets: [
+      {
+        label: 'Items Sold',
+        data: salesReport.reports.map((item) => parseInt(item.items_sold || 0, 10)),
+        borderColor: 'rgba(22, 163, 74, 1)',
+        backgroundColor: 'rgba(22, 163, 74, 0.2)',
+        pointBackgroundColor: 'rgba(22, 163, 74, 1)',
+        tension: 0.25,
+        fill: true,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+    },
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -728,12 +796,56 @@ const SellerDashboard = () => {
               <h2 style={{fontSize: 'var(--font-size-2xl)', fontWeight: 700}}>Sales Analytics</h2>
               <p style={{color: 'var(--gray-600)'}}>Track your sales performance and trends</p>
             </div>
-            <div className="card">
-              <div className="card-body" style={{textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--gray-500)'}}>
-                <i className="fas fa-chart-line" style={{fontSize: '3rem', marginBottom: 'var(--spacing-lg)', opacity: 0.5}}></i>
-                <p>Analytics charts coming soon...</p>
+
+            <div className="metrics-grid" style={{marginBottom: 'var(--spacing-xl)'}}>
+              <div className="metric-card">
+                <p className="metric-label">Total Revenue</p>
+                <p className="metric-value">₱{Number(salesReport.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-label">Total Items Sold</p>
+                <p className="metric-value">{salesReport.total_items_sold || 0}</p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-label">Days With Sales Data</p>
+                <p className="metric-value">{salesReport.reports.length}</p>
               </div>
             </div>
+
+            {analyticsLoading ? (
+              <div className="card">
+                <div className="card-body" style={{textAlign: 'center', padding: 'var(--spacing-2xl)'}}>
+                  <div className="spinner-border" role="status" />
+                  <p style={{marginTop: 'var(--spacing-md)', color: 'var(--gray-600)'}}>Loading analytics...</p>
+                </div>
+              </div>
+            ) : salesReport.reports.length === 0 ? (
+              <div className="card">
+                <div className="card-body" style={{textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--gray-500)'}}>
+                  <i className="fas fa-chart-line" style={{fontSize: '3rem', marginBottom: 'var(--spacing-lg)', opacity: 0.5}}></i>
+                  <p>No analytics data yet. Sales charts will appear after you receive orders.</p>
+                </div>
+              </div>
+            ) : (
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--spacing-lg)'}}>
+                <div className="card">
+                  <div className="card-header">
+                    <h3 style={{margin: 0}}>Revenue Trend</h3>
+                  </div>
+                  <div className="card-body" style={{height: '340px'}}>
+                    <Bar data={salesTrendData} options={chartOptions} />
+                  </div>
+                </div>
+                <div className="card">
+                  <div className="card-header">
+                    <h3 style={{margin: 0}}>Items Sold Trend</h3>
+                  </div>
+                  <div className="card-body" style={{height: '340px'}}>
+                    <Line data={itemsSoldTrendData} options={chartOptions} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

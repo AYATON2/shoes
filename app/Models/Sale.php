@@ -59,6 +59,6 @@ class Sale extends Model
     {
         $now = now();
         return $this->is_active && 
-               $now->isBetween($this->start_date, $this->end_date);
+               $now->isBetween($this->start_date, $this->end_date, true);
     }
 }

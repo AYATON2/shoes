@@ -36,7 +36,10 @@ class OrderController extends Controller
         }
         // Admin sees all
 
-        $orders = $query->paginate(20);
+        $perPage = (int) $request->input('per_page', 1000);
+        $perPage = max(1, min($perPage, 5000));
+
+        $orders = $query->paginate($perPage);
         return response()->json($orders);
     }
 
