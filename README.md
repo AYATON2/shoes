@@ -137,6 +137,7 @@ See comprehensive guides:
 - **[PERFORMANCE-SETUP.md](PERFORMANCE-SETUP.md)** - Complete production deployment guide with HTTP/3
 - **[OPTIMIZATION-SUMMARY.md](OPTIMIZATION-SUMMARY.md)** - Overview of all performance optimizations
 - **[WINDOWS-DEVELOPMENT.md](WINDOWS-DEVELOPMENT.md)** - Windows development environment setup
+- **[SYSTEM-TROUBLESHOOTING-AND-CUSTOMER-UI-GUIDE.md](SYSTEM-TROUBLESHOOTING-AND-CUSTOMER-UI-GUIDE.md)** - Issues faced, applied fixes, and full customer UI usage guide
 - **[setup-performance.sh](setup-performance.sh)** - Automated setup script for Ubuntu/Debian
 
 ## 🏗️ Architecture

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import AdminUsers from './AdminUsers';
 import AdminProducts from './AdminProducts';
 import AdminReports from './AdminReports';
@@ -7,7 +7,18 @@ import AdminProfile from './AdminProfile';
 import axios from 'axios';
 
 const AdminDashboard = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.role === 'admin' ? parsed : null;
+    } catch {
+      return null;
+    }
+  });
   const [inventoryReport, setInventoryReport] = useState([]);
   const [salesReport, setSalesReport] = useState([]);
   const [orderStatusReport, setOrderStatusReport] = useState([]);
@@ -15,7 +26,6 @@ const AdminDashboard = () => {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const navigate = useNavigate();
-  const location = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Check authentication on component mount
@@ -33,6 +43,7 @@ const AdminDashboard = () => {
     try {
       const userRes = await axios.get('/api/user');
       setUser(userRes.data);
+      localStorage.setItem('user', JSON.stringify(userRes.data));
       
       const usersRes = await axios.get('/api/users');
       setUsers(usersRes.data);

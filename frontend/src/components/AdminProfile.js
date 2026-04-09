@@ -50,7 +50,7 @@ const AdminProfile = () => {
       {/* Header */}
       <div className="profile-header">
         <div className="header-content">
-          <button className="btn btn-back" onClick={() => navigate('/admin-dashboard')}>
+          <button className="btn btn-back" onClick={() => navigate('/dashboard')}>
             <i className="fas fa-arrow-left"></i>
             Back to Dashboard
           </button>

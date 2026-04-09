@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class SaleController extends Controller
 {
@@ -76,7 +77,7 @@ class SaleController extends Controller
             'discount_amount' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
         if ($validator->fails()) {
@@ -115,6 +116,9 @@ class SaleController extends Controller
             ], 422);
         }
 
+        $startDate = Carbon::parse($request->start_date)->startOfDay();
+        $endDate = Carbon::parse($request->end_date)->endOfDay();
+
         $sale = Sale::create([
             'product_id' => $request->product_id,
             'seller_id' => $user->id,
@@ -122,8 +126,8 @@ class SaleController extends Controller
             'description' => $request->description,
             'discount_amount' => $request->discount_amount,
             'discount_percentage' => $request->discount_percentage,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'is_active' => true,
             'sale_price' => $salePrice !== null ? max(0, $salePrice) : null // Ensure price doesn't go below 0
         ]);
@@ -149,12 +153,13 @@ class SaleController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'product_id' => 'nullable|exists:products,id',
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'discount_amount' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'start_date' => 'sometimes|date',
-            'end_date' => 'sometimes|date|after:start_date',
+            'end_date' => 'sometimes|date|after_or_equal:start_date',
             'is_active' => 'sometimes|boolean',
         ]);
 
@@ -162,7 +167,16 @@ class SaleController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $sale->update($request->only([
+        // If product_id is being changed, validate ownership for sellers.
+        if ($request->has('product_id') && $request->product_id) {
+            $product = Product::findOrFail($request->product_id);
+            if ($user->role === 'seller' && $product->seller_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
+        $updateData = $request->only([
+            'product_id',
             'title',
             'description',
             'discount_amount',
@@ -170,10 +184,19 @@ class SaleController extends Controller
             'start_date',
             'end_date',
             'is_active'
-        ]));
+        ]);
+
+        if (array_key_exists('start_date', $updateData) && !empty($updateData['start_date'])) {
+            $updateData['start_date'] = Carbon::parse($updateData['start_date'])->startOfDay();
+        }
+        if (array_key_exists('end_date', $updateData) && !empty($updateData['end_date'])) {
+            $updateData['end_date'] = Carbon::parse($updateData['end_date'])->endOfDay();
+        }
+
+        $sale->update($updateData);
 
         // Recalculate sale price (only for product-specific sales)
-        if ($sale->product_id && ($request->has('discount_amount') || $request->has('discount_percentage'))) {
+        if ($sale->product_id && ($request->has('discount_amount') || $request->has('discount_percentage') || $request->has('product_id'))) {
             $product = $sale->product;
             $originalPrice = $product->price;
             $salePrice = $originalPrice;
@@ -185,6 +208,8 @@ class SaleController extends Controller
             }
 
             $sale->update(['sale_price' => max(0, $salePrice)]);
+        } elseif (!$sale->product_id) {
+            $sale->update(['sale_price' => null]);
         }
 
         $sale->refresh();

@@ -28,7 +28,7 @@ const OrderTracking = () => {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -428,12 +428,34 @@ const OrderTracking = () => {
                         <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#333' }}>
                           Shipping Address
                         </h4>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
-                          {order.shippingAddress?.street},
-                        </p>
-                        <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#666' }}>
-                          {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}
-                        </p>
+                        {(() => {
+                          const shippingAddress = order.shippingAddress || order.shipping_address;
+                          const line1 = shippingAddress?.street || shippingAddress?.address_line_1 || '';
+                          const cityStateZip = [
+                            shippingAddress?.city,
+                            shippingAddress?.state,
+                            shippingAddress?.zip || shippingAddress?.postal_code
+                          ].filter(Boolean).join(', ');
+
+                          if (!line1 && !cityStateZip) {
+                            return <p style={{ margin: 0, fontSize: '13px', color: '#999' }}>No shipping address provided</p>;
+                          }
+
+                          return (
+                            <>
+                              {line1 && (
+                                <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
+                                  {line1}
+                                </p>
+                              )}
+                              {cityStateZip && (
+                                <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#666' }}>
+                                  {cityStateZip}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}

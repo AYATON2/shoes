@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './SalesManager.css';
 
@@ -9,7 +9,8 @@ const SalesManager = ({ productId = null, products = [] }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [formData, setFormData] = useState({
-    product_id: null, // Always null for store-wide sales
+    sale_type: 'store-wide',
+    product_id: '',
     title: '',
     description: '',
     discount_amount: '',
@@ -18,11 +19,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
     end_date: ''
   });
 
-  useEffect(() => {
-    fetchSales();
-  }, []);
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/sales');
@@ -33,7 +30,11 @@ const SalesManager = ({ productId = null, products = [] }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,11 +44,18 @@ const SalesManager = ({ productId = null, products = [] }) => {
       return;
     }
 
+    if (formData.sale_type === 'individual' && !formData.product_id) {
+      showNotification('Please select a product for individual sale', 'error');
+      return;
+    }
+
     try {
       const payload = {
         ...formData,
-        product_id: null // Always null for store-wide sales
+        product_id: formData.sale_type === 'individual' ? parseInt(formData.product_id, 10) : null
       };
+
+      delete payload.sale_type;
 
       if (editingSale) {
         await axios.put(`/api/sales/${editingSale.id}`, payload);
@@ -60,7 +68,11 @@ const SalesManager = ({ productId = null, products = [] }) => {
       resetForm();
     } catch (error) {
       console.error('Error saving sale:', error);
-      const message = error.response?.data?.message || 'Error saving sale';
+      const apiErrors = error.response?.data?.errors;
+      const firstValidationError = apiErrors
+        ? Object.values(apiErrors)[0]?.[0]
+        : null;
+      const message = firstValidationError || error.response?.data?.message || 'Error saving sale';
       showNotification(message, 'error');
     }
   };
@@ -68,7 +80,8 @@ const SalesManager = ({ productId = null, products = [] }) => {
   const handleEdit = (sale) => {
     setEditingSale(sale);
     setFormData({
-      product_id: null, // Always null for store-wide sales
+      sale_type: sale.product_id ? 'individual' : 'store-wide',
+      product_id: sale.product_id ? String(sale.product_id) : '',
       title: sale.title,
       description: sale.description || '',
       discount_amount: sale.discount_amount || '',
@@ -102,7 +115,8 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const resetForm = () => {
     setFormData({
-      product_id: null,
+      sale_type: 'store-wide',
+      product_id: '',
       title: '',
       description: '',
       discount_amount: '',
@@ -284,10 +298,40 @@ const SalesManager = ({ productId = null, products = [] }) => {
                 color: '#1565C0',
                 lineHeight: '1.6'
               }}>
-                💡 <strong>Tip:</strong> Individual sales can be assigned to specific products later from the <strong>"My Products"</strong> tab.
-                Create the sale here, then go to each product to apply it.
+                💡 <strong>Tip:</strong> Choose <strong>Store-Wide</strong> to apply the sale to all products,
+                or choose <strong>Individual</strong> and pick one product.
               </p>
             </div>
+
+            {/* Product selector for individual sale */}
+            {formData.sale_type === 'individual' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+                  Select Product *
+                </label>
+                <select
+                  value={formData.product_id}
+                  onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                  required={formData.sale_type === 'individual'}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #DDD',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    background: '#FFF'
+                  }}
+                >
+                  <option value="">Choose a product</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} ({product.brand || 'No brand'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Title */}
             <div style={{ marginBottom: '16px' }}>

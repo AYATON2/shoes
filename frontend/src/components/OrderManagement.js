@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './OrderManagement.css';
@@ -9,7 +9,7 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
-  const [notifiedOrderIds, setNotifiedOrderIds] = useState(new Set());
+  const notifiedOrderIdsRef = useRef(new Set());
   const navigate = useNavigate();
 
   const fetchOrders = useCallback(async (isInitialLoad = false) => {
@@ -23,15 +23,15 @@ const OrderManagement = () => {
 
       // Check if truly new orders (not seen before)
       const newOrderIds = new Set(newOrders.map(o => o.id));
-      const neverNotifiedOrders = newOrders.filter(o => !notifiedOrderIds.has(o.id) && isInitialLoad === false);
+      const neverNotifiedOrders = newOrders.filter(o => !notifiedOrderIdsRef.current.has(o.id) && isInitialLoad === false);
 
       if (neverNotifiedOrders.length > 0) {
-        setNotifiedOrderIds(prev => new Set([...prev, ...newOrderIds]));
+        notifiedOrderIdsRef.current = new Set([...notifiedOrderIdsRef.current, ...newOrderIds]);
       }
 
       // Mark all current orders as notified on load
       if (isInitialLoad) {
-        setNotifiedOrderIds(newOrderIds);
+        notifiedOrderIdsRef.current = newOrderIds;
       }
 
       setOrders(newOrders);
@@ -40,7 +40,7 @@ const OrderManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [notifiedOrderIds]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -429,6 +429,31 @@ const OrderManagement = () => {
                       Order Actions
                     </h4>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        onClick={() => navigate(`/invoice/${order.id}`)}
+                        style={{
+                          background: '#111',
+                          color: '#FFF',
+                          border: 'none',
+                          padding: '10px 16px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#2A2A2A';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#111';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        Invoice PDF
+                      </button>
+
                       {statuses.map((status) => (
                         <button
                           key={status}

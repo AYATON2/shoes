@@ -15,6 +15,11 @@ export const getApiBaseUrl = () => {
       return 'http://localhost:8000';
     }
 
+    if (!isLocalhost && !envBase) {
+      // Keep current behavior (same-origin) but make misconfiguration visible in production logs.
+      console.warn('REACT_APP_API_URL is not set. Using same-origin API base URL:', `${protocol}//${hostname}${port ? `:${port}` : ''}`);
+    }
+
     return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
   }
 
