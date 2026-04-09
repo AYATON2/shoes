@@ -398,8 +398,12 @@ const SellerDashboard = () => {
     );
   }
 
+  const navItemClass = (tab) => (
+    `seller-modern-nav-item ${activeTab === tab ? 'active' : ''}`
+  );
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAFA' }}>
+    <div className="seller-dashboard-modern">
       {notification && (
         <Notification
           message={notification.message}
@@ -408,172 +412,42 @@ const SellerDashboard = () => {
         />
       )}
       {/* Sidebar */}
-      <aside style={{
-        width: '260px',
-        background: '#111',
-        color: '#FFF',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        height: '100vh',
-        left: 0,
-        top: 0
-      }}>
-        <div style={{
-          padding: '24px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
+      <aside className="seller-modern-sidebar">
+        <div className="seller-modern-sidebar-header">
+          <div className="seller-modern-brand">
             <i className="fas fa-store"></i>
             Seller Hub
           </div>
         </div>
-        <nav style={{ flex: 1, padding: '16px 0' }}>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'dashboard' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('dashboard')}>
-            <i className="fas fa-tachometer-alt" style={{ width: '20px' }}></i>
+        <nav className="seller-modern-nav">
+          <button className={navItemClass('dashboard')} onClick={() => setActiveTab('dashboard')}>
+            <i className="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
           </button>
           {/* My Products removed - product management handled elsewhere */}
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'analytics' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'analytics' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('analytics')}>
-            <i className="fas fa-chart-bar" style={{ width: '20px' }}></i>
+          <button className={navItemClass('analytics')} onClick={() => setActiveTab('analytics')}>
+            <i className="fas fa-chart-bar"></i>
             <span>Analytics</span>
           </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'manage-products' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'manage-products' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('manage-products')}>
-            <i className="fas fa-boxes" style={{ width: '20px' }}></i>
+          <button className={navItemClass('manage-products')} onClick={() => setActiveTab('manage-products')}>
+            <i className="fas fa-boxes"></i>
             <span>Manage Products</span>
           </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'sales' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'sales' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('sales')}>
-            <i className="fas fa-tag" style={{ width: '20px' }}></i>
+          <button className={navItemClass('sales')} onClick={() => setActiveTab('sales')}>
+            <i className="fas fa-tag"></i>
             <span>Sales & Promotions</span>
           </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'manage-orders' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'manage-orders' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('manage-orders')}>
-            <i className="fas fa-shopping-bag" style={{ width: '20px' }}></i>
+          <button className={navItemClass('manage-orders')} onClick={() => setActiveTab('manage-orders')}>
+            <i className="fas fa-shopping-bag"></i>
             <span>Order Management</span>
           </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'profile' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'profile' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('profile')}>
-            <i className="fas fa-user" style={{ width: '20px' }}></i>
+          <button className={navItemClass('profile')} onClick={() => setActiveTab('profile')}>
+            <i className="fas fa-user"></i>
             <span>Profile</span>
           </button>
         </nav>
-        <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <button onClick={handleLogout} style={{
-            width: '100%',
-            padding: '12px 24px',
-            background: 'rgba(255,255,255,0.1)',
-            border: 'none',
-            color: '#FFF',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            borderRadius: '30px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          >
+        <div className="seller-modern-sidebar-footer">
+          <button onClick={handleLogout} className="seller-modern-logout-btn">
             <i className="fas fa-sign-out-alt"></i>
             Logout
           </button>
@@ -581,7 +455,7 @@ const SellerDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main style={{ marginLeft: '260px', flex: 1, padding: '32px' }}>
+      <main className="seller-modern-main">
         {activeTab === 'dashboard' && (
           <div className="fade-in">
             {/* Welcome Hero Section */}

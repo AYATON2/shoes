@@ -23,6 +23,7 @@ const InvoiceDetail = lazy(() => import('./components/InvoiceDetail'));
 
 function AppContent() {
   const location = useLocation();
+  const currentYear = new Date().getFullYear();
   const showHeader = location.pathname !== '/' && 
                      location.pathname !== '/customer-dashboard' && 
                      location.pathname !== '/login' && 
@@ -34,29 +35,41 @@ function AppContent() {
   return (
     <div className="App">
       {showHeader && <Header />}
-      <Suspense fallback={<div style={{ padding: '24px', textAlign: 'center' }}>Loading...</div>}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<ProductList />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-          <Route path="/seller-dashboard" element={<SellerDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/admin-users" element={<AdminUsers />} />
-          <Route path="/admin-products" element={<AdminProducts />} />
-          <Route path="/admin-product/:id" element={<AdminProductDetail />} />
-          <Route path="/admin-reports" element={<AdminReports />} />
-          <Route path="/admin-profile" element={<AdminProfile />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/order-tracking" element={<OrderTracking />} />
-          <Route path="/invoice/:orderId" element={<InvoiceDetail />} />
-        </Routes>
-      </Suspense>
-      </div>
-    );
+      <main className="app-main">
+        <Suspense fallback={<div style={{ padding: '24px', textAlign: 'center' }}>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/products" element={<ProductList />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+            <Route path="/seller-dashboard" element={<SellerDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/admin-users" element={<AdminUsers />} />
+            <Route path="/admin-products" element={<AdminProducts />} />
+            <Route path="/admin-product/:id" element={<AdminProductDetail />} />
+            <Route path="/admin-reports" element={<AdminReports />} />
+            <Route path="/admin-profile" element={<AdminProfile />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/order-tracking" element={<OrderTracking />} />
+            <Route path="/invoice/:orderId" element={<InvoiceDetail />} />
+          </Routes>
+        </Suspense>
+      </main>
+
+      <footer className="ownership-watermark" aria-label="Site ownership watermark">
+        <div className="ownership-watermark__inner">
+          <span className="ownership-watermark__brand">StepUp Footwear</span>
+          <span className="ownership-watermark__dot" aria-hidden="true">•</span>
+          <span className="ownership-watermark__text">Official Property</span>
+          <span className="ownership-watermark__dot" aria-hidden="true">•</span>
+          <span className="ownership-watermark__text">© {currentYear} All Rights Reserved</span>
+        </div>
+      </footer>
+    </div>
+  );
 }
 
 function App() {

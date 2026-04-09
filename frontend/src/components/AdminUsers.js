@@ -4,6 +4,14 @@ import axios from 'axios';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
+  const [savingUser, setSavingUser] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'customer',
+  });
   const navigate = useNavigate();
 
   // Check authentication on component mount
@@ -50,6 +58,42 @@ const AdminUsers = () => {
     }).catch(err => console.error('Failed to suspend seller:', err));
   };
 
+  const handleCreateUserInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewUser((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreateError('');
+
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      setCreateError('Please complete name, email, and password.');
+      return;
+    }
+
+    try {
+      setSavingUser(true);
+      const res = await axios.post('/api/users', {
+        ...newUser,
+        active: true,
+      });
+      setUsers((prev) => [res.data, ...prev]);
+      setNewUser({ name: '', email: '', password: '', role: 'customer' });
+    } catch (err) {
+      const apiErrors = err.response?.data;
+      if (apiErrors && typeof apiErrors === 'object' && !Array.isArray(apiErrors)) {
+        const firstField = Object.keys(apiErrors)[0];
+        const firstMessage = Array.isArray(apiErrors[firstField]) ? apiErrors[firstField][0] : apiErrors[firstField];
+        setCreateError(firstMessage || 'Failed to create user.');
+      } else {
+        setCreateError(err.response?.data?.message || 'Failed to create user.');
+      }
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
   return (
     <div className="container mt-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -58,6 +102,73 @@ const AdminUsers = () => {
           <i className="fas fa-arrow-left"></i> Back to Dashboard
         </button>
       </div>
+
+      <div className="card mb-4" style={{ borderRadius: '12px', border: '1px solid #E5E7EB' }}>
+        <div className="card-body">
+          <h5 style={{ marginBottom: '14px' }}>Add New User</h5>
+          {createError && (
+            <div className="alert alert-danger py-2" role="alert">
+              {createError}
+            </div>
+          )}
+          <form onSubmit={handleCreateUser}>
+            <div className="row g-2 align-items-end">
+              <div className="col-md-3">
+                <label className="form-label">Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  name="name"
+                  value={newUser.name}
+                  onChange={handleCreateUserInputChange}
+                  placeholder="Full name"
+                />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  name="email"
+                  value={newUser.email}
+                  onChange={handleCreateUserInputChange}
+                  placeholder="name@example.com"
+                />
+              </div>
+              <div className="col-md-2">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  name="password"
+                  value={newUser.password}
+                  onChange={handleCreateUserInputChange}
+                  placeholder="Min 8 chars"
+                />
+              </div>
+              <div className="col-md-2">
+                <label className="form-label">Role</label>
+                <select
+                  className="form-control"
+                  name="role"
+                  value={newUser.role}
+                  onChange={handleCreateUserInputChange}
+                >
+                  <option value="customer">Customer</option>
+                  <option value="seller">Seller</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="col-md-2">
+                <button type="submit" className="btn btn-primary w-100" disabled={savingUser}>
+                  {savingUser ? 'Adding...' : 'Add User'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div className="table-responsive">
         <table className="table table-modern table-sm">
           <thead>

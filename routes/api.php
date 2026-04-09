@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/inventory', [ReportController::class, 'inventoryReport']);
     Route::get('/reports/orders', [ReportController::class, 'orderStatusReport']);
     Route::get('/reports/seller-sales', [ReportController::class, 'sellerSalesReport']);
-    Route::apiResource('users', UserController::class)->except(['store', 'show']);
+    Route::apiResource('users', UserController::class)->except(['show']);
     Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate']);
     Route::patch('/users/{user}/activate', [UserController::class, 'activate']);
     Route::patch('/users/{user}/approve', [UserController::class, 'approve']);
