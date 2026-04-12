@@ -36,7 +36,7 @@ Route::get('/health', function () {
 
 Route::get('/health/db', function () {
     try {
-        DB::connection()->getPdo();
+        DB::select('SELECT 1');
         return response()->json([
             'status' => 'ok',
             'db' => 'connected',
