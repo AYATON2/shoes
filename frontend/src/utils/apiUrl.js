@@ -26,6 +26,19 @@ export const getApiBaseUrl = () => {
   return 'http://localhost:8000';
 };
 
+export const isCrossOriginApi = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const apiOrigin = new URL(getApiBaseUrl()).origin;
+    return apiOrigin !== window.location.origin;
+  } catch (error) {
+    return false;
+  }
+};
+
 export const buildApiAssetUrl = (path) => {
   if (!path) {
     return '';
