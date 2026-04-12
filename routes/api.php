@@ -10,7 +10,6 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\SaleController;
-use App\Http\Controllers\API\InvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,10 +71,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/sales/{id}/toggle', [SaleController::class, 'toggleActive']);
     
     // Invoice routes
-    Route::get('/invoices', [InvoiceController::class, 'index']);
-    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
-    Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('invoices.download');
-    Route::post('/invoices/{invoice}/email', [InvoiceController::class, 'email']);
-    Route::post('/invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid']);
-    Route::post('/invoices/{invoice}/regenerate', [InvoiceController::class, 'regenerate']);
+    Route::get('/invoices', 'App\\Http\\Controllers\\API\\InvoiceController@index');
+    Route::get('/invoices/{invoice}', 'App\\Http\\Controllers\\API\\InvoiceController@show');
+    Route::get('/invoices/{invoice}/download', 'App\\Http\\Controllers\\API\\InvoiceController@download')->name('invoices.download');
+    Route::post('/invoices/{invoice}/email', 'App\\Http\\Controllers\\API\\InvoiceController@email');
+    Route::post('/invoices/{invoice}/mark-as-paid', 'App\\Http\\Controllers\\API\\InvoiceController@markAsPaid');
+    Route::post('/invoices/{invoice}/regenerate', 'App\\Http\\Controllers\\API\\InvoiceController@regenerate');
 });
