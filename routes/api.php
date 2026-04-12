@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\OrderController;
@@ -24,6 +25,34 @@ use App\Http\Controllers\API\SaleController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'app_env' => env('APP_ENV'),
+        'app_debug' => (bool) env('APP_DEBUG', false),
+    ]);
+});
+
+Route::get('/health/db', function () {
+    try {
+        DB::connection()->getPdo();
+        return response()->json([
+            'status' => 'ok',
+            'db' => 'connected',
+            'database' => env('DB_DATABASE'),
+            'host' => env('DB_HOST'),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'db' => 'failed',
+            'message' => $e->getMessage(),
+            'database' => env('DB_DATABASE'),
+            'host' => env('DB_HOST'),
+        ], 500);
+    }
+});
 
 // Products should be real-time so stock/sale updates are immediately visible.
 Route::get('products', [ProductController::class, 'index']);
