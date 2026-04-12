@@ -303,7 +303,8 @@ const ProductList = () => {
                   src={buildApiAssetUrl(`/storage/${product.image}`)}
                   alt={product.name}
                   onError={(e) => {
-                    e.target.src = '/default.jpg';
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/placeholder-product.svg';
                   }}
                   style={{
                     width: '100%',
