@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { isCrossOriginApi } from '../utils/apiUrl';
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -29,8 +30,8 @@ const Register = () => {
     }
     
     setLoading(true);
-    
-    axios.get('/sanctum/csrf-cookie').then(() => {
+
+    const submitRegister = () => {
       axios.post('/api/register', form)
         .then(res => {
           localStorage.setItem('token', res.data.token);
@@ -38,7 +39,7 @@ const Register = () => {
           sessionStorage.setItem('authSession', '1');
           axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
           sessionStorage.setItem('justRegistered', 'true');
-          
+
           const role = res.data.user.role;
           if (role === 'customer') navigate('/customer-dashboard', { state: { isNewAccount: true } });
           else if (role === 'seller') navigate('/seller-dashboard');
@@ -49,7 +50,14 @@ const Register = () => {
           setError(err.response?.data?.message || 'Registration failed. Please try again.');
           setLoading(false);
         });
-    });
+    };
+
+    if (isCrossOriginApi()) {
+      submitRegister();
+      return;
+    }
+
+    axios.get('/sanctum/csrf-cookie').then(submitRegister);
   };
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { isCrossOriginApi } from '../utils/apiUrl';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,15 +14,15 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
-    axios.get('/sanctum/csrf-cookie').then(() => {
+
+    const submitLogin = () => {
       axios.post('/api/login', { email, password })
         .then(res => {
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
           sessionStorage.setItem('authSession', '1');
           axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-          
+
           const role = String(res.data.user.role || '').toLowerCase();
           if (role === 'customer') {
             navigate('/customer-dashboard');
@@ -38,7 +39,14 @@ const Login = () => {
           setError(err.response?.data?.message || 'Login failed. Please try again.');
           setLoading(false);
         });
-    });
+    };
+
+    if (isCrossOriginApi()) {
+      submitLogin();
+      return;
+    }
+
+    axios.get('/sanctum/csrf-cookie').then(submitLogin);
   };
 
   return (

@@ -1,5 +1,7 @@
 const normalizeBaseUrl = (url) => (url || '').replace(/\/+$/, '');
 
+const RAILWAY_API_BASE_URL = 'https://shoes-production-04ab.up.railway.app';
+
 export const getApiBaseUrl = () => {
   const envBase = normalizeBaseUrl(process.env.REACT_APP_API_URL);
   if (envBase) {
@@ -16,8 +18,9 @@ export const getApiBaseUrl = () => {
     }
 
     if (!isLocalhost && !envBase) {
-      // Keep current behavior (same-origin) but make misconfiguration visible in production logs.
-      console.warn('REACT_APP_API_URL is not set. Using same-origin API base URL:', `${protocol}//${hostname}${port ? `:${port}` : ''}`);
+      // Production fallback: point to Railway so auth/API calls do not hit the Vercel static site.
+      console.warn('REACT_APP_API_URL is not set. Falling back to Railway API base URL:', RAILWAY_API_BASE_URL);
+      return RAILWAY_API_BASE_URL;
     }
 
     return `${protocol}//${hostname}${port ? `:${port}` : ''}`;

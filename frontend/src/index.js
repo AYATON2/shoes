@@ -5,10 +5,10 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { getApiBaseUrl } from './utils/apiUrl';
+import { getApiBaseUrl, isCrossOriginApi } from './utils/apiUrl';
 
-axios.defaults.withCredentials = true;
 axios.defaults.baseURL = getApiBaseUrl();
+axios.defaults.withCredentials = !isCrossOriginApi();
 
 const token = localStorage.getItem('token');
 if (token) {
