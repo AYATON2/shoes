@@ -19,6 +19,9 @@ WORKDIR /var/www/html
 # Copy app source.
 COPY . .
 
+# Make startup script executable.
+RUN chmod +x docker-start.sh
+
 # Install PHP dependencies for production.
 RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
@@ -27,4 +30,4 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+CMD ["./docker-start.sh"]
