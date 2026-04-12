@@ -51,6 +51,10 @@ export const buildApiAssetUrl = (path) => {
     return path;
   }
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = path.startsWith('/')
+    ? path
+    : path.startsWith('storage/')
+      ? `/${path}`
+      : `/storage/${path}`;
   return `${getApiBaseUrl()}${normalizedPath}`;
 };
