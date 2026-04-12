@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ProductList = () => {
-  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ brands: [], types: [], performance_tech: [] });
