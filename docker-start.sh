@@ -2,6 +2,7 @@
 set -u
 
 echo "[startup] Booting Laravel container"
+export REDIS_CLIENT=predis
 echo "[startup] APP_ENV=${APP_ENV:-unset}"
 echo "[startup] APP_URL=${APP_URL:-unset}"
 echo "[startup] DB_HOST=${DB_HOST:-unset}"
