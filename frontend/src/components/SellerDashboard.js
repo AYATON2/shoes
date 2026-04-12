@@ -206,6 +206,21 @@ const SellerDashboard = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+      const maxSizeBytes = 2 * 1024 * 1024;
+
+      if (!allowedTypes.includes(file.type)) {
+        setNotification({ message: 'Please upload a JPG, PNG, JPEG, or GIF image.', type: 'error' });
+        e.target.value = '';
+        return;
+      }
+
+      if (file.size > maxSizeBytes) {
+        setNotification({ message: 'Image must be 2MB or smaller.', type: 'error' });
+        e.target.value = '';
+        return;
+      }
+
       setFormData({
         ...formData,
         image: file,
@@ -1317,7 +1332,7 @@ const SellerDashboard = () => {
                         <i className="fas fa-camera"></i> Click to {editingProduct ? 'change' : 'replace'} image
                       </p>
                       <p style={{margin: '4px 0 0 0', fontSize: '12px', color: '#999'}}>
-                        PNG, JPG up to 5MB
+                        PNG, JPG, JPEG, GIF up to 2MB
                       </p>
                     </div>
                   ) : (
@@ -1327,7 +1342,7 @@ const SellerDashboard = () => {
                         Click to upload product image
                       </p>
                       <p style={{margin: '4px 0 0 0', fontSize: '12px', color: '#999'}}>
-                        PNG, JPG up to 5MB
+                        PNG, JPG, JPEG, GIF up to 2MB
                       </p>
                     </div>
                   )}
