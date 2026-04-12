@@ -1,17 +1,71 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+
+  const getPrimarySale = (product) => {
+    if (!product || !Array.isArray(product.sales) || product.sales.length === 0) {
+      return null;
+    }
+    return product.sales[0];
+  };
+
+  const getDiscountLabel = (sale) => {
+    if (!sale) {
+      return null;
+    }
+    if (sale.discount_percentage) {
+      return `${sale.discount_percentage}% OFF`;
+    }
+    if (sale.discount_amount) {
+      return `PHP ${Number(sale.discount_amount).toFixed(2)} OFF`;
+    }
+    return 'SALE';
+  };
+
+  const getDisplayPrice = (product, sale) => {
+    const basePrice = Number(product?.price || 0);
+    if (!sale) {
+      return { basePrice, finalPrice: basePrice, onSale: false };
+    }
+    if (sale.sale_price) {
+      return { basePrice, finalPrice: Number(sale.sale_price), onSale: true };
+    }
+    if (sale.discount_percentage) {
+      return {
+        basePrice,
+        finalPrice: basePrice - (basePrice * Number(sale.discount_percentage) / 100),
+        onSale: true,
+      };
+    }
+    if (sale.discount_amount) {
+      return { basePrice, finalPrice: Math.max(0, basePrice - Number(sale.discount_amount)), onSale: true };
+    }
+    return { basePrice, finalPrice: basePrice, onSale: false };
+  };
 
   const handleShopNow = () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/products');
-    } else {
-      navigate('/login');
-    }
+    navigate('/login');
   };
+
+  useEffect(() => {
+    axios.get('/api/products', { params: { limit: 8 } })
+      .then((res) => {
+        const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+        const prioritized = [...list].sort((a, b) => {
+          const score = (p) => (p?.sales?.length ? 2 : 0) + (p?.is_trending ? 1 : 0);
+          return score(b) - score(a);
+        });
+        setFeaturedProducts(prioritized.slice(0, 8));
+      })
+      .catch(() => {
+        setFeaturedProducts([]);
+      });
+  }, []);
 
   return (
     <div style={{ background: '#FFFFFF', minHeight: '100vh' }}>
@@ -97,6 +151,136 @@ const Home = () => {
               Join Us
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* Featured Products Preview */}
+      <div style={{
+        padding: '60px 20px 20px',
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        <h2 style={{
+          fontSize: '36px',
+          fontWeight: '700',
+          color: '#111',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          Popular Right Now
+        </h2>
+        <p style={{
+          textAlign: 'center',
+          color: '#666',
+          marginBottom: '28px'
+        }}>
+          Preview top products before signing in.
+        </p>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '16px'
+        }}>
+          {featuredProducts.map((product) => (
+            (() => {
+              const sale = getPrimarySale(product);
+              const discountLabel = getDiscountLabel(sale);
+              const priceInfo = getDisplayPrice(product, sale);
+              return (
+            <div key={product.id} style={{
+              background: '#FFF',
+              border: '1px solid #E5E5E5',
+              borderRadius: '10px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                height: '180px',
+                background: '#F5F5F5',
+                position: 'relative'
+              }}>
+                {sale && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '10px',
+                    background: '#D50000',
+                    color: '#FFF',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    borderRadius: '14px',
+                    padding: '4px 8px',
+                    zIndex: 2
+                  }}>
+                    {discountLabel}
+                  </span>
+                )}
+                {product.is_trending && (
+                  <span style={{
+                    position: 'absolute',
+                    top: sale ? '38px' : '10px',
+                    left: '10px',
+                    background: '#FF6B00',
+                    color: '#FFF',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    borderRadius: '14px',
+                    padding: '4px 8px',
+                    zIndex: 2
+                  }}>
+                    HOT
+                  </span>
+                )}
+                <img
+                  src={buildApiAssetUrl(`/storage/${product.image || ''}`)}
+                  alt={product.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+              <div style={{ padding: '12px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 8px 0', color: '#111' }}>
+                  {product.name}
+                </h3>
+                <p style={{ fontSize: '13px', color: '#666', margin: '0 0 8px 0' }}>
+                  {product.brand || 'StepUp'}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#111', margin: 0 }}>
+                    PHP {Number(priceInfo.finalPrice || 0).toFixed(2)}
+                  </p>
+                  {priceInfo.onSale && (
+                    <p style={{
+                      fontSize: '13px',
+                      color: '#888',
+                      margin: 0,
+                      textDecoration: 'line-through'
+                    }}>
+                      PHP {Number(priceInfo.basePrice || 0).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+              );
+            })()
+          ))}
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <button
+            onClick={() => navigate('/login')}
+            style={{
+              background: '#111',
+              color: '#FFF',
+              padding: '12px 24px',
+              border: 'none',
+              borderRadius: '30px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Shop Now
+          </button>
         </div>
       </div>
 
@@ -240,7 +424,7 @@ const Home = () => {
             Join thousands of satisfied customers. Browse our collection and step up your shoe game today.
           </p>
           <Link
-            to="/products"
+            to="/login"
             style={{
               background: '#111',
               color: '#FFF',

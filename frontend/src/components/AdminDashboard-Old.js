@@ -90,7 +90,7 @@ const AdminDashboard = () => {
   if (!user) return <div className="d-flex justify-content-center"><div className="spinner-border" role="status"><span className="sr-only">Loading...</span></div></div>;
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container admin-dashboard-modern">
       {/* Sidebar */}
       <div className="sidebar">
         <div className="sidebar-header">

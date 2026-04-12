@@ -48,7 +48,6 @@ const AdminProducts = () => {
               <th>Name</th>
               <th>Brand</th>
               <th>Price</th>
-              <th>Seller</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -62,7 +61,6 @@ const AdminProducts = () => {
                   </td>
                 <td>{p.brand}</td>
                 <td>${p.price}</td>
-                <td>{p.seller?.name || 'N/A'}</td>
                 <td>
                   <button className="btn btn-sm btn-danger" onClick={() => deleteProduct(p.id)}>Delete</button>
                 </td>

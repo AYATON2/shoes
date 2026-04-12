@@ -19,12 +19,19 @@ const Login = () => {
         .then(res => {
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
+          sessionStorage.setItem('authSession', '1');
           axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
           
-          const role = res.data.user.role;
-          if (role === 'customer') navigate('/customer-dashboard');
-          else if (role === 'seller') navigate('/seller-dashboard');
-          else if (role === 'admin') navigate('/admin-dashboard');
+          const role = String(res.data.user.role || '').toLowerCase();
+          if (role === 'customer') {
+            navigate('/customer-dashboard');
+          } else if (role === 'seller') {
+            localStorage.setItem('sellerDashboardTab', 'dashboard');
+            navigate('/seller-dashboard');
+          } else if (role === 'admin') {
+            localStorage.setItem('adminDashboardTab', 'dashboard');
+            navigate('/admin-dashboard');
+          }
           else navigate('/dashboard');
         })
         .catch(err => {

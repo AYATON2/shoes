@@ -6,29 +6,71 @@ const Header = () => {
   const [user, setUser] = useState(null);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+
+    const fetchUnreadNotifications = async () => {
+      try {
+        const unreadRes = await axios.get('/api/notifications/unread');
+        const countFromUnread = unreadRes.data?.count;
+        if (typeof countFromUnread === 'number') {
+          setUnreadNotifications(Math.max(0, countFromUnread));
+          return;
+        }
+
+        const listRes = await axios.get('/api/notifications');
+        const list = listRes.data?.data || listRes.data?.notifications || listRes.data || [];
+        const unreadCount = Array.isArray(list)
+          ? list.filter((item) => !item.read).length
+          : 0;
+        setUnreadNotifications(unreadCount);
+      } catch {
+        setUnreadNotifications(0);
+      }
+    };
+
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      axios.get('/api/user').then(res => setUser(res.data)).catch(() => localStorage.removeItem('token'));
+      axios.get('/api/user')
+        .then(res => {
+          setUser(res.data);
+          fetchUnreadNotifications();
+        })
+        .catch(() => localStorage.removeItem('token'));
     }
     
     // Update cart count
     const updateCartCount = () => {
       const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartCount(cartItems.length);
+      const totalItems = Array.isArray(cartItems)
+        ? cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+        : 0;
+      setCartCount(totalItems);
     };
     
     updateCartCount();
+    const notificationsInterval = setInterval(() => {
+      if (localStorage.getItem('token')) {
+        fetchUnreadNotifications();
+      }
+    }, 10000);
+
     window.addEventListener('cartUpdated', updateCartCount);
-    return () => window.removeEventListener('cartUpdated', updateCartCount);
+    return () => {
+      window.removeEventListener('cartUpdated', updateCartCount);
+      clearInterval(notificationsInterval);
+    };
   }, []);
 
   const logout = () => {
     axios.post('/api/logout').then(() => {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('authSession');
+      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
       navigate('/');
     });
@@ -116,6 +158,7 @@ const Header = () => {
           </Link>
           
           <Link to="/checkout" style={{
+            position: 'relative',
             color: '#111',
             textDecoration: 'none',
             fontSize: '15px',
@@ -124,8 +167,29 @@ const Header = () => {
             alignItems: 'center',
             gap: '4px'
           }}>
-            <i className="fas fa-shopping-bag"></i>
-            ({cartCount})
+            <span aria-hidden="true" style={{ fontSize: '18px', lineHeight: 1 }}>🛒</span>
+            {cartCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-14px',
+                minWidth: '18px',
+                height: '18px',
+                padding: '0 5px',
+                borderRadius: '9px',
+                background: '#FF3B30',
+                color: '#FFF',
+                fontSize: '11px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+                boxShadow: '0 0 0 2px #FFFFFF'
+              }}>
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </Link>
           
           {user ? (
@@ -144,6 +208,44 @@ const Header = () => {
               onMouseLeave={(e) => e.currentTarget.style.color = '#111'}
               >
                 Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/order-tracking?tab=notifications')}
+                style={{
+                  position: 'relative',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '20px',
+                  color: '#111',
+                  cursor: 'pointer',
+                  padding: '0'
+                }}
+                aria-label="Notifications"
+                title="Notifications"
+              >
+                <span aria-hidden="true" style={{ fontSize: '18px', lineHeight: 1 }}>🔔</span>
+                {unreadNotifications > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-10px',
+                    minWidth: '18px',
+                    height: '18px',
+                    padding: '0 5px',
+                    borderRadius: '9px',
+                    background: '#FF3B30',
+                    color: '#FFF',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                    boxShadow: '0 0 0 2px #FFFFFF'
+                  }}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </span>
+                )}
               </button>
               <button onClick={() => setProfilePanelOpen(true)} style={{
                 background: 'transparent',

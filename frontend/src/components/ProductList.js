@@ -14,14 +14,6 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
 
-  // Check authentication on component mount
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-    }
-  }, [navigate]);
-
   const fetchProducts = useCallback(() => {
     setLoading(true);
     axios.get('/api/products', { params: filters })

@@ -11,7 +11,8 @@ const Checkout = () => {
     city: '',
     state: '',
     zip: '',
-    country: 'Philippines'
+    country: 'Philippines',
+    mobile_number: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
@@ -132,7 +133,7 @@ const Checkout = () => {
     }
 
     // Validate shipping address
-    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip || !shippingAddress.country) {
+    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip || !shippingAddress.country || !shippingAddress.mobile_number) {
       setNotification({ message: 'Please fill in all required shipping address fields', type: 'error' });
       return;
     }
@@ -472,6 +473,22 @@ const Checkout = () => {
                   </div>
                   
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                    <input
+                      type="tel"
+                      placeholder="Mobile Number *"
+                      value={shippingAddress.mobile_number}
+                      onChange={(e) => setShippingAddress({...shippingAddress, mobile_number: e.target.value})}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #DDD',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+
                     <input
                       type="text"
                       placeholder="Postal Code *"
