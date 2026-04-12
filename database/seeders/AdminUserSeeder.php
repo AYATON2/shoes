@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
@@ -14,13 +15,17 @@ class AdminUserSeeder extends Seeder
      */
     public function run()
     {
-        User::updateOrCreate(
-            ['email' => 'admin@stepup.com'],
-            [
-                'name' => 'Admin User',
-                'password' => bcrypt('password'),
-                'role' => 'admin',
-            ]
-        );
+        if (User::where('email', 'admin@stepup.com')->exists()) {
+            return;
+        }
+
+        User::create([
+            'name'     => 'Admin User',
+            'email'    => 'admin@stepup.com',
+            'password' => Hash::make('password'),
+            'role'     => 'admin',
+            'active'   => true,
+            'approved' => true,
+        ]);
     }
 }
