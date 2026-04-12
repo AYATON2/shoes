@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Sku;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
@@ -54,7 +56,7 @@ class ProductController extends Controller
             foreach ($items as $product) {
                 try {
                     // Count orders for this product in the last 7 days through SKUs
-                    $recentOrderCount = \DB::table('order_items')
+                    $recentOrderCount = DB::table('order_items')
                         ->join('orders', 'order_items.order_id', '=', 'orders.id')
                         ->join('skus', 'order_items.sku_id', '=', 'skus.id')
                         ->where('skus.product_id', $product->id)
@@ -79,15 +81,15 @@ class ProductController extends Controller
                     }
                 } catch (\Exception $e) {
                     // If trending calculation fails, just skip it
-                    \Log::warning('Failed to calculate trending for product ' . $product->id . ': ' . $e->getMessage());
+                    Log::warning('Failed to calculate trending for product ' . $product->id . ': ' . $e->getMessage());
                     $product->is_trending = false;
                 }
             }
             
             return response()->json($result);
         } catch (\Exception $e) {
-            \Log::error('Product index error: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            Log::error('Product index error: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             return response()->json([
                 'error' => 'Failed to fetch products',
                 'message' => $e->getMessage()
@@ -110,7 +112,7 @@ class ProductController extends Controller
             
             // Check if trending based on recent orders through SKUs
             try {
-                $recentOrderCount = \DB::table('order_items')
+                $recentOrderCount = DB::table('order_items')
                     ->join('orders', 'order_items.order_id', '=', 'orders.id')
                     ->join('skus', 'order_items.sku_id', '=', 'skus.id')
                     ->where('skus.product_id', $product->id)
@@ -118,7 +120,7 @@ class ProductController extends Controller
                     ->count();
                 $product->is_trending = $recentOrderCount >= 3;
             } catch (\Exception $e) {
-                \Log::warning('Failed to calculate trending for product ' . $product->id . ': ' . $e->getMessage());
+                Log::warning('Failed to calculate trending for product ' . $product->id . ': ' . $e->getMessage());
                 $product->is_trending = false;
             }
             
@@ -137,7 +139,7 @@ class ProductController extends Controller
             
             return response()->json($product);
         } catch (\Exception $e) {
-            \Log::error('Product show error: ' . $e->getMessage());
+            Log::error('Product show error: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to fetch product',
                 'message' => $e->getMessage()

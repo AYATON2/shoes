@@ -19,6 +19,7 @@ const Login = () => {
         .then(res => {
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
+          sessionStorage.setItem('authSession', '1');
           axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
           
           const role = String(res.data.user.role || '').toLowerCase();

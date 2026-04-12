@@ -332,6 +332,7 @@ const CustomerDashboard = () => {
             </button>
             
             <Link to="/checkout" style={{
+              position: 'relative',
               color: '#111',
               textDecoration: 'none',
               fontSize: '15px',
@@ -340,7 +341,29 @@ const CustomerDashboard = () => {
               alignItems: 'center',
               gap: '4px'
             }}>
-              <i className="fas fa-shopping-bag"></i> Cart ({cart.length})
+              <span aria-hidden="true" style={{ fontSize: '18px', lineHeight: 1 }}>🛒</span>
+              {cart.length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-12px',
+                  minWidth: '18px',
+                  height: '18px',
+                  padding: '0 5px',
+                  borderRadius: '9px',
+                  background: '#EA4335',
+                  color: '#FFF',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 1,
+                  boxShadow: '0 0 0 2px #FFFFFF'
+                }}>
+                  {cart.length > 99 ? '99+' : cart.length}
+                </span>
+              )}
             </Link>
             <span style={{
               color: '#757575',

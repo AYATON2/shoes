@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 
@@ -20,6 +20,39 @@ const Checkout = lazy(() => import('./components/Checkout'));
 const Profile = lazy(() => import('./components/Profile'));
 const OrderTracking = lazy(() => import('./components/OrderTracking'));
 const InvoiceDetail = lazy(() => import('./components/InvoiceDetail'));
+
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const hasActiveSession = () => sessionStorage.getItem('authSession') === '1';
+
+function RequireAuth({ children, allowedRoles = null }) {
+  const token = localStorage.getItem('token');
+  const user = getStoredUser();
+  const role = String(user?.role || '').toLowerCase();
+
+  if (!hasActiveSession() || !token || !user) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('authSession');
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -43,18 +76,54 @@ function AppContent() {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-            <Route path="/seller-dashboard" element={<SellerDashboard />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin-users" element={<AdminUsers />} />
-            <Route path="/admin-products" element={<AdminProducts />} />
-            <Route path="/admin-product/:id" element={<AdminProductDetail />} />
-            <Route path="/admin-reports" element={<AdminReports />} />
-            <Route path="/admin-profile" element={<AdminProfile />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/order-tracking" element={<OrderTracking />} />
-            <Route path="/invoice/:orderId" element={<InvoiceDetail />} />
+            <Route
+              path="/customer-dashboard"
+              element={<RequireAuth allowedRoles={['customer']}><CustomerDashboard /></RequireAuth>}
+            />
+            <Route
+              path="/seller-dashboard"
+              element={<RequireAuth allowedRoles={['seller']}><SellerDashboard /></RequireAuth>}
+            />
+            <Route
+              path="/admin-dashboard"
+              element={<RequireAuth allowedRoles={['admin']}><AdminDashboard /></RequireAuth>}
+            />
+            <Route
+              path="/admin-users"
+              element={<RequireAuth allowedRoles={['admin']}><AdminUsers /></RequireAuth>}
+            />
+            <Route
+              path="/admin-products"
+              element={<RequireAuth allowedRoles={['admin']}><AdminProducts /></RequireAuth>}
+            />
+            <Route
+              path="/admin-product/:id"
+              element={<RequireAuth allowedRoles={['admin']}><AdminProductDetail /></RequireAuth>}
+            />
+            <Route
+              path="/admin-reports"
+              element={<RequireAuth allowedRoles={['admin']}><AdminReports /></RequireAuth>}
+            />
+            <Route
+              path="/admin-profile"
+              element={<RequireAuth allowedRoles={['admin']}><AdminProfile /></RequireAuth>}
+            />
+            <Route
+              path="/checkout"
+              element={<RequireAuth><Checkout /></RequireAuth>}
+            />
+            <Route
+              path="/profile"
+              element={<RequireAuth><Profile /></RequireAuth>}
+            />
+            <Route
+              path="/order-tracking"
+              element={<RequireAuth><OrderTracking /></RequireAuth>}
+            />
+            <Route
+              path="/invoice/:orderId"
+              element={<RequireAuth><InvoiceDetail /></RequireAuth>}
+            />
           </Routes>
         </Suspense>
       </main>

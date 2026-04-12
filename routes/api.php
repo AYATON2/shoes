@@ -28,6 +28,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Products should be real-time so stock/sale updates are immediately visible.
 Route::get('products', [ProductController::class, 'index']);
+Route::get('products/{id}', [ProductController::class, 'show'])->whereNumber('id');
 
 // Filter options can stay cached.
 Route::middleware(['response.cache:300'])->group(function () {
@@ -39,7 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::put('/user', [AuthController::class, 'update']);
     Route::put('/products/{id}/stock', [ProductController::class, 'updateStock']);
-    Route::apiResource('products', ProductController::class)->except(['index']);
+    Route::apiResource('products', ProductController::class)->except(['index', 'show']);
     Route::apiResource('orders', OrderController::class)->except(['destroy']);
     Route::get('/orders/{id}/invoice', [OrderController::class, 'invoice']);
     Route::post('/orders/{id}/verify-payment', [OrderController::class, 'verifyPayment']);

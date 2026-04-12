@@ -15,14 +15,12 @@ const ProductDetail = () => {
   const [selectedSku, setSelectedSku] = useState(null);
   const [notification, setNotification] = useState(null);
 
-  // Check authentication on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    axios.get(`/api/products/${id}`).then(res => setProduct(res.data));
+    axios.get(`/api/products/${id}`)
+      .then(res => setProduct(res.data))
+      .catch(() => {
+        setNotification({ message: 'Product not available.', type: 'error' });
+      });
   }, [id, navigate]);
 
   const getUniqueColors = () => {

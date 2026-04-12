@@ -59,6 +59,7 @@ class UserController extends Controller
 
     public function updateProfile(Request $request)
     {
+        /** @var User $user */
         $user = auth()->user();
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
