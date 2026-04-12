@@ -46,7 +46,13 @@ const Login = () => {
       return;
     }
 
-    axios.get('/sanctum/csrf-cookie').then(submitLogin);
+    axios.get('/sanctum/csrf-cookie')
+      .catch(() => null)
+      .then(submitLogin)
+      .catch(() => {
+        setError('Login failed. Please try again.');
+        setLoading(false);
+      });
   };
 
   return (

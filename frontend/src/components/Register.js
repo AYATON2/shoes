@@ -57,7 +57,13 @@ const Register = () => {
       return;
     }
 
-    axios.get('/sanctum/csrf-cookie').then(submitRegister);
+    axios.get('/sanctum/csrf-cookie')
+      .catch(() => null)
+      .then(submitRegister)
+      .catch(() => {
+        setError('Registration failed. Please try again.');
+        setLoading(false);
+      });
   };
 
   return (
