@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
 # Install system packages and PHP extensions needed by Laravel.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libonig-dev \
     libxml2-dev \
     && docker-php-ext-install pdo pdo_mysql mbstring bcmath exif zip \
-    && a2dismod mpm_event mpm_worker || true \
-    && a2enmod mpm_prefork rewrite \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer.
@@ -21,18 +19,12 @@ WORKDIR /var/www/html
 # Copy app source.
 COPY . .
 
-# Point Apache to Laravel public directory.
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
 # Install PHP dependencies for production.
 RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
 # Ensure writable directories are available for Laravel.
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
 
-EXPOSE 80
+EXPOSE 8080
 
-CMD ["apache2-foreground"]
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
