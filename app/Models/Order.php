@@ -9,7 +9,18 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'total', 'status', 'shipping_address_id', 'payment_method', 'shipping_fee'];
+    protected $fillable = [
+        'user_id', 
+        'total', 
+        'status', 
+        'shipping_address_id', 
+        'payment_method', 
+        'shipping_fee',
+        'logistics_id',
+        'rider_id',
+        'is_local',
+        'is_archived'
+    ];
 
     public function user()
     {
@@ -34,5 +45,20 @@ class Order extends Model
     public function notifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function logistics()
+    {
+        return $this->belongsTo(Logistics::class);
+    }
+
+    public function rider()
+    {
+        return $this->belongsTo(User::class, 'rider_id');
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(ReturnProduct::class);
     }
 }

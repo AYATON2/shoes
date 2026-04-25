@@ -31,11 +31,8 @@ const AdminReports = () => {
 
   return (
     <div className="container mt-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="mb-4">
         <h1>Reports</h1>
-        <button className="btn btn-secondary" onClick={() => navigate('/admin-dashboard')}>
-          <i className="fas fa-arrow-left"></i> Back to Dashboard
-        </button>
       </div>
       <div className="row">
         <div className="col-lg-4">
@@ -47,7 +44,7 @@ const AdminReports = () => {
               <button className="btn btn-warning btn-block mb-3" onClick={fetchInventory}>Generate Report</button>
               {inventoryReport.length > 0 && (
                 <div className="table-responsive">
-                  <table className="table table-modern table-sm">
+                  <table className="premium-table">
                     <thead>
                       <tr>
                         <th>Product</th>
@@ -77,7 +74,7 @@ const AdminReports = () => {
               <button className="btn btn-info btn-block mb-3" onClick={fetchSales}>Generate Report</button>
               {salesReport.length > 0 && (
                 <div className="table-responsive">
-                  <table className="table table-modern table-sm">
+                  <table className="premium-table">
                     <thead>
                       <tr>
                         <th>Product ID</th>
@@ -107,7 +104,7 @@ const AdminReports = () => {
               <button className="btn btn-secondary btn-block mb-3" onClick={fetchOrderStatus}>Generate Report</button>
               {orderStatusReport.length > 0 && (
                 <div className="table-responsive">
-                  <table className="table table-modern table-sm">
+                  <table className="premium-table">
                     <thead>
                       <tr>
                         <th>Order ID</th>

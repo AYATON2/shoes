@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class RenameSellerRoleToStaff extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        DB::table('users')->where('role', 'seller')->update(['role' => 'staff']);
+    }
+
+    public function down()
+    {
+        DB::table('users')->where('role', 'staff')->update(['role' => 'seller']);
+    }
+}

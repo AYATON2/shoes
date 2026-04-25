@@ -22,16 +22,31 @@ class OrderController extends Controller
             'orderItems.sku.product',
             'shippingAddress',
             'payment',
-            'user'
+            'user',
+            'rider'
         ])->orderBy('created_at', 'desc');
+
+        if ($request->has('archived') && $request->boolean('archived')) {
+            $query->where('is_archived', true);
+        } else {
+            $query->where('is_archived', false);
+        }
 
         if ($user->role === 'customer') {
             $query->where('user_id', $user->id);
-        } elseif ($user->role === 'seller') {
-            // Sellers see orders for their products
-            $query->whereHas('orderItems.sku.product', function ($q) use ($user) {
-                $q->where('seller_id', $user->id);
-            });
+        } elseif ($user->role === 'staff') {
+            if ($user->logistic_id) {
+                $query->where('logistics_id', $user->logistic_id);
+            } else {
+                $query->where('id', 0); // Unassigned staff see no orders
+            }
+        } elseif ($user->role === 'rider') {
+            $query->where('rider_id', $user->id)
+                  ->orWhere(function($q) use ($user) {
+                      $q->whereNull('rider_id')
+                        ->where('status', 'ready_for_pickup')
+                        ->where('is_local', true);
+                  });
         }
         // Admin sees all
 
@@ -85,6 +100,8 @@ class OrderController extends Controller
         $validationRules = [
             'shipping_address_id' => 'required|exists:addresses,id',
             'payment_method' => 'required|in:gcash,cod',
+            'logistics_id' => 'nullable|exists:logistics,id',
+            'voucher_id' => 'nullable|exists:vouchers,id',
         ];
 
         // Validate file upload for GCash
@@ -141,15 +158,54 @@ class OrderController extends Controller
                 $sku->decrement('stock', $item['quantity']);
             }
 
-            $shipping_fee = 50.00; // Simple fixed fee
+            $shipping_fee = 50.00; // Default fee
+            
+            // Logistics Logic
+            $logistics_id = $request->logistics_id;
+            $rider_id = null;
+            $is_local = false;
+
+            // Check coverage
+            $city = strtolower($address->city);
+            if (str_contains($city, 'butuan') || str_contains($city, 'agusan')) {
+                $is_local = true;
+                $localLogistics = \App\Models\Logistics::where('is_local', true)->first();
+                $logistics_id = $localLogistics ? $localLogistics->id : $logistics_id;
+                $shipping_fee = $localLogistics ? $localLogistics->base_cost : $shipping_fee;
+            } else {
+                if ($logistics_id) {
+                    $selectedLogistics = \App\Models\Logistics::find($logistics_id);
+                    $shipping_fee = $selectedLogistics ? $selectedLogistics->base_cost : $shipping_fee;
+                }
+            }
+
+            // Voucher Logic
+            $discount_amount = 0;
+            if ($request->voucher_id) {
+                $voucher = \App\Models\Voucher::find($request->voucher_id);
+                if ($voucher && $voucher->is_active && (!$voucher->expires_at || $voucher->expires_at->isFuture())) {
+                    if ($total >= $voucher->min_spend) {
+                        if ($voucher->type === 'percentage') {
+                            $discount_amount = $total * ($voucher->value / 100);
+                        } else {
+                            $discount_amount = $voucher->value;
+                        }
+                    }
+                }
+            }
 
             $order = Order::create([
                 'user_id' => $user->id,
-                'total' => $total + $shipping_fee,
+                'total' => max(0, ($total - $discount_amount) + $shipping_fee),
                 'status' => 'received',
                 'shipping_address_id' => $request->shipping_address_id,
                 'payment_method' => $request->payment_method,
                 'shipping_fee' => $shipping_fee,
+                'discount_amount' => $discount_amount,
+                'voucher_id' => $request->voucher_id,
+                'logistics_id' => $logistics_id,
+                'rider_id' => $rider_id,
+                'is_local' => $is_local,
             ]);
 
             foreach ($orderItems as $item) {
@@ -199,30 +255,40 @@ class OrderController extends Controller
         $user = $request->user();
         $requestedStatus = $request->input('status');
 
-        // Authorization: Allow customer to only cancel their own orders, sellers/admin can cancel any order
+        // Authorization: Allow customer to only cancel their own orders, staff/admin can cancel any order
         if ($requestedStatus === 'cancelled') {
-            // Customer can cancel their own orders, seller can cancel orders for their products, admin can cancel any
+            // Customer can cancel their own orders, staff can cancel orders for their products, admin can cancel any
             $isAuthorized = $user->role === 'admin' || 
                            ($user->role === 'customer' && $order->user_id === $user->id) ||
-                           ($user->role === 'seller' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
-                               $q->where('seller_id', $user->id);
-                           })->exists());
+                           ($user->role === 'staff' && (
+                               ($user->logistic_id && $order->logistics_id === $user->logistic_id) ||
+                               $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
+                                   $q->where('seller_id', $user->id);
+                               })->exists()
+                           ));
             
             if (!$isAuthorized) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } else {
-            // Only admin or seller can update order workflow (received -> quality_check -> shipped -> delivered)
-            if (!($user->role === 'admin' || 
-                  ($user->role === 'seller' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
-                      $q->where('seller_id', $user->id);
-                  })->exists()))) {
+            // Only admin, staff, or riders can update order workflow
+            $isAuthorized = $user->role === 'admin' || 
+                            ($user->role === 'staff' && (
+                                ($user->logistic_id && $order->logistics_id === $user->logistic_id) ||
+                                $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
+                                    $q->where('seller_id', $user->id);
+                                })->exists()
+                            )) ||
+                            ($user->role === 'rider' && ($order->rider_id === $user->id || ($order->rider_id === null && $order->is_local)));
+
+            if (!$isAuthorized) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:received,quality_check,shipped,delivered,cancelled',
+            'status' => 'nullable|in:received,quality_check,ready_for_pickup,shipped,delivered,cancelled,returned',
+            'rider_id' => 'nullable|exists:users,id'
         ]);
 
         if ($validator->fails()) {
@@ -232,26 +298,38 @@ class OrderController extends Controller
         $oldStatus = $order->status;
         $newStatus = $request->status;
         
-        // Check if GCash payment needs to be verified before moving to quality_check
-        if ($newStatus === 'quality_check' && $order->payment_method === 'gcash') {
+        // Check if GCash payment needs to be verified before moving to ready_for_pickup
+        if ($newStatus === 'ready_for_pickup' && $order->payment_method === 'gcash') {
             $payment = $order->payment;
             if (!$payment || $payment->status !== 'completed' || !$payment->verified_at) {
                 return response()->json([
-                    'error' => 'GCash payment must be verified before moving to quality check'
+                    'error' => 'GCash payment must be verified before moving to ready for pickup'
                 ], 400);
             }
         }
+
+        if ($request->has('rider_id')) {
+            $order->rider_id = $request->rider_id;
+        } elseif ($user->role === 'rider' && $order->rider_id === null && $newStatus === 'shipped') {
+            $order->rider_id = $user->id;
+        }
         
-        $order->update($request->only('status'));
+        if ($newStatus) {
+            $order->status = $newStatus;
+        }
+        
+        $order->save();
 
         // Create notification for customer
         if ($oldStatus !== $newStatus) {
             $statusMessages = [
                 'received' => 'Your order has been received',
-                'quality_check' => 'Your order is being quality checked',
+                'quality_check' => 'Your order is undergoing quality check',
+                'ready_for_pickup' => 'Your order is ready for pick up',
                 'shipped' => 'Your order has been shipped',
                 'delivered' => 'Your order has been delivered',
-                'cancelled' => 'Your order has been cancelled'
+                'cancelled' => 'Your order has been cancelled',
+                'returned' => 'Your order has been returned'
             ];
 
             $message = $statusMessages[$newStatus] ?? "Order status updated to {$newStatus}";
@@ -324,11 +402,14 @@ class OrderController extends Controller
         $order = Order::with('payment')->findOrFail($orderId);
         $user = $request->user();
 
-        // Only seller or admin can verify payment
+        // Only staff or admin can verify payment
         if (!($user->role === 'admin' || 
-              ($user->role === 'seller' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
-                  $q->where('seller_id', $user->id);
-              })->exists()))) {
+              ($user->role === 'staff' && (
+                  ($user->logistic_id && $order->logistics_id === $user->logistic_id) ||
+                  $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
+                      $q->where('seller_id', $user->id);
+                  })->exists()
+              )))) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -357,7 +438,7 @@ class OrderController extends Controller
                 'user_id' => $order->user_id,
                 'order_id' => $order->id,
                 'title' => 'Payment Verified',
-                'message' => 'Your GCash payment has been verified. Your order will proceed to quality check.',
+                'message' => 'Your GCash payment has been verified. Your order will proceed to ready for pickup.',
                 'type' => 'payment_verified'
             ]);
 
@@ -381,5 +462,12 @@ class OrderController extends Controller
 
             return response()->json(['message' => 'Payment rejected', 'payment' => $payment]);
         }
+    }
+
+    public function archive($id)
+    {
+        $order = Order::findOrFail($id);
+        $order->update(['is_archived' => !$order->is_archived]);
+        return response()->json(['message' => $order->is_archived ? 'Order archived' : 'Order unarchived']);
     }
 }

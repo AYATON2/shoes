@@ -14,16 +14,32 @@ class ReportController extends Controller
     public function salesReport(Request $request)
     {
         $this->authorize('viewAdmin', auth()->user());
+        $user = auth()->user();
 
-        $query = Order::selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
-            ->groupBy('date')
-            ->orderBy('date', 'desc');
+        $query = Order::query();
+
+        if ($user->role === 'staff') {
+            $query->whereHas('orderItems.sku.product', function ($q) use ($user) {
+                $q->where('seller_id', $user->id);
+            })
+            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+            ->join('skus', 'order_items.sku_id', '=', 'skus.id')
+            ->join('products', 'skus.product_id', '=', 'products.id')
+            ->where('products.seller_id', $user->id)
+            ->selectRaw('DATE(orders.created_at) as date, SUM(order_items.quantity * order_items.price) as revenue, COUNT(DISTINCT orders.id) as orders')
+            ->groupBy('date');
+        } else {
+            $query->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
+                ->groupBy('date');
+        }
+
+        $query->orderBy('date', 'desc');
 
         if ($request->has('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
+            $query->whereDate($user->role === 'staff' ? 'orders.created_at' : 'created_at', '>=', $request->start_date);
         }
         if ($request->has('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
+            $query->whereDate($user->role === 'staff' ? 'orders.created_at' : 'created_at', '<=', $request->end_date);
         }
 
         $reports = $query->get();
@@ -33,40 +49,46 @@ class ReportController extends Controller
     public function inventoryReport()
     {
         $this->authorize('viewAdmin', auth()->user());
+        $user = auth()->user();
 
-        $topSizes = Sku::select('size', DB::raw('SUM(stock) as total_stock'))
-            ->groupBy('size')
-            ->orderBy('total_stock', 'desc')
-            ->take(10)
-            ->get();
+        // Get products with their total stock across all SKUs
+        $query = Product::select('products.id', 'products.name as product_name', DB::raw('SUM(skus.stock) as total_stock'))
+            ->join('skus', 'products.id', '=', 'skus.product_id')
+            ->groupBy('products.id', 'products.name');
 
-        $topBrands = Product::select('brand', DB::raw('COUNT(*) as count'))
-            ->groupBy('brand')
-            ->orderBy('count', 'desc')
-            ->take(10)
-            ->get();
+        if ($user->role === 'staff') {
+            $query->where('products.seller_id', $user->id);
+        }
 
-        return response()->json([
-            'top_sizes' => $topSizes,
-            'top_brands' => $topBrands,
-        ]);
+        $lowStockProducts = $query->orderBy('total_stock', 'asc')->get();
+
+        return response()->json($lowStockProducts);
     }
 
     public function orderStatusReport()
     {
         $this->authorize('viewAdmin', auth()->user());
+        $user = auth()->user();
 
-        $statuses = Order::select('status', DB::raw('COUNT(*) as count'))
+        $query = Order::query();
+
+        if ($user->role === 'staff') {
+            $query->whereHas('orderItems.sku.product', function ($q) use ($user) {
+                $q->where('seller_id', $user->id);
+            });
+        }
+
+        $statuses = $query->select('status', DB::raw('COUNT(*) as count'))
             ->groupBy('status')
             ->get();
 
         return response()->json($statuses);
     }
 
-    public function sellerSalesReport(Request $request)
+    public function staffSalesReport(Request $request)
     {
         $user = auth()->user();
-        if ($user->role !== 'seller') {
+        if ($user->role !== 'staff') {
             abort(403);
         }
 

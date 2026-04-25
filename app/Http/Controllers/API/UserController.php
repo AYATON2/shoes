@@ -17,8 +17,39 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         
-        $users = User::all();
+        $users = User::with('logistic')->get();
         return response()->json($users);
+    }
+
+    public function store(Request $request)
+    {
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|string|min:8',
+            'role' => 'required|string|in:admin,staff,rider,customer',
+            'logistic_id' => 'nullable|exists:logistics,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'logistic_id' => $request->logistic_id,
+            'active' => true,
+            'approved' => $request->role === 'staff' ? true : false,
+        ]);
+
+        return response()->json($user->load('logistic'), 201);
     }
 
     public function updateProfile(Request $request)
@@ -40,8 +71,8 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $this->authorize('update', $user);
-        $user->update($request->only('name', 'email', 'role'));
-        return $user;
+        $user->update($request->only('name', 'email', 'role', 'logistic_id'));
+        return $user->load('logistic');
     }
 
     public function deactivate(User $user)
@@ -61,7 +92,7 @@ class UserController extends Controller
     public function approve(User $user)
     {
         $this->authorize('update', $user);
-        if ($user->role === 'seller') {
+        if ($user->role === 'staff') {
             $user->update(['approved' => true]);
         }
         return $user;
@@ -70,9 +101,20 @@ class UserController extends Controller
     public function suspend(User $user)
     {
         $this->authorize('update', $user);
-        if ($user->role === 'seller') {
+        if ($user->role === 'staff') {
             $user->update(['approved' => false]);
         }
         return $user;
+    }
+
+    public function notifications()
+    {
+        return auth()->user()->notifications()->orderBy('created_at', 'desc')->take(20)->get();
+    }
+
+    public function markNotificationsRead()
+    {
+        auth()->user()->notifications()->where('read', false)->update(['read' => true]);
+        return response()->json(['message' => 'Notifications marked as read']);
     }
 }

@@ -10,20 +10,16 @@ const ProductDetail = () => {
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSku, setSelectedSku] = useState(null);
   const [notification, setNotification] = useState(null);
 
-  // Check authentication on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
     axios.get(`/api/products/${id}`).then(res => setProduct(res.data));
-  }, [id, navigate]);
+    axios.get(`/api/products/${id}/reviews`).then(res => setReviews(res.data));
+  }, [id]);
 
   const getUniqueColors = () => {
     if (!product?.skus) return [];
@@ -577,6 +573,66 @@ const ProductDetail = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div style={{ marginTop: '100px', borderTop: '1px solid #EEE', paddingTop: '80px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '60px' }}>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: '900', margin: 0, letterSpacing: '-1px' }}>Customer Reviews</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', gap: '2px' }}>
+                {[1, 2, 3, 4, 5].map(s => (
+                  <i key={s} className="fas fa-star" style={{ color: s <= Math.round(reviews.reduce((acc, r) => acc + r.rating, 0) / (reviews.length || 1)) ? '#FFD700' : '#E2E8F0', fontSize: '14px' }} />
+                ))}
+              </div>
+              <span style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
+                {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : '0.0'}
+              </span>
+              <span style={{ color: '#94A3B8', fontWeight: '600' }}>Based on {reviews.length} reviews</span>
+            </div>
+          </div>
+        </div>
+
+        {reviews.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '32px' }}>
+            {reviews.map((review, i) => (
+              <div key={i} style={{ background: '#F8FAFC', padding: '32px', borderRadius: '24px', border: '1px solid #F1F5F9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#111', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '800' }}>
+                      {review.user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#0F172A' }}>{review.user?.name || 'Verified Buyer'}</div>
+                      <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: '600' }}>{new Date(review.created_at).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <i key={s} className="fas fa-star" style={{ color: s <= review.rating ? '#FFD700' : '#E2E8F0', fontSize: '12px' }} />
+                    ))}
+                  </div>
+                </div>
+                <p style={{ fontSize: '15px', color: '#475569', lineHeight: '1.7', margin: 0, fontStyle: 'italic' }}>
+                  "{review.comment}"
+                </p>
+                <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <i className="fas fa-check" style={{ fontSize: '8px', color: '#16A34A' }} />
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#16A34A', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Verified Purchase</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '80px', background: '#F8FAFC', borderRadius: '32px', border: '2px dashed #E2E8F0' }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>⭐</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginBottom: '8px' }}>No reviews yet</h3>
+            <p style={{ color: '#64748B', maxWidth: '400px', margin: '0 auto' }}>Be the first to share your experience with this product!</p>
+          </div>
+        )}
       </div>
     </div>
   );

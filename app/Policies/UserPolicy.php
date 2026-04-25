@@ -21,6 +21,17 @@ class UserPolicy
     }
 
     /**
+     * Determine whether the user can view admin reports.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function viewAdmin(User $user)
+    {
+        return in_array($user->role, ['admin', 'staff']);
+    }
+
+    /**
      * Determine whether the user can view the model.
      *
      * @param  \App\Models\User  $user
@@ -64,7 +75,7 @@ class UserPolicy
      */
     public function delete(User $user, User $model)
     {
-        //
+        return $user->role === 'admin';
     }
 
     /**
@@ -76,7 +87,7 @@ class UserPolicy
      */
     public function restore(User $user, User $model)
     {
-        //
+        return $user->role === 'admin';
     }
 
     /**
@@ -88,6 +99,6 @@ class UserPolicy
      */
     public function forceDelete(User $user, User $model)
     {
-        //
+        return $user->role === 'admin';
     }
 }

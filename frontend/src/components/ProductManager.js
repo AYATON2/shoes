@@ -55,10 +55,10 @@ const ProductManager = ({
       const userRes = await axios.get('/api/user');
       console.log('ProductManager: Current user ID:', userRes.data.id);
       
-      const sellerProducts = allProducts.filter(p => p.seller_id === userRes.data.id);
-      console.log('ProductManager: Filtered seller products:', sellerProducts);
+      const staffProducts = allProducts.filter(p => p.seller_id === userRes.data.id);
+      console.log('ProductManager: Filtered staff products:', staffProducts);
       
-      setProducts(sellerProducts);
+      setProducts(staffProducts);
     } catch (error) {
       console.error('ProductManager: Error fetching products:', error);
       showNotification('Error loading products', 'error');

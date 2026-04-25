@@ -19,7 +19,7 @@ class SaleController extends Controller
         $query = Sale::with('product', 'seller');
 
         // Sellers only see their own sales
-        if ($user->role === 'seller') {
+        if ($user->role === 'staff') {
             $query->where('seller_id', $user->id);
         }
 
@@ -90,7 +90,7 @@ class SaleController extends Controller
             $product = Product::findOrFail($request->product_id);
 
             // Check authorization - seller can only create sales for their products
-            if ($user->role === 'seller' && $product->seller_id !== $user->id) {
+            if ($user->role === 'staff' && $product->seller_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
@@ -144,7 +144,7 @@ class SaleController extends Controller
         $originalStartDate = $sale->start_date;
 
         // Check authorization
-        if ($user->role === 'seller' && $sale->seller_id !== $user->id) {
+        if ($user->role === 'staff' && $sale->seller_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -205,7 +205,7 @@ class SaleController extends Controller
         $user = auth()->user();
 
         // Check authorization
-        if ($user->role === 'seller' && $sale->seller_id !== $user->id) {
+        if ($user->role === 'staff' && $sale->seller_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -219,7 +219,7 @@ class SaleController extends Controller
         $sale = Sale::findOrFail($id);
         $user = auth()->user();
 
-        if ($user->role === 'seller' && $sale->seller_id !== $user->id) {
+        if ($user->role === 'staff' && $sale->seller_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

@@ -22,10 +22,10 @@ class DatabaseSeeder extends Seeder
         ]);
 
         \App\Models\User::create([
-            'name' => 'Seller User',
-            'email' => 'seller@stepup.com',
+            'name' => 'Staff User',
+            'email' => 'staff@stepup.com',
             'password' => bcrypt('password'),
-            'role' => 'seller',
+            'role' => 'staff',
         ]);
 
         \App\Models\User::create([

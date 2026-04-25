@@ -9,6 +9,7 @@ import { getApiBaseUrl } from './utils/apiUrl';
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = getApiBaseUrl();
+axios.defaults.headers.common['Accept'] = 'application/json';
 
 const token = localStorage.getItem('token');
 if (token) {

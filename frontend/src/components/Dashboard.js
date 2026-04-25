@@ -50,7 +50,7 @@ const Dashboard = () => {
           ))}
         </div>
       )}
-      {user.role === 'seller' && (
+      {user.role === 'staff' && (
         <div>
           <h2>My Products</h2>
           <button onClick={() => {/* Add product form */}}>Add Product</button>

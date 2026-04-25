@@ -17,11 +17,17 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'in:customer,seller',
+            'role' => 'in:customer,staff,rider',
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
+        }
+
+        $customerNumber = 'STP-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        // Ensure uniqueness
+        while (User::where('customer_number', $customerNumber)->exists()) {
+            $customerNumber = 'STP-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         }
 
         $user = User::create([
@@ -29,6 +35,7 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role ?? 'customer',
+            'customer_number' => $customerNumber,
         ]);
 
         $token = $user->createToken('API Token')->plainTextToken;
@@ -65,7 +72,7 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($request->user()->load('logistic'));
     }
 
     public function update(Request $request)

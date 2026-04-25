@@ -1,32 +1,39 @@
+// Premium Customer Dashboard - Redesigned Light Version
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import ProductList from './ProductList';
+import { buildApiAssetUrl } from '../utils/apiUrl';
+
+const ACCENT = '#FA5400';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [user, setUser] = useState(null);
-  const [cart, setCart] = useState([]);
+  const [profileData, setProfileData] = useState({ name: '', email: '' });
   const [activeTab, setActiveTab] = useState('overview');
   const [orders, setOrders] = useState([]);
+  const [returns, setReturns] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingReturns, setLoadingReturns] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [profileData, setProfileData] = useState({ name: '', email: '' });
   const [message, setMessage] = useState('');
-  const [notifications, setNotifications] = useState([]);
-  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
-
-  const getAuthConfig = () => {
-    const token = localStorage.getItem('token');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    };
-  };
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  
+  // Review Modal State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState({ product_id: null, rating: 5, comment: '' });
+  
+  // Return Modal State
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnData, setReturnData] = useState({ order_id: null, reason: '', proof_image: null, preview: null });
+  
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -36,20 +43,7 @@ const CustomerDashboard = () => {
     }
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     loadUserData();
-    loadCart();
-    fetchNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
-
-  useEffect(() => {
-    if (showNotificationsPanel) {
-      fetchNotifications();
-      const interval = setInterval(() => {
-        fetchNotifications();
-      }, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [showNotificationsPanel]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -60,34 +54,31 @@ const CustomerDashboard = () => {
   }, [location.search]);
 
   useEffect(() => {
-    if (activeTab === 'orders' && orders.length === 0) {
+    if (activeTab === 'orders' || activeTab === 'tracking') {
       loadOrders();
+    } else if (activeTab === 'returns') {
+      loadReturns();
+    } else if (activeTab === 'notifications') {
+      loadNotifications();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   const loadUserData = () => {
     setInitialLoading(true);
-    axios.get('/api/user', getAuthConfig())
+    axios.get('/api/user')
       .then(res => {
-        const userData = res.data;
-        
-        // Security check: Ensure only customers can access this dashboard
-        if (userData.role !== 'customer') {
-          console.warn('Access denied: User is not a customer');
-          // Redirect to the appropriate dashboard based on role
-          if (userData.role === 'seller') {
-            navigate('/seller-dashboard');
-          } else if (userData.role === 'admin') {
-            navigate('/admin-dashboard');
-          } else {
-            navigate('/login');
-          }
+        if (res.data.role !== 'customer') {
+          navigate(res.data.role === 'admin' ? '/admin-dashboard' : '/staff-dashboard');
           return;
         }
-        
-        setUser(userData);
-        setProfileData({ name: userData.name, email: userData.email });
+        setUser(res.data);
+        setProfileData({ name: res.data.name, email: res.data.email });
         setInitialLoading(false);
       })
       .catch(() => {
@@ -96,893 +87,411 @@ const CustomerDashboard = () => {
       });
   };
 
-  const loadCart = () => {
-    setCart(JSON.parse(localStorage.getItem('cart') || '[]'));
-  };
-
-  const fetchNotifications = async () => {
-    try {
-      const response = await axios.get('/api/notifications', getAuthConfig());
-      const data = response.data.data || response.data.notifications || response.data || [];
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      setNotifications([]);
-    }
-  };
-
-  const markNotificationAsRead = async (notificationId) => {
-    if (!notificationId) {
-      return;
-    }
-    try {
-      await axios.put(`/api/notifications/${notificationId}/read`, null, getAuthConfig());
-      fetchNotifications();
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
-
-  const deleteNotification = async (notificationId) => {
-    if (!notificationId) {
-      return;
-    }
-    try {
-      await axios.delete(`/api/notifications/${notificationId}`, getAuthConfig());
-      fetchNotifications();
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
-  };
-
-  const markAllNotificationsAsRead = async () => {
-    try {
-      await axios.put('/api/notifications/read-all', null, getAuthConfig());
-      fetchNotifications();
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  };
-
-  const toggleNotificationsPanel = () => {
-    const nextState = !showNotificationsPanel;
-    setShowNotificationsPanel(nextState);
-    if (nextState) {
-      fetchNotifications();
-    }
-  };
-
   const loadOrders = () => {
     setLoadingOrders(true);
-    axios.get('/api/orders', getAuthConfig())
+    axios.get('/api/orders')
       .then(res => {
         setOrders(res.data.data || res.data);
         setLoadingOrders(false);
       })
-      .catch(err => {
-        console.error('Failed to load orders:', err);
-        setLoadingOrders(false);
-      });
+      .catch(() => setLoadingOrders(false));
   };
 
-  const handleProfileUpdate = (e) => {
-    e.preventDefault();
-    setMessage('');
-    axios.put('/api/user', profileData, getAuthConfig())
+  const loadReturns = () => {
+    setLoadingReturns(true);
+    axios.get('/api/returns')
       .then(res => {
-        setUser(res.data);
-        setEditMode(false);
-        setMessage('Profile updated successfully!');
-        setTimeout(() => setMessage(''), 3000);
+        setReturns(res.data.data || res.data);
+        setLoadingReturns(false);
       })
-      .catch(err => {
-        setMessage('Failed to update profile. Please try again.');
-        setTimeout(() => setMessage(''), 3000);
-      });
+      .catch(() => setLoadingReturns(false));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('cart');
-    navigate('/login');
+  const loadNotifications = () => {
+    setLoadingNotifications(true);
+    axios.get('/api/notifications')
+      .then(res => {
+        setNotifications(res.data.data || res.data);
+        setLoadingNotifications(false);
+      })
+      .catch(() => setLoadingNotifications(false));
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'received': 'Order Received',
+      'quality_check': 'Quality Check',
+      'ready_for_pickup': 'Ready for Pickup',
+      'shipped': 'Shipped',
+      'delivered': 'Delivered',
+      'cancelled': 'Cancelled',
+      'returned': 'Returned to Store'
+    };
+    return labels[status] || status;
+  };
+
+  const handleReturnSubmit = async (e) => {
+    e.preventDefault();
+    if (!returnData.proof_image) return alert('Please upload proof of item condition.');
+    setSubmitting(true);
+
+    const fd = new FormData();
+    fd.append('order_id', returnData.order_id);
+    fd.append('reason', returnData.reason);
+    fd.append('proof_image', returnData.proof_image);
+
+    try {
+      await axios.post('/api/returns', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setMessage('Return request submitted!');
+      setShowReturnModal(false);
+      setReturnData({ order_id: null, reason: '', proof_image: null, preview: null });
+    } catch (err) {
+      alert('Failed to submit return.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await axios.put('/api/user', profileData);
+      setUser(res.data);
+      setMessage('Profile updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update profile.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (initialLoading || !user) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: '#FAFAFA'
-      }}>
-        <div style={{textAlign: 'center'}}>
-          <div className="spinner-border" style={{width: '50px', height: '50px', borderWidth: '3px', color: '#111'}} />
-          <p style={{marginTop: '20px', fontSize: '18px', fontWeight: '600', color: '#111'}}>Loading...</p>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#FFF' }}>
+        <div style={{ width: 40, height: 40, border: '3px solid #EEE', borderTopColor: '#111', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       </div>
     );
   }
 
+  const pillStyle = (active) => ({
+    padding: '10px 24px',
+    borderRadius: '30px',
+    border: 'none',
+    background: active ? '#111' : '#F5F5F5',
+    color: active ? '#FFF' : '#666',
+    fontWeight: '600',
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  });
+
   return (
-    <div style={{ background: '#FAFAFA', minHeight: '100vh' }}>
-      {/* HEADER / NAVBAR */}
-      <header style={{
-        background: '#FFFFFF',
-        borderBottom: '1px solid #E5E5E5',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          padding: '16px 24px',
-          maxWidth: '1400px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Link to="/" style={{
-            fontSize: '24px',
-            fontWeight: '700',
-            color: '#111',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <i className="fas fa-shoe-prints"></i>
-            StepUp
-          </Link>
+    <div style={{ background: '#FFF', minHeight: '100vh', color: '#111', fontFamily: "'Inter', sans-serif" }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: #FFF; border: 1px solid #E5E5E5; border-radius: 20px; transition: all 0.3s ease; }
+        .card:hover { border-color: #111; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .animate-fade { animation: fadeIn 0.4s ease forwards; }
+      `}</style>
 
-          <nav style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '24px'
-          }}>
-            <Link to="/products" style={{
-              color: '#111',
-              textDecoration: 'none',
-              fontSize: '15px',
-              fontWeight: '500'
-            }}>Browse</Link>
-            
-            {/* Notification Bell Icon */}
-            <button
-              onClick={toggleNotificationsPanel}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#111',
-                cursor: 'pointer',
-                fontSize: '20px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                position: 'relative',
-                padding: '4px 8px'
-              }}
-              aria-label="Notifications"
-              title="Notifications"
-            >
-              🔔
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '2px',
-                  background: '#EA4335',
-                  color: '#FFF',
-                  fontSize: '10px',
-                  fontWeight: '700',
-                  borderRadius: '10px',
-                  padding: '2px 5px',
-                  minWidth: '16px',
-                  height: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: '1'
-                }}>
-                  {notifications.filter(n => !n.read).length > 99 ? '99+' : notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </button>
-            
-            <Link to="/checkout" style={{
-              color: '#111',
-              textDecoration: 'none',
-              fontSize: '15px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              <i className="fas fa-shopping-bag"></i> Cart ({cart.length})
-            </Link>
-            <span style={{
-              color: '#757575',
-              fontSize: '15px',
-              fontWeight: '500'
-            }}>
-              {user?.name}
-            </span>
-            <button onClick={handleLogout} style={{
-              background: '#111',
-              color: '#FFF',
-              border: 'none',
-              padding: '8px 20px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              fontSize: '15px',
-              borderRadius: '30px',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-              Logout
-            </button>
-          </nav>
+      {/* Header / Hero */}
+      <div style={{ padding: '80px 24px 40px', maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '48px', fontWeight: '800', margin: 0, letterSpacing: '-1.5px' }}>Welcome Back, {user.name.split(' ')[0]}!</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+          <span style={{ background: '#F5F5F5', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: '#666' }}>
+            CUSTOMER ID: {user.customer_number || 'N/A'}
+          </span>
+          <span style={{ color: '#CCC' }}>•</span>
+          <span style={{ fontSize: '14px', color: '#666' }}>Premium Member</span>
         </div>
-      </header>
 
-      {/* Notification Overlay (backdrop) */}
-      {showNotificationsPanel && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'transparent',
-            zIndex: 9999
-          }}
-          onClick={() => setShowNotificationsPanel(false)}
-          aria-label="Close notifications"
-        />
-      )}
-
-      {showNotificationsPanel && (
-        <div style={{
-          position: 'fixed',
-          top: '68px',
-          right: '20px',
-          width: '420px',
-          maxWidth: 'calc(100vw - 40px)',
-          maxHeight: 'calc(100vh - 90px)',
-          background: '#FFF',
-          border: '1px solid #E5E5E5',
-          borderRadius: '8px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-          zIndex: 10000,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
-          {/* Header */}
-          <div style={{
-            padding: '18px 20px',
-            borderBottom: '1px solid #E5E5E5',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#FFF'
-          }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#202124' }}>
-              Notifications
-            </h3>
-            <button
-              onClick={() => setShowNotificationsPanel(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#5f6368',
-                cursor: 'pointer',
-                fontSize: '28px',
-                lineHeight: '1',
-                padding: '4px 8px',
-                borderRadius: '50%',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#F1F3F4'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-              aria-label="Close notifications"
-              title="Close"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Actions Bar */}
-          <div style={{
-            padding: '12px 20px',
-            borderBottom: '1px solid #E5E5E5',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#F8F9FA'
-          }}>
-            <span style={{ fontSize: '13px', color: '#5f6368', fontWeight: '500' }}>
-              {notifications.filter(n => !n.read).length} unread
-            </span>
-            {notifications.filter(n => !n.read).length > 0 && (
-              <button
-                onClick={markAllNotificationsAsRead}
-                style={{
-                  background: 'none',
-                  color: '#1a73e8',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#e8f0fe'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-              >
-                Mark all as read
-              </button>
-            )}
-          </div>
-
-          {/* Scrollable List */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden'
-          }}>
-            {notifications.length === 0 ? (
-              <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-                <svg
-                  width="80"
-                  height="80"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#DADCE0"
-                  strokeWidth="1.5"
-                  style={{ margin: '0 auto 16px', display: 'block' }}
-                >
-                  <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-                  <path d="M13.73 21a2 2 0 01-3.46 0" />
-                </svg>
-                <p style={{ margin: 0, fontSize: '16px', color: '#5f6368', fontWeight: '500' }}>No notifications</p>
-                <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#80868b' }}>You're all caught up!</p>
-              </div>
-            ) : (
-              notifications.map((notif, idx) => (
-                <div
-                  key={notif.id || idx}
-                  style={{
-                    padding: '16px 20px',
-                    borderBottom: idx !== notifications.length - 1 ? '1px solid #E8EAED' : 'none',
-                    background: notif.read ? '#FFF' : '#F1F3F4',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease',
-                    position: 'relative'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#E8F0FE'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = notif.read ? '#FFF' : '#F1F3F4'}
-                >
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    {!notif.read && (
-                      <span style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: '#1a73e8',
-                        marginTop: '4px',
-                        flexShrink: 0
-                      }}></span>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        margin: '0 0 6px 0',
-                        fontWeight: notif.read ? '400' : '600',
-                        fontSize: '14px',
-                        color: '#202124',
-                        lineHeight: '1.4'
-                      }}>
-                        {notif.title}
-                      </p>
-                      <p style={{
-                        margin: '0 0 10px 0',
-                        fontSize: '13px',
-                        color: '#5f6368',
-                        lineHeight: '1.5',
-                        whiteSpace: 'pre-line'
-                      }}>
-                        {notif.message}
-                      </p>
-                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        {!notif.read && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); markNotificationAsRead(notif.id); }}
-                            style={{
-                              background: 'none',
-                              color: '#1a73e8',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              padding: '4px 0',
-                              transition: 'opacity 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                          >
-                            Mark as read
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
-                          style={{
-                            background: 'none',
-                            color: '#5f6368',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            padding: '4px 0',
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MODERN WELCOME HERO SECTION */}
-      <div style={{
-        background: '#F5F5F5',
-        padding: '60px 20px',
-        textAlign: 'center'
-      }}>
-        <div style={{maxWidth: '900px', margin: '0 auto'}}>
-          <h1 style={{
-            fontSize: '48px',
-            fontWeight: '700',
-            margin: 0,
-            marginBottom: '16px',
-            color: '#111',
-            lineHeight: '1.2'
-          }}>Welcome Back, {user?.name}!</h1>
-          <p style={{
-            fontSize: '18px',
-            margin: 0,
-            marginBottom: '32px',
-            color: '#757575',
-            lineHeight: '1.6'
-          }}>Discover amazing products from trusted sellers. Shop with confidence and ease.</p>
-          
-          <div style={{display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap'}}>
-            <Link to="/products" style={{
-              background: '#111',
-              color: '#FFF',
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: '500',
-              textDecoration: 'none',
-              borderRadius: '30px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-              <i className="fas fa-shopping-bag"></i> Browse Products
-            </Link>
-            <Link to="/checkout" style={{
-              background: '#FFF',
-              color: '#111',
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: '500',
-              textDecoration: 'none',
-              borderRadius: '30px',
-              border: '1px solid #CCCCCC',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#111'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CCCCCC'}
-            >
-              <i className="fas fa-shopping-bag"></i> My Cart ({cart.length})
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* TAB NAVIGATION */}
-      <div style={{
-        background: '#FFFFFF',
-        borderBottom: '1px solid #E5E5E5',
-        position: 'sticky',
-        top: '68px',
-        zIndex: 99
-      }}>
-        <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex'}}>
+        {/* Navigation Pills */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '48px', overflowX: 'auto', paddingBottom: '10px' }}>
           {[
-            { id: 'overview', label: 'Overview', icon: 'fas fa-home' },
-            { id: 'orders', label: 'Order History', icon: 'fas fa-list' },
-            { id: 'settings', label: 'Profile Settings', icon: 'fas fa-cog' }
+            { id: 'overview', label: 'Overview', icon: 'fa-house' },
+            { id: 'orders', label: 'Order History', icon: 'fa-list-ul' },
+            { id: 'tracking', label: 'Track Delivery', icon: 'fa-truck-fast' },
+            { id: 'notifications', label: 'Notifications', icon: 'fa-bell' },
+            { id: 'returns', label: 'My Returns', icon: 'fa-rotate-left' },
+            { id: 'settings', label: 'Profile Settings', icon: 'fa-user-gear' }
           ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                flex: 1,
-                padding: '16px 20px',
-                border: 'none',
-                background: 'transparent',
-                color: activeTab === tab.id ? '#111' : '#999',
-                borderBottom: activeTab === tab.id ? '2px solid #111' : 'none',
-                fontWeight: activeTab === tab.id ? '600' : '500',
-                fontSize: '15px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              <i className={tab.icon} style={{marginRight: '6px'}}></i>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={pillStyle(activeTab === tab.id)}>
+              <i className={`fas ${tab.icon}`} style={{ fontSize: '12px' }} />
               {tab.label}
             </button>
           ))}
-          <button
-            onClick={() => navigate('/order-tracking')}
-            style={{
-              flex: 1,
-              padding: '16px 20px',
-              border: 'none',
-              background: 'transparent',
-              color: '#999',
-              borderBottom: 'none',
-              fontWeight: '500',
-              fontSize: '15px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            <i className='fas fa-truck' style={{marginRight: '6px'}}></i>
-            Track Orders
-          </button>
         </div>
       </div>
 
-      {/* OVERVIEW TAB */}
-      {activeTab === 'overview' && (
-        <div style={{padding: '60px 20px', background: '#FFFFFF'}}>
-          <div style={{maxWidth: '1200px', margin: '0 auto'}}>
-            <div style={{textAlign: 'center', marginBottom: '48px'}}>
-              <h2 style={{
-                fontSize: '36px',
-                fontWeight: '700',
-                color: '#111',
-                margin: 0,
-                marginBottom: '12px'
-              }}>Featured Products</h2>
-              <p style={{
-                fontSize: '16px',
-                color: '#757575',
-                margin: 0
-              }}>Handpicked collection of quality items from our trusted sellers</p>
-            </div>
-            <ProductList />
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 80px' }} className="animate-fade">
+        {activeTab === 'overview' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
+            <section>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>Recommended for You</h2>
+                <Link to="/products" style={{ color: '#111', fontWeight: '600', fontSize: '14px', textDecoration: 'none' }}>View All →</Link>
+              </div>
+              <ProductList limit={4} />
+            </section>
+            
+            <aside>
+              <div className="card" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 20px 0' }}>Quick Actions</h3>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  <button onClick={() => navigate('/products')} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: '600', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <i className="fas fa-bag-shopping" /> Browse Products
+                  </button>
+                  <button onClick={() => navigate('/checkout')} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #E5E5E5', background: '#FFF', color: '#111', fontWeight: '600', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <i className="fas fa-cart-shopping" /> My Cart
+                  </button>
+                </div>
+              </div>
+              
+              {orders.length > 0 && (
+                <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 20px 0' }}>Latest Order</h3>
+                  <div style={{ padding: '16px', background: '#FAFAFA', borderRadius: '12px' }}>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#999' }}>ORDER #{orders[0].id}</p>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '700' }}>{getStatusLabel(orders[0].status)}</p>
+                    <button onClick={() => setActiveTab('tracking')} style={{ border: 'none', background: 'none', padding: 0, color: '#111', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>Track Progress →</button>
+                  </div>
+                </div>
+              )}
+            </aside>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ORDER HISTORY TAB */}
-      {activeTab === 'orders' && (
-        <div style={{padding: '40px 20px', background: '#FAFAFA', minHeight: 'calc(100vh - 200px)'}}>
-          <div style={{maxWidth: '1200px', margin: '0 auto'}}>
-            <h2 style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#111',
-              margin: '0 0 32px 0'
-            }}>Order History</h2>
-
-            {loadingOrders && (
-              <div style={{textAlign: 'center', padding: '40px'}}>
-                <div className="spinner-border" />
+        {(activeTab === 'orders' || activeTab === 'tracking') && (
+          <div style={{ maxWidth: '800px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '32px' }}>{activeTab === 'orders' ? 'Your Orders' : 'Delivery Tracking'}</h2>
+            {loadingOrders ? (
+              <p>Loading orders...</p>
+            ) : orders.length === 0 ? (
+              <div style={{ padding: '80px 24px', textAlign: 'center', background: '#F9F9F9', borderRadius: '24px' }}>
+                <p style={{ color: '#999', marginBottom: '24px' }}>No orders found.</p>
+                <button onClick={() => navigate('/products')} style={{ background: '#111', color: '#FFF', padding: '12px 24px', borderRadius: '30px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>Start Shopping</button>
               </div>
-            )}
-
-            {!loadingOrders && orders.length === 0 && (
-              <div style={{
-                background: '#FFFFFF',
-                padding: '60px 20px',
-                textAlign: 'center',
-                borderRadius: '8px'
-              }}>
-                <i className="fas fa-shopping-bag" style={{fontSize: '48px', color: '#DDD', marginBottom: '16px'}}></i>
-                <h3 style={{color: '#999', margin: '0 0 8px 0'}}>No Orders Yet</h3>
-                <p style={{color: '#BBB', margin: 0}}>Start shopping to see your order history here.</p>
-                <Link to="/products" style={{
-                  display: 'inline-block',
-                  marginTop: '20px',
-                  background: '#111',
-                  color: '#FFF',
-                  padding: '12px 24px',
-                  borderRadius: '30px',
-                  textDecoration: 'none',
-                  fontWeight: '500'
-                }}>
-                  Browse Products
-                </Link>
-              </div>
-            )}
-
-            {!loadingOrders && orders.length > 0 && (
-              <div style={{display: 'grid', gap: '16px'}}>
+            ) : (
+              <div style={{ display: 'grid', gap: '16px' }}>
                 {orders.map(order => (
-                  <div key={order.id} style={{
-                    background: '#FFFFFF',
-                    padding: '24px',
-                    borderRadius: '8px',
-                    border: '1px solid #E5E5E5'
-                  }}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '20px', alignItems: 'center'}}>
+                  <div key={order.id} className="card" style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <p style={{fontSize: '12px', color: '#999', margin: '0 0 4px 0', textTransform: 'uppercase'}}>Order ID</p>
-                        <p style={{fontSize: '16px', fontWeight: '600', color: '#111', margin: 0}}>#{order.id}</p>
+                        <p style={{ fontSize: '12px', color: '#999', margin: '0 0 4px 0' }}>#{order.id}</p>
+                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>₱{parseFloat(order.total).toFixed(2)}</h4>
                       </div>
-                      <div>
-                        <p style={{fontSize: '12px', color: '#999', margin: '0 0 4px 0', textTransform: 'uppercase'}}>Date</p>
-                        <p style={{fontSize: '16px', fontWeight: '500', color: '#111', margin: 0}}>
-                          {new Date(order.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{fontSize: '12px', color: '#999', margin: '0 0 4px 0', textTransform: 'uppercase'}}>Amount</p>
-                        <p style={{fontSize: '16px', fontWeight: '600', color: '#111', margin: 0}}>₱{order.total}</p>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '6px 16px',
-                          borderRadius: '20px',
-                          fontSize: '13px',
-                          fontWeight: '500',
-                          background: order.status === 'delivered' ? '#E8F5E9' : order.status === 'shipped' ? '#E3F2FD' : order.status === 'received' ? '#FFF3E0' : '#FFEBEE',
-                          color: order.status === 'delivered' ? '#2E7D32' : order.status === 'shipped' ? '#1565C0' : order.status === 'received' ? '#E65100' : '#C62828',
-                          textTransform: 'capitalize'
-                        }}>
-                          {order.status}
-                        </span>
-                      </div>
+                      <span style={{ 
+                        padding: '6px 12px', borderRadius: '30px', fontSize: '12px', fontWeight: '700',
+                        background: order.status === 'delivered' ? '#E8F5E9' : '#FFF3E0',
+                        color: order.status === 'delivered' ? '#16A34A' : '#D97706'
+                      }}>
+                        {getStatusLabel(order.status)}
+                      </span>
                     </div>
-                    {order.order_items && order.order_items.length > 0 && (
-                      <div style={{marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F0F0F0'}}>
-                        <p style={{fontSize: '13px', color: '#999', margin: '0 0 12px 0', textTransform: 'uppercase'}}>Items ({order.order_items.length})</p>
-                        <div style={{display: 'grid', gap: '8px'}}>
-                          {order.order_items.map((item, idx) => (
-                            <div key={idx} style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              paddingBottom: '8px',
-                              borderBottom: idx < order.order_items.length - 1 ? '1px solid #F5F5F5' : 'none',
-                              fontSize: '14px'
-                            }}>
-                              <span style={{color: '#555', flex: 1}}>
-                                {item.quantity}x {item.sku?.product?.name || 'Product'}
-                              </span>
-                              <span style={{color: '#111', fontWeight: '600', marginLeft: '12px'}}>
-                                ₱{(parseFloat(item.price) * item.quantity).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
+                    
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '8px', overflowX: 'auto' }}>
+                      {order.order_items?.map((item, i) => (
+                        <div key={i} style={{ width: '50px', height: '50px', borderRadius: '8px', background: '#F5F5F5', overflow: 'hidden', flexShrink: 0 }}>
+                           <img src={item.sku?.product?.image ? buildApiAssetUrl(`/storage/${item.sku.product.image}`) : ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
-                      </div>
+                      ))}
+                    </div>
+
+                    <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+                      {activeTab === 'tracking' && (
+                         <button onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E5E5E5', background: '#FFF', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>
+                            {expandedOrder === order.id ? 'Hide Details' : 'Track Order'}
+                         </button>
+                      )}
+                      {order.status === 'delivered' && (
+                        <>
+                          <button onClick={() => { setReturnData({ ...returnData, order_id: order.id }); setShowReturnModal(true); }} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E5E5E5', background: '#FFF', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>
+                            Return Item
+                          </button>
+                          <button onClick={() => navigate(`/reviews?order=${order.id}`)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#111', color: '#FFF', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>
+                            Leave Review
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {expandedOrder === order.id && (
+                       <div style={{ marginTop: '20px', padding: '16px', background: '#F9F9F9', borderRadius: '12px' }}>
+                          {order.rider && (
+                            <div style={{ marginBottom: '16px', padding: '12px', background: '#FFF', borderRadius: '8px', border: '1px solid #EEE' }}>
+                               <p style={{ margin: '0 0 8px 0', fontSize: '11px', fontWeight: '700', color: '#999', textTransform: 'uppercase' }}>Delivery Personnel</p>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#111', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700' }}>
+                                     {order.rider.name?.charAt(0).toUpperCase()}
+                                  </div>
+                                  <span style={{ fontSize: '13px', fontWeight: '600' }}>{order.rider.name}</span>
+                               </div>
+                            </div>
+                          )}
+                          <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '700' }}>Delivery Timeline</p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                             {['received', 'ready_for_pickup', 'shipped', 'delivered'].map((s, idx) => {
+                                const isDone = ['received', 'ready_for_pickup', 'shipped', 'delivered'].indexOf(s) <= ['received', 'ready_for_pickup', 'shipped', 'delivered'].indexOf(order.status);
+                                return (
+                                   <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '12px', opacity: isDone ? 1 : 0.4 }}>
+                                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: isDone ? '#111' : '#DDD' }} />
+                                      <span style={{ fontSize: '13px', fontWeight: isDone ? '600' : '400' }}>{getStatusLabel(s)}</span>
+                                   </div>
+                                )
+                             })}
+                          </div>
+                       </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div style={{ maxWidth: '600px' }}>
+             <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '32px' }}>Profile Settings</h2>
+             <div className="card" style={{ padding: '32px' }}>
+                <form onSubmit={handleProfileUpdate}>
+                   <div style={{ marginBottom: '20px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Full Name</label>
+                      <input type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} />
+                   </div>
+                   <div style={{ marginBottom: '32px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Email Address</label>
+                      <input type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} />
+                   </div>
+                   <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: '700', cursor: 'pointer' }}>Update Profile</button>
+                </form>
+             </div>
+          </div>
+        )}
+
+        {activeTab === 'returns' && (
+          <div style={{ maxWidth: '800px' }}>
+             <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '32px' }}>My Returns</h2>
+             {loadingReturns ? (
+               <p>Loading returns...</p>
+             ) : returns.length === 0 ? (
+               <div style={{ padding: '80px 24px', textAlign: 'center', background: '#F9F9F9', borderRadius: '24px' }}>
+                 <p style={{ color: '#999', marginBottom: '0' }}>You don't have any return requests.</p>
+               </div>
+             ) : (
+               <div style={{ display: 'grid', gap: '16px' }}>
+                 {returns.map(ret => (
+                   <div key={ret.id} className="card" style={{ padding: '24px', display: 'flex', gap: '20px' }}>
+                     <div style={{ width: '100px', height: '100px', borderRadius: '12px', background: '#F5F5F5', overflow: 'hidden', flexShrink: 0 }}>
+                       <img src={ret.proof_image ? buildApiAssetUrl(`/storage/${ret.proof_image}`) : ''} alt="Proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                     </div>
+                     <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                           <div>
+                              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 4px 0' }}>ORDER #{ret.order_id}</p>
+                              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111' }}>Return Request</h4>
+                           </div>
+                           <span style={{ 
+                             padding: '6px 12px', borderRadius: '30px', fontSize: '12px', fontWeight: '700',
+                             background: ret.status === 'approved' ? '#E8F5E9' : ret.status === 'rejected' ? '#FEE2E2' : '#FFF3E0',
+                             color: ret.status === 'approved' ? '#16A34A' : ret.status === 'rejected' ? '#DC2626' : '#D97706'
+                           }}>
+                             {ret.status.charAt(0).toUpperCase() + ret.status.slice(1).replace('_', ' ')}
+                           </span>
+                        </div>
+                        <p style={{ fontSize: '14px', color: '#666', margin: '0', background: '#F9F9F9', padding: '12px', borderRadius: '8px' }}>
+                          <strong>Reason:</strong> {ret.reason}
+                        </p>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             )}
+          </div>
+        )}
+        {activeTab === 'notifications' && (
+          <div style={{ maxWidth: '800px' }}>
+             <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '32px' }}>Notifications</h2>
+             {loadingNotifications ? (
+               <p>Loading notifications...</p>
+             ) : notifications.length === 0 ? (
+               <div style={{ padding: '80px 24px', textAlign: 'center', background: '#F9F9F9', borderRadius: '24px' }}>
+                 <p style={{ color: '#999', marginBottom: '0' }}>No notifications yet.</p>
+               </div>
+             ) : (
+               <div style={{ display: 'grid', gap: '16px' }}>
+                 {notifications.map(notif => (
+                   <div key={notif.id} className="card" style={{ padding: '24px', borderLeft: notif.read ? 'none' : `4px solid ${ACCENT}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                         <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111' }}>{notif.title}</h4>
+                         <span style={{ fontSize: '11px', color: '#999' }}>{new Date(notif.created_at).toLocaleString()}</span>
+                      </div>
+                      <p style={{ fontSize: '14px', color: '#444', margin: 0, whiteSpace: 'pre-wrap' }}>{notif.message}</p>
+                   </div>
+                 ))}
+               </div>
+             )}
+          </div>
+        )}
+      </main>
+
+      {/* Return Modal */}
+      {showReturnModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
+          <div className="animate-fade" style={{ background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '500px', width: '100%' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 12px 0' }}>Request a Return</h3>
+            <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>Please provide the reason for your return and upload a photo of the product condition.</p>
+            
+            <form onSubmit={handleReturnSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Reason for Return</label>
+                <textarea value={returnData.reason} onChange={e => setReturnData({...returnData, reason: e.target.value})} placeholder="Why are you returning this item?" required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E5E5E5', minHeight: '100px', fontFamily: 'inherit' }} />
+              </div>
+              
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Proof of Condition (Image)</label>
+                <div 
+                  onClick={() => document.getElementById('return-image').click()}
+                  style={{ width: '100%', height: '150px', border: '2px dashed #E5E5E5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}
+                >
+                  {returnData.preview ? (
+                    <img src={returnData.preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#999' }}>
+                      <i className="fas fa-camera" style={{ fontSize: '24px', marginBottom: '8px' }} /><br />
+                      <span style={{ fontSize: '12px' }}>Click to upload photo</span>
+                    </div>
+                  )}
+                </div>
+                <input 
+                  id="return-image" type="file" accept="image/*" hidden 
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) setReturnData({...returnData, proof_image: file, preview: URL.createObjectURL(file)});
+                  }} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setShowReturnModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #E5E5E5', background: '#FFF', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" disabled={submitting} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: '600', cursor: submitting ? 'not-allowed' : 'pointer' }}>
+                  {submitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      {/* PROFILE SETTINGS TAB */}
-      {activeTab === 'settings' && (
-        <div style={{padding: '40px 20px', background: '#FAFAFA', minHeight: 'calc(100vh - 200px)'}}>
-          <div style={{maxWidth: '600px', margin: '0 auto'}}>
-            <h2 style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#111',
-              margin: '0 0 32px 0'
-            }}>Profile Settings</h2>
-
-            {message && (
-              <div style={{
-                padding: '12px 16px',
-                borderRadius: '8px',
-                marginBottom: '24px',
-                background: message.includes('successfully') ? '#E8F5E9' : '#FFEBEE',
-                color: message.includes('successfully') ? '#2E7D32' : '#C62828',
-                fontSize: '14px'
-              }}>
-                {message}
-              </div>
-            )}
-
-            <div style={{
-              background: '#FFFFFF',
-              padding: '32px',
-              borderRadius: '8px',
-              border: '1px solid #E5E5E5'
-            }}>
-              {!editMode ? (
-                <div>
-                  <div style={{marginBottom: '24px'}}>
-                    <label style={{display: 'block', fontSize: '12px', color: '#999', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '500'}}>
-                      Full Name
-                    </label>
-                    <p style={{fontSize: '16px', color: '#111', margin: 0, fontWeight: '500'}}>
-                      {user?.name}
-                    </p>
-                  </div>
-
-                  <div style={{marginBottom: '32px'}}>
-                    <label style={{display: 'block', fontSize: '12px', color: '#999', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '500'}}>
-                      Email Address
-                    </label>
-                    <p style={{fontSize: '16px', color: '#111', margin: 0, fontWeight: '500'}}>
-                      {user?.email}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setEditMode(true)}
-                    style={{
-                      background: '#111',
-                      color: '#FFF',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '30px',
-                      fontWeight: '600',
-                      fontSize: '15px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                  >
-                    <i className="fas fa-edit" style={{marginRight: '6px'}}></i>
-                    Edit Profile
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleProfileUpdate}>
-                  <div style={{marginBottom: '24px'}}>
-                    <label style={{display: 'block', fontSize: '12px', color: '#999', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '500'}}>
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.name}
-                      onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '15px',
-                        border: '1px solid #DDD',
-                        borderRadius: '8px',
-                        fontFamily: 'inherit',
-                        boxSizing: 'border-box'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#111'}
-                      onBlur={(e) => e.target.style.borderColor = '#DDD'}
-                    />
-                  </div>
-
-                  <div style={{marginBottom: '32px'}}>
-                    <label style={{display: 'block', fontSize: '12px', color: '#999', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '500'}}>
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '15px',
-                        border: '1px solid #DDD',
-                        borderRadius: '8px',
-                        fontFamily: 'inherit',
-                        boxSizing: 'border-box'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#111'}
-                      onBlur={(e) => e.target.style.borderColor = '#DDD'}
-                    />
-                  </div>
-
-                  <div style={{display: 'flex', gap: '12px'}}>
-                    <button
-                      type="submit"
-                      style={{
-                        background: '#111',
-                        color: '#FFF',
-                        border: 'none',
-                        padding: '12px 24px',
-                        borderRadius: '30px',
-                        fontWeight: '600',
-                        fontSize: '15px',
-                        cursor: 'pointer',
-                        flex: 1,
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditMode(false);
-                        setProfileData({ name: user.name, email: user.email });
-                      }}
-                      style={{
-                        background: '#F5F5F5',
-                        color: '#111',
-                        border: '1px solid #DDD',
-                        padding: '12px 24px',
-                        borderRadius: '30px',
-                        fontWeight: '600',
-                        fontSize: '15px',
-                        cursor: 'pointer',
-                        flex: 1,
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8E8E8'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-
-            <div style={{
-              background: '#FFFFFF',
-              padding: '32px',
-              borderRadius: '8px',
-              border: '1px solid #E5E5E5',
-              marginTop: '24px'
-            }}>
-              <h3 style={{fontSize: '16px', fontWeight: '600', color: '#111', margin: '0 0 16px 0'}}>
-                <i className="fas fa-info-circle" style={{marginRight: '8px', color: '#999'}}></i>
-                Account Information
-              </h3>
-              <div style={{fontSize: '14px', color: '#666', lineHeight: '1.6'}}>
-                <p style={{margin: '0 0 12px 0'}}>
-                  <strong>Member Since:</strong> {user && new Date(user.created_at).toLocaleDateString()}
-                </p>
-                <p style={{margin: 0}}>
-                  <strong>Role:</strong> <span style={{textTransform: 'capitalize'}}>{user?.role}</span>
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* Success Notification */}
+      {message && (
+        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: '#111', color: '#FFF', padding: '12px 24px', borderRadius: '30px', fontWeight: '600', fontSize: '14px', zIndex: 3000, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          {message}
         </div>
       )}
     </div>

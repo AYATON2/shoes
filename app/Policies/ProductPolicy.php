@@ -22,7 +22,7 @@ class ProductPolicy
 
     public function create(User $user)
     {
-        return in_array($user->role, ['seller', 'admin']);
+        return in_array($user->role, ['staff', 'admin']);
     }
 
     public function update(User $user, Product $product)

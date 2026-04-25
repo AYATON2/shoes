@@ -6,10 +6,10 @@ $app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 // Find a seller
-$user = App\Models\User::where('role', 'seller')->first();
+$user = App\Models\User::where('role', 'staff')->first();
 
 if (!$user) {
-    echo "No seller found in database\n";
+    echo "No staff found in database\n";
     exit;
 }
 

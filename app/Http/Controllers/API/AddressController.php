@@ -18,10 +18,12 @@ class AddressController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'name' => 'required|string',
+            'phone' => 'required|string',
             'street' => 'required|string',
             'city' => 'required|string',
             'state' => 'required|string',
-            'zip' => 'required|string',
+            'zip' => 'nullable|string',
             'country' => 'required|string',
             'is_default' => 'boolean',
         ]);
@@ -32,10 +34,12 @@ class AddressController extends Controller
 
         $address = Address::create([
             'user_id' => auth()->id(),
+            'name' => $request->name,
+            'phone' => $request->phone,
             'street' => $request->street,
             'city' => $request->city,
             'state' => $request->state,
-            'zip' => $request->zip,
+            'zip' => $request->zip ?? '',
             'country' => $request->country,
             'is_default' => $request->is_default ?? false,
         ]);
@@ -60,10 +64,12 @@ class AddressController extends Controller
         $this->authorize('update', $address);
 
         $validator = Validator::make($request->all(), [
+            'name' => 'string',
+            'phone' => 'string',
             'street' => 'string',
             'city' => 'string',
             'state' => 'string',
-            'zip' => 'string',
+            'zip' => 'nullable|string',
             'country' => 'string',
             'is_default' => 'boolean',
         ]);
@@ -72,7 +78,12 @@ class AddressController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $address->update($request->all());
+        $data = $request->all();
+        if (array_key_exists('zip', $data) && is_null($data['zip'])) {
+            $data['zip'] = '';
+        }
+
+        $address->update($data);
 
         if ($request->is_default) {
             Address::where('user_id', auth()->id())->where('id', '!=', $address->id)->update(['is_default' => false]);

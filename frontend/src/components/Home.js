@@ -5,12 +5,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   const handleShopNow = () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/products');
-    } else {
-      navigate('/login');
-    }
+    navigate('/products');
   };
 
   return (
@@ -18,144 +13,183 @@ const Home = () => {
       
       {/* Hero Section - Clean Nike Style */}
       <div style={{
-        background: '#F5F5F5',
-        padding: '80px 20px',
-        textAlign: 'center'
+        position: 'relative',
+        height: '90vh',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        background: '#000'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Background Image */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: 'url("/hero-shoe.png")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: '0.6',
+          transform: 'scale(1.1)',
+          animation: 'zoomOut 20s infinite alternate ease-in-out'
+        }} />
+
+        <div className="animate-fade" style={{ 
+          position: 'relative',
+          maxWidth: '1200px', 
+          margin: '0 auto',
+          textAlign: 'center',
+          padding: '0 20px',
+          zIndex: 2
+        }}>
           <p style={{
             fontSize: '14px',
-            fontWeight: '500',
-            color: '#111',
-            marginBottom: '8px',
-            letterSpacing: '0.5px'
+            fontWeight: '700',
+            color: '#FFF',
+            marginBottom: '16px',
+            letterSpacing: '4px',
+            textTransform: 'uppercase',
+            opacity: '0.9'
           }}>
-            First Look
+            Est. 2024 • Premium Collection
           </p>
           <h1 style={{
-            fontSize: '64px',
-            fontWeight: '700',
-            color: '#111',
-            marginBottom: '16px',
-            lineHeight: '1.1',
-            letterSpacing: '-0.02em'
+            fontSize: 'clamp(48px, 8vw, 100px)',
+            fontWeight: '900',
+            color: '#FFF',
+            marginBottom: '24px',
+            lineHeight: '0.9',
+            letterSpacing: '-0.05em',
+            textShadow: '0 10px 30px rgba(0,0,0,0.5)'
           }}>
-            STEP INTO GREATNESS
+            MOVE WITH<br />PURPOSE
           </h1>
           <p style={{
-            fontSize: '18px',
-            color: '#111',
-            marginBottom: '32px',
+            fontSize: 'clamp(16px, 2vw, 20px)',
+            color: 'rgba(255,255,255,0.8)',
+            marginBottom: '48px',
             maxWidth: '600px',
-            margin: '0 auto 32px',
-            lineHeight: '1.6'
+            margin: '0 auto 48px',
+            lineHeight: '1.6',
+            fontWeight: '400'
           }}>
-            Discover the perfect pair that matches your style. Premium quality, authentic brands, delivered to your doorstep.
+            Elevate your journey with footwear designed for ultimate performance and timeless style.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={handleShopNow}
               style={{
-                background: '#111',
-                color: '#FFF',
-                padding: '12px 24px',
-                fontSize: '16px',
-                fontWeight: '500',
-                textDecoration: 'none',
-                borderRadius: '30px',
-                display: 'inline-block',
-                transition: 'all 0.2s ease',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-            >
-              Shop Now
-            </button>
-            <Link
-              to="/register"
-              style={{
                 background: '#FFF',
-                color: '#111',
-                padding: '12px 24px',
+                color: '#000',
+                padding: '18px 48px',
                 fontSize: '16px',
-                fontWeight: '500',
-                textDecoration: 'none',
-                borderRadius: '30px',
-                display: 'inline-block',
-                border: '1px solid #CCCCC',
-                transition: 'all 0.2s ease'
+                fontWeight: '700',
+                borderRadius: '40px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 10px 20px rgba(0,0,0,0.2)'
               }}
-              onMouseEnter={(e) => { 
-                e.currentTarget.style.borderColor = '#111';
-              }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.borderColor = '#CCCCCC';
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)'; }}
             >
-              Join Us
-            </Link>
+              Shop Collection
+            </button>
           </div>
         </div>
+
+        {/* CSS Animation */}
+        <style>{`
+          @keyframes zoomOut {
+            0% { transform: scale(1.1); }
+            100% { transform: scale(1.2); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade {
+            animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+        `}</style>
       </div>
 
       {/* Featured Section */}
       <div style={{
-        padding: '60px 20px',
-        maxWidth: '1200px',
+        padding: '100px 20px',
+        maxWidth: '1400px',
         margin: '0 auto'
       }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px' }}>The Essentials</h2>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '24px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: '12px'
         }}>
           {[
-            { title: 'New Arrivals', subtitle: 'Latest Styles', icon: 'fa-sparkles' },
-            { title: 'Best Sellers', subtitle: 'Top Rated', icon: 'fa-fire' },
-            { title: 'Sale', subtitle: 'Up to 40% Off', icon: 'fa-tags' }
+            { title: 'New Arrivals', subtitle: 'Shop the latest styles', icon: 'fa-bolt', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800' },
+            { title: 'Best Sellers', subtitle: 'Our most popular picks', icon: 'fa-fire', img: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800' },
+            { title: 'Sale', subtitle: 'Exclusive discounts', icon: 'fa-tag', img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800' }
           ].map((item, idx) => (
             <Link
               key={idx}
               to="/products"
               style={{
-                background: '#F5F5F5',
-                padding: '48px 32px',
-                textAlign: 'center',
-                textDecoration: 'none',
-                color: '#111',
-                transition: 'all 0.3s ease',
+                height: '500px',
                 position: 'relative',
-                overflow: 'hidden'
+                display: 'flex',
+                alignItems: 'flex-end',
+                padding: '40px',
+                textDecoration: 'none',
+                color: '#FFF',
+                overflow: 'hidden',
+                borderRadius: '4px',
+                transition: 'all 0.3s ease'
               }}
-              onMouseEnter={(e) => { 
-                e.currentTarget.style.background = '#E5E5E5';
-              }}
-              onMouseLeave={(e) => { 
-                e.currentTarget.style.background = '#F5F5F5';
-              }}
+              onMouseEnter={(e) => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; }}
             >
-              <i className={`fas ${item.icon}`} style={{
-                fontSize: '48px',
-                marginBottom: '16px',
-                display: 'block',
-                color: '#111'
-              }}></i>
-              <h3 style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                marginBottom: '8px',
-                color: '#111'
-              }}>
-                {item.title}
-              </h3>
-              <p style={{
-                fontSize: '14px',
-                color: '#757575'
-              }}>
-                {item.subtitle}
-              </p>
+              <img 
+                src={item.img} 
+                alt={item.title}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  zIndex: 1,
+                  transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)',
+                zIndex: 2
+              }} />
+              <div style={{ position: 'relative', zIndex: 3 }}>
+                <h3 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 8px 0' }}>{item.title}</h3>
+                <p style={{ fontSize: '15px', opacity: 0.9 }}>{item.subtitle}</p>
+                <button style={{
+                  marginTop: '16px',
+                  background: '#FFF',
+                  color: '#111',
+                  border: 'none',
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}>Shop</button>
+              </div>
             </Link>
           ))}
         </div>
@@ -166,7 +200,7 @@ const Home = () => {
         background: '#F5F5F5',
         padding: '60px 20px'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="animate-fade" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{
             fontSize: '36px',
             fontWeight: '700',
@@ -182,7 +216,7 @@ const Home = () => {
             gap: '32px'
           }}>
             {[
-              { icon: 'fa-shield-alt', title: 'Authentic Products', desc: '100% genuine footwear from verified sellers' },
+              { icon: 'fa-shield-alt', title: 'Authentic Products', desc: '100% genuine footwear from seller' },
               { icon: 'fa-truck', title: 'Fast Delivery', desc: 'Quick and reliable shipping nationwide' },
               { icon: 'fa-undo', title: 'Easy Returns', desc: '30-day hassle-free return policy' },
               { icon: 'fa-headset', title: '24/7 Support', desc: 'Our team is always here to help you' }
@@ -216,7 +250,7 @@ const Home = () => {
       </div>
 
       {/* CTA Section */}
-      <div style={{
+      <div className="animate-fade" style={{ 
         padding: '80px 20px',
         textAlign: 'center',
         background: '#FFF'

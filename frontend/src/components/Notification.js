@@ -1,35 +1,52 @@
 import React, { useEffect } from 'react';
 
-const Notification = ({ message, type = 'success', onClose }) => {
+const Notification = ({ message, type = 'info', onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
     return () => clearTimeout(timer);
   }, [onClose]);
+
+  const getStyles = () => {
+    switch (type) {
+      case 'success':
+        return { background: '#16a34a', color: '#FFF' };
+      case 'error':
+        return { background: '#dc2626', color: '#FFF' };
+      default:
+        return { background: '#111', color: '#FFF' };
+    }
+  };
+
+  const style = getStyles();
 
   return (
     <div style={{
       position: 'fixed',
-      top: '20px',
-      right: '20px',
+      top: '24px',
+      right: '24px',
       padding: '16px 24px',
-      borderRadius: '8px',
-      background: type === 'success' ? '#4CAF50' : type === 'error' ? '#E53935' : '#2196F3',
-      color: '#FFF',
-      fontSize: '15px',
-      fontWeight: '500',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      zIndex: 10000,
+      borderRadius: '12px',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+      zIndex: 9999,
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      animation: 'slideIn 0.1s ease',
+      animation: 'slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      ...style
     }}>
-      <i className={`fas ${
-        type === 'success' ? 'fa-check-circle' : 
-        type === 'error' ? 'fa-times-circle' : 
-        'fa-info-circle'
-      }`}></i>
-      {message}
+      <i className={`fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}`}></i>
+      <span style={{ fontWeight: '500', fontSize: '14px' }}>{message}</span>
+      <button onClick={onClose} style={{
+        background: 'none',
+        border: 'none',
+        color: 'inherit',
+        fontSize: '18px',
+        cursor: 'pointer',
+        padding: '0 0 0 12px',
+        opacity: 0.7
+      }}>&times;</button>
     </div>
   );
 };

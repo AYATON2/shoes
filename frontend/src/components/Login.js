@@ -23,14 +23,18 @@ const Login = () => {
           
           const role = res.data.user.role;
           if (role === 'customer') navigate('/customer-dashboard');
-          else if (role === 'seller') navigate('/seller-dashboard');
+          else if (role === 'staff') navigate('/staff-dashboard');
           else if (role === 'admin') navigate('/admin-dashboard');
+          else if (role === 'rider') navigate('/rider-dashboard');
           else navigate('/dashboard');
         })
         .catch(err => {
           setError(err.response?.data?.message || 'Login failed. Please try again.');
           setLoading(false);
         });
+    }).catch(err => {
+      setError('Could not connect to the server. Please ensure the backend is running.');
+      setLoading(false);
     });
   };
 
@@ -90,15 +94,20 @@ const Login = () => {
           <form onSubmit={handleSubmit}>
             {/* Email Field */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontWeight: '500',
-                fontSize: '14px',
-                color: '#111',
-                marginBottom: '8px'
-              }}>Email Address</label>
+              <label 
+                htmlFor="email"
+                style={{
+                  display: 'block',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  color: '#111',
+                  marginBottom: '8px'
+                }}>Email Address</label>
               <input
+                id="email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -126,12 +135,14 @@ const Login = () => {
                 alignItems: 'center',
                 marginBottom: '8px'
               }}>
-                <label style={{
-                  fontWeight: '500',
-                  fontSize: '14px',
-                  color: '#111',
-                  margin: 0
-                }}>Password</label>
+                <label 
+                  htmlFor="password"
+                  style={{
+                    fontWeight: '500',
+                    fontSize: '14px',
+                    color: '#111',
+                    margin: 0
+                  }}>Password</label>
                 <Link to="/forgot-password" style={{
                   fontSize: '14px',
                   color: '#757575',
@@ -140,7 +151,10 @@ const Login = () => {
                 }}>Forgot?</Link>
               </div>
               <input
+                id="password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

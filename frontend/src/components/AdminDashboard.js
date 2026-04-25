@@ -4,7 +4,35 @@ import AdminUsers from './AdminUsers';
 import AdminProducts from './AdminProducts';
 import AdminReports from './AdminReports';
 import AdminProfile from './AdminProfile';
+import AdminAnalytics from './AdminAnalytics';
+import LogisticsManager from './LogisticsManager';
+import RiderManager from './RiderManager';
+import ReviewManager from './ReviewManager';
+import ReturnManager from './ReturnManager';
+import ArchiveManager from './ArchiveManager';
+import SalesManager from './SalesManager';
+import OrderManagement from './OrderManagement';
 import axios from 'axios';
+
+const SIDEBAR_BG = '#0A0A0A';
+const ACCENT = '#FA5400';
+const ACCENT_LIGHT = 'rgba(250,84,0,0.1)';
+
+const navItems = [
+  { key: 'dashboard', icon: 'fa-gauge-high', label: 'Dashboard' },
+  { key: 'analytics', icon: 'fa-chart-line', label: 'Analytics' },
+  { key: 'orders', icon: 'fa-shopping-cart', label: 'Orders' },
+  { key: 'users', icon: 'fa-users', label: 'Users & Staff' },
+  { key: 'products', icon: 'fa-box-open', label: 'Products' },
+  { key: 'promotions', icon: 'fa-tag', label: 'Promotions' },
+  { key: 'logistics', icon: 'fa-truck', label: 'Logistics' },
+  { key: 'riders', icon: 'fa-motorcycle', label: 'Riders' },
+  { key: 'reports', icon: 'fa-chart-bar', label: 'Reports' },
+  { key: 'reviews', icon: 'fa-star', label: 'Reviews' },
+  { key: 'returns', icon: 'fa-rotate-left', label: 'Returns' },
+  { key: 'archive', icon: 'fa-box-archive', label: 'Archive' },
+  { key: 'profile', icon: 'fa-circle-user', label: 'My Profile' },
+];
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -13,15 +41,13 @@ const AdminDashboard = () => {
   const [orderStatusReport, setOrderStatusReport] = useState([]);
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+    if (!token) { navigate('/login'); return; }
     fetchData();
   }, [navigate]);
 
@@ -29,28 +55,22 @@ const AdminDashboard = () => {
     try {
       const userRes = await axios.get('/api/user');
       const userData = userRes.data;
-      
-      // Security check: Ensure only admins can access this dashboard
       if (userData.role !== 'admin') {
-        console.warn('Access denied: User is not an admin');
-        // Redirect to the appropriate dashboard based on role
-        if (userData.role === 'customer') {
-          navigate('/customer-dashboard');
-        } else if (userData.role === 'seller') {
-          navigate('/seller-dashboard');
-        } else {
-          navigate('/login');
-        }
+        if (userData.role === 'customer') navigate('/customer-dashboard');
+        else if (userData.role === 'staff') navigate('/staff-dashboard');
+        else if (userData.role === 'rider') navigate('/rider-dashboard');
+        else navigate('/login');
         return;
       }
-      
       setUser(userData);
-      
-      const usersRes = await axios.get('/api/users');
+      const [usersRes, productsRes, ordersRes] = await Promise.all([
+        axios.get('/api/users'),
+        axios.get('/api/products'),
+        axios.get('/api/orders'),
+      ]);
       setUsers(usersRes.data);
-      
-      const productsRes = await axios.get('/api/products');
       setProducts(productsRes.data.data || []);
+      setOrders(ordersRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       if (error.response?.status === 401) {
@@ -61,464 +81,277 @@ const AdminDashboard = () => {
   };
 
   const fetchInventory = () => {
-    axios.get('/api/reports/inventory').then(res => setInventoryReport(res.data)).catch(err => console.error('Failed to fetch inventory report:', err));
+    axios.get('/api/reports/inventory').then(res => setInventoryReport(res.data)).catch(err => console.error(err));
   };
-
   const fetchSales = () => {
-    axios.get('/api/reports/sales').then(res => setSalesReport(res.data)).catch(err => console.error('Failed to fetch sales report:', err));
+    axios.get('/api/reports/sales').then(res => setSalesReport(res.data)).catch(err => console.error(err));
   };
-
   const fetchOrderStatus = () => {
-    axios.get('/api/reports/orders').then(res => setOrderStatusReport(res.data)).catch(err => console.error('Failed to fetch order status report:', err));
+    axios.get('/api/reports/orders').then(res => setOrderStatusReport(res.data)).catch(err => console.error(err));
   };
 
   const handleLogout = () => {
-    axios.post('/api/logout').then(() => {
-      localStorage.removeItem('token');
-      window.location.href = '/';
-    }).catch(err => {
+    axios.post('/api/logout').finally(() => {
       localStorage.removeItem('token');
       window.location.href = '/';
     });
   };
 
-  if (!user) return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}><div className="spinner"></div></div>;
+  if (!user) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          width: 48, height: 48, border: `4px solid ${ACCENT}`, borderTopColor: 'transparent',
+          borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px'
+        }} />
+        <p style={{ color: '#64748b', fontFamily: 'Outfit, sans-serif' }}>Loading dashboard…</p>
+      </div>
+    </div>
+  );
+
+  const statCards = [
+    { label: 'Total Users', value: users.length, icon: 'fa-users', color: '#6366f1', bg: 'rgba(99,102,241,0.08)', change: '+12%' },
+    { label: 'Total Products', value: products.length, icon: 'fa-box-open', color: '#10b981', bg: 'rgba(16,185,129,0.08)', change: '+8%' },
+    { label: 'Total Orders', value: orders.length, icon: 'fa-cart-shopping', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', change: '+5%' },
+    { label: 'Active Staff', value: users.filter(u => u.role === 'staff').length, icon: 'fa-id-badge', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', change: '+2' },
+  ];
+
+  const roleBadge = (role) => {
+    const map = { admin: { bg: '#fee2e2', color: '#dc2626', label: 'Admin' }, staff: { bg: '#dbeafe', color: '#2563eb', label: 'Staff' }, rider: { bg: '#fef3c7', color: '#d97706', label: 'Rider' }, customer: { bg: '#f0fdf4', color: '#16a34a', label: 'Customer' } };
+    const s = map[role] || { bg: '#f1f5f9', color: '#64748b', label: role };
+    return <span style={{ background: s.bg, color: s.color, padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{s.label}</span>;
+  };
+
+  const getStatusBadge = (status) => {
+    const map = { received: { bg: '#e0f2fe', color: '#0284c7' }, quality_check: { bg: '#fef3c7', color: '#b45309' }, ready_for_pickup: { bg: '#ede9fe', color: '#7c3aed' }, shipped: { bg: '#dbeafe', color: '#1d4ed8' }, delivered: { bg: '#dcfce7', color: '#15803d' }, cancelled: { bg: '#fee2e2', color: '#dc2626' } };
+    const s = map[status] || { bg: '#f1f5f9', color: '#64748b' };
+    return <span style={{ background: s.bg, color: s.color, padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, textTransform: 'capitalize' }}>{(status || '').replace(/_/g, ' ')}</span>;
+  };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAFA' }}>
-      {/* Sidebar */}
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .admin-nav-btn:hover { background: rgba(255,255,255,0.08) !important; }
+        .admin-stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.12) !important; }
+        .admin-table-row:hover { background: #f8fafc !important; }
+        .admin-main-content { animation: fadeIn 0.3s ease; }
+      `}</style>
+
+      {/* ── SIDEBAR ── */}
       <aside style={{
-        width: '260px',
-        background: '#111',
-        color: '#FFF',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        height: '100vh',
-        left: 0,
-        top: 0
+        width: 280, background: SIDEBAR_BG, color: '#fff',
+        display: 'flex', flexDirection: 'column',
+        position: 'fixed', height: '100vh', left: 0, top: 0,
+        boxShadow: '4px 0 24px rgba(0,0,0,0.2)', zIndex: 100,
+        borderRight: '1px solid rgba(255,255,255,0.05)'
       }}>
-        <div style={{
-          padding: '24px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <i className="fas fa-crown"></i>
-            Admin Panel
+        <div style={{ padding: '32px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFF', fontFamily: 'Outfit, sans-serif' }}>StepUp</span>
           </div>
         </div>
-        <nav style={{ flex: 1, padding: '16px 0' }}>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'dashboard' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('dashboard')}>
-            <i className="fas fa-tachometer-alt" style={{ width: '20px' }}></i>
-            <span>Dashboard</span>
-          </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'users' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'users' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('users')}>
-            <i className="fas fa-users" style={{ width: '20px' }}></i>
-            <span>Users</span>
-          </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'products' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'products' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('products')}>
-            <i className="fas fa-box" style={{ width: '20px' }}></i>
-            <span>Products</span>
-          </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'reports' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'reports' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('reports')}>
-            <i className="fas fa-chart-bar" style={{ width: '20px' }}></i>
-            <span>Reports</span>
-          </button>
-          <button style={{
-            width: '100%',
-            padding: '14px 24px',
-            background: activeTab === 'profile' ? 'rgba(255,255,255,0.1)' : 'transparent',
-            border: 'none',
-            color: '#FFF',
-            textAlign: 'left',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderLeft: activeTab === 'profile' ? '3px solid #FFF' : '3px solid transparent',
-            transition: 'all 0.2s'
-          }} onClick={() => setActiveTab('profile')}>
-            <i className="fas fa-user" style={{ width: '20px' }}></i>
-            <span>Profile</span>
-          </button>
+
+        <nav style={{ flex: 1, padding: '24px 16px', overflowY: 'auto' }}>
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              className="admin-nav-btn"
+              onClick={() => setActiveTab(item.key)}
+              style={{
+                width: '100%', padding: '14px 20px', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 16, borderRadius: '12px',
+                marginBottom: '8px', textAlign: 'left', fontSize: '15px', fontWeight: activeTab === item.key ? '600' : '500',
+                fontFamily: 'Inter, sans-serif', transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                background: activeTab === item.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: activeTab === item.key ? '#FFF' : 'rgba(255,255,255,0.6)',
+                boxShadow: activeTab === item.key ? '0 4px 12px rgba(0,0,0,0.2)' : 'none'
+              }}
+            >
+              <i className={`fas ${item.icon}`} style={{ width: 20, fontSize: 16, color: activeTab === item.key ? '#FFF' : 'rgba(255,255,255,0.4)' }} />
+              <span>{item.label}</span>
+            </button>
+          ))}
         </nav>
-        <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+
+        {/* User + Logout */}
+        <div style={{ padding: '16px 16px 24px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 15, fontWeight: 700
+            }}>
+              {user.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{user.name}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{user.email}</div>
+            </div>
+          </div>
           <button onClick={handleLogout} style={{
-            width: '100%',
-            padding: '12px 24px',
-            background: 'rgba(255,255,255,0.1)',
-            border: 'none',
-            color: '#FFF',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            borderRadius: '30px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
+            width: '100%', padding: '9px 14px', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 8, background: 'transparent', color: 'rgba(255,255,255,0.6)',
+            cursor: 'pointer', fontSize: 13, fontFamily: 'Outfit, sans-serif',
+            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
           >
-            <i className="fas fa-sign-out-alt"></i>
-            Logout
+            <i className="fas fa-arrow-right-from-bracket" /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main style={{ marginLeft: '260px', flex: 1, padding: '32px' }}>
+      {/* ── MAIN ── */}
+      <main style={{ marginLeft: 280, flex: 1, padding: '48px', minHeight: '100vh' }} className="admin-main-content">
+
         {activeTab === 'dashboard' && (
-          <div className="fade-in">
-            {/* Welcome Hero Section */}
-            <div style={{
-              background: 'linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-light) 100%)',
-              color: 'white',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--spacing-2xl)',
-              marginBottom: 'var(--spacing-2xl)',
-              boxShadow: 'var(--shadow-lg)'
-            }}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                <div style={{flex: 1}}>
-                  <h1 style={{
-                    fontSize: 'var(--font-size-3xl)',
-                    fontWeight: 700,
-                    margin: 0,
-                    marginBottom: 'var(--spacing-md)',
-                    color: 'white'
-                  }}>Welcome back, {user?.name}!</h1>
-                  <p style={{
-                    fontSize: 'var(--font-size-lg)',
-                    margin: 0,
-                    opacity: 0.95,
-                    lineHeight: 1.6
-                  }}>Here's what's happening with your platform today. Monitor your users, products, orders, and revenue in real-time.</p>
-                </div>
-                <div style={{
-                  fontSize: '4rem',
-                  opacity: 0.15,
-                  marginLeft: 'var(--spacing-lg)'
-                }}>
-                  <i className="fas fa-crown"></i>
-                </div>
-              </div>
+          <div className="animate-up">
+            {/* Header */}
+            <div style={{ marginBottom: 40 }}>
+              <h1 style={{ fontSize: 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.5px' }}>
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {user.name.split(' ')[0]}! 👋
+              </h1>
+              <p style={{ color: '#757575', margin: '8px 0 0', fontSize: 16 }}>Here's what's happening on your platform today.</p>
             </div>
 
-            {/* Metrics Grid */}
-            <div className="metrics-grid" style={{marginBottom: 'var(--spacing-2xl)'}}>
-              <div className="metric-card">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                  <div>
-                    <p className="metric-label">Total Users</p>
-                    <p className="metric-value">{users.length}</p>
-                    <p className="metric-change positive">
-                      <i className="fas fa-arrow-up"></i> +12%
-                    </p>
-                  </div>
-                  <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', opacity: 0.2}}>
-                    <i className="fas fa-users"></i>
-                  </div>
-                </div>
-              </div>
-
-              <div className="metric-card">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                  <div>
-                    <p className="metric-label">Total Products</p>
-                    <p className="metric-value">{products.length}</p>
-                    <p className="metric-change positive">
-                      <i className="fas fa-arrow-up"></i> +8%
-                    </p>
-                  </div>
-                  <div style={{fontSize: '2.5rem', color: 'var(--success-green)', opacity: 0.2}}>
-                    <i className="fas fa-box"></i>
+            {/* Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 48 }}>
+              {statCards.map((card, i) => (
+                <div key={i} className="card hover-lift" style={{ padding: '32px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <p style={{ fontSize: '13px', color: '#757575', margin: '0 0 12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{card.label}</p>
+                      <p style={{ fontSize: '40px', fontWeight: '800', color: '#111', margin: '0', lineHeight: 1 }}>{card.value}</p>
+                    </div>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <i className={`fas ${card.icon}`} style={{ fontSize: 24, color: card.color }} />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="metric-card">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                  <div>
-                    <p className="metric-label">Total Products</p>
-                    <p className="metric-value">{products.length}</p>
-                    <p className="metric-change positive">
-                      <i className="fas fa-arrow-up"></i> +8%
-                    </p>
-                  </div>
-                  <div style={{fontSize: '2.5rem', color: 'var(--info-cyan)', opacity: 0.2}}>
-                    <i className="fas fa-boxes"></i>
-                  </div>
-                </div>
-              </div>
-
-              <div className="metric-card">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                  <div>
-                    <p className="metric-label">Active Users</p>
-                    <p className="metric-value">{users.length}</p>
-                    <p className="metric-change positive">
-                      <i className="fas fa-arrow-up"></i> +12%
-                    </p>
-                  </div>
-                  <div style={{fontSize: '2.5rem', color: 'var(--success-green)', opacity: 0.2}}>
-                    <i className="fas fa-user-check"></i>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Quick Overview Cards */}
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-2xl)'}}>
-              {/* Users Overview */}
-              <div className="card">
-                <div className="card-header">
-                  <h3 style={{margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)'}}>
-                    <span style={{width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'var(--primary-light)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                      <i className="fas fa-users"></i>
-                    </span>
+            {/* Two-col overview */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
+              {/* Recent Users */}
+              <div className="card hover-lift">
+                <div style={{ padding: '24px 32px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFAFA' }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(250,84,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <i className="fas fa-users" style={{ color: ACCENT, fontSize: 14 }} /> 
+                    </div>
                     Recent Users
                   </h3>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('users')}>View All</button>
+                  <button onClick={() => setActiveTab('users')} style={{ background: 'none', border: 'none', color: '#757575', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'Outfit, sans-serif', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#111'} onMouseLeave={e=>e.currentTarget.style.color='#757575'}>View all &rarr;</button>
                 </div>
-                <div className="card-body">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.slice(0, 5).map(u => (
-                        <tr key={u.id}>
-                          <td>{u.name}</td>
-                          <td><span className="badge badge-primary">{u.role}</span></td>
-                          <td><span className="badge badge-success">Active</span></td>
-                        </tr>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {['Name', 'Email', 'Role'].map(h => (
+                        <th key={h} style={{ padding: '16px 32px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{h}</th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.slice(0, 5).map(u => (
+                      <tr key={u.id} style={{ transition: 'background 0.2s', borderBottom: '1px solid rgba(0,0,0,0.02)' }} onMouseEnter={e=>e.currentTarget.style.background='#F8F9FA'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                        <td style={{ padding: '16px 32px', fontSize: 14, fontWeight: 700, color: '#111' }}>{u.name}</td>
+                        <td style={{ padding: '16px 32px', fontSize: 14, color: '#757575' }}>{u.email}</td>
+                        <td style={{ padding: '16px 32px' }}>{roleBadge(u.role)}</td>
+                      </tr>
+                    ))}
+                    {users.length === 0 && <tr><td colSpan={3} style={{ padding: '32px', textAlign: 'center', color: '#999', fontSize: 14 }}>No users yet</td></tr>}
+                  </tbody>
+                </table>
               </div>
 
-              {/* Products Overview */}
-              <div className="card">
-                <div className="card-header">
-                  <h3 style={{margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)'}}>
-                    <span style={{width: '32px', height: '32px', borderRadius: 'var(--radius-md)', background: 'var(--success-green)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                      <i className="fas fa-box"></i>
-                    </span>
-                    Recent Products
+              {/* Recent Orders */}
+              <div className="card hover-lift">
+                <div style={{ padding: '24px 32px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFAFA' }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(250,84,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <i className="fas fa-cart-shopping" style={{ color: ACCENT, fontSize: 14 }} />
+                    </div>
+                    Recent Orders
                   </h3>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('products')}>View All</button>
+                  <button onClick={() => setActiveTab('reports')} style={{ background: 'none', border: 'none', color: '#757575', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'Outfit, sans-serif', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#111'} onMouseLeave={e=>e.currentTarget.style.color='#757575'}>View all &rarr;</button>
                 </div>
-                <div className="card-body">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Brand</th>
-                        <th>Price</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {products.slice(0, 5).map(p => (
-                        <tr key={p.id}>
-                          <td>{p.name}</td>
-                          <td>{p.brand}</td>
-                          <td style={{fontWeight: 600, color: 'var(--success-green)'}}>${p.price}</td>
-                        </tr>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {['Order', 'Customer', 'Status'].map(h => (
+                        <th key={h} style={{ padding: '16px 32px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{h}</th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.slice(0, 5).map(o => (
+                      <tr key={o.id} style={{ transition: 'background 0.2s', borderBottom: '1px solid rgba(0,0,0,0.02)' }} onMouseEnter={e=>e.currentTarget.style.background='#F8F9FA'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                        <td style={{ padding: '16px 32px', fontSize: 14, fontWeight: 700, color: '#111' }}>#{o.id}</td>
+                        <td style={{ padding: '16px 32px', fontSize: 14, color: '#757575' }}>{o.user?.name || '—'}</td>
+                        <td style={{ padding: '16px 32px' }}>{getStatusBadge(o.status)}</td>
+                      </tr>
+                    ))}
+                    {orders.length === 0 && <tr><td colSpan={3} style={{ padding: '32px', textAlign: 'center', color: '#999', fontSize: 14 }}>No orders yet</td></tr>}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Reports Section */}
+            {/* Quick Reports */}
             <div>
-              <h2 style={{fontSize: 'var(--font-size-2xl)', fontWeight: 700, marginBottom: 'var(--spacing-lg)'}}>Reports & Analytics</h2>
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--spacing-lg)'}}>
-                <div className="card">
-                  <div className="card-header">
-                    <h4 style={{margin: 0}}>
-                      <i className="fas fa-warehouse"></i> Inventory Report
-                    </h4>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 16 }}>Quick Reports</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+                {[
+                  { title: 'Inventory Report', icon: 'fa-warehouse', color: '#6366f1', action: fetchInventory, data: inventoryReport, cols: ['name', 'stock'] },
+                  { title: 'Sales Report', icon: 'fa-chart-line', color: '#10b981', action: fetchSales, data: salesReport, cols: ['product_id', 'total_sales'] },
+                  { title: 'Order Status', icon: 'fa-clipboard-list', color: '#f59e0b', action: fetchOrderStatus, data: orderStatusReport, cols: ['id', 'status'] },
+                ].map((r, i) => (
+                  <div key={i} style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '18px 22px', borderBottom: '1px solid #f1f5f9' }}>
+                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <i className={`fas ${r.icon}`} style={{ color: r.color }} /> {r.title}
+                      </h4>
+                    </div>
+                    <div style={{ padding: 20 }}>
+                      <button onClick={r.action} style={{
+                        width: '100%', padding: '10px', border: 'none', borderRadius: 8,
+                        background: r.color, color: '#fff', cursor: 'pointer', fontSize: 13,
+                        fontWeight: 600, fontFamily: 'Outfit, sans-serif', marginBottom: r.data.length > 0 ? 14 : 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}>
+                        <i className="fas fa-rotate-right" /> Generate
+                      </button>
+                      {r.data.slice(0, 3).map((item, j) => (
+                        <div key={j} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: j < 2 ? '1px solid #f1f5f9' : 'none', fontSize: 13 }}>
+                          <span style={{ color: '#64748b' }}>{r.cols[0] === 'product_id' ? `Product #${item[r.cols[0]]}` : r.cols[0] === 'id' ? `Order #${item[r.cols[0]]}` : item[r.cols[0]]}</span>
+                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{r.cols[1] === 'total_sales' ? `₱${item[r.cols[1]]}` : r.cols[1] === 'stock' ? `${item[r.cols[1]]} units` : item[r.cols[1]]}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="card-body">
-                    <button className="btn btn-primary w-full mb-lg" onClick={fetchInventory}>
-                      <i className="fas fa-refresh"></i> Generate Report
-                    </button>
-                    {inventoryReport.length > 0 && (
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Product</th>
-                            <th>Stock</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {inventoryReport.slice(0, 3).map(item => (
-                            <tr key={item.id}>
-                              <td>{item.name}</td>
-                              <td>
-                                <span className={`badge ${item.stock > 10 ? 'badge-success' : item.stock > 0 ? 'badge-warning' : 'badge-danger'}`}>
-                                  {item.stock} units
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-header">
-                    <h4 style={{margin: 0}}>
-                      <i className="fas fa-chart-line"></i> Sales Report
-                    </h4>
-                  </div>
-                  <div className="card-body">
-                    <button className="btn btn-primary w-full mb-lg" onClick={fetchSales}>
-                      <i className="fas fa-refresh"></i> Generate Report
-                    </button>
-                    {salesReport.length > 0 && (
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Product</th>
-                            <th>Sales</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {salesReport.slice(0, 3).map(item => (
-                            <tr key={item.id}>
-                              <td>#{item.product_id}</td>
-                              <td style={{fontWeight: 600, color: 'var(--success-green)'}}>${item.total_sales}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-header">
-                    <h4 style={{margin: 0}}>
-                      <i className="fas fa-clipboard-list"></i> Order Status
-                    </h4>
-                  </div>
-                  <div className="card-body">
-                    <button className="btn btn-primary w-full mb-lg" onClick={fetchOrderStatus}>
-                      <i className="fas fa-refresh"></i> Generate Report
-                    </button>
-                    {orderStatusReport.length > 0 && (
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Order</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orderStatusReport.slice(0, 3).map(item => (
-                            <tr key={item.id}>
-                              <td>#{item.id}</td>
-                              <td><span className="badge badge-info">{item.status}</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
+        {activeTab === 'orders' && <OrderManagement />}
         {activeTab === 'users' && <AdminUsers />}
         {activeTab === 'products' && <AdminProducts />}
+        {activeTab === 'promotions' && <SalesManager />}
         {activeTab === 'reports' && <AdminReports />}
         {activeTab === 'profile' && <AdminProfile />}
+        {activeTab === 'logistics' && <LogisticsManager />}
+        {activeTab === 'riders' && <RiderManager />}
+        {activeTab === 'reviews' && <ReviewManager />}
+        {activeTab === 'returns' && <ReturnManager />}
+        {activeTab === 'archive' && <ArchiveManager />}
+        {activeTab === 'analytics' && <AdminAnalytics />}
       </main>
     </div>
   );

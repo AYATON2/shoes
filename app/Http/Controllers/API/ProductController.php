@@ -19,6 +19,14 @@ class ProductController extends Controller
                   ->where('start_date', '<=', $now)
                   ->where('end_date', '>=', $now);
             }]);
+
+            if ($request->has('include_archived') && $request->include_archived == 'true') {
+                // Keep all
+            } else if ($request->has('only_archived') && $request->only_archived == 'true') {
+                $query->where('is_archived', true);
+            } else {
+                $query->where('is_archived', false);
+            }
             
             if ($request->has('brand') && $request->brand) {
                 $query->where('brand', $request->brand);
@@ -147,7 +155,12 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('create', Product::class); // For sellers
+        $user = auth()->user();
+        
+        // Allow admin and staff to create products; for others use policy
+        if (!in_array($user->role, ['admin', 'staff'])) {
+            $this->authorize('create', Product::class);
+        }
         
         // Parse SKUs safely
         $skus = [];
@@ -181,7 +194,7 @@ class ProductController extends Controller
 
         // Create product
         $data = $request->only(['name', 'brand', 'type', 'material', 'description', 'price', 'performance_tech', 'release_date', 'gender', 'age_group']);
-        $data['seller_id'] = auth()->id();
+        $data['seller_id'] = $user->id;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
@@ -329,5 +342,19 @@ class ProductController extends Controller
             'types' => $types,
             'performance_tech' => $performanceTechs,
         ]);
+    }
+
+    public function archive($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->update(['is_archived' => true]);
+        return response()->json(['message' => 'Product archived successfully']);
+    }
+
+    public function unarchive($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->update(['is_archived' => false]);
+        return response()->json(['message' => 'Product unarchived successfully']);
     }
 }

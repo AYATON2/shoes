@@ -12,6 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $role
  * @property bool $active
  * @property bool $approved
+ * @property string $city
  */
 
 class User extends Authenticatable
@@ -30,6 +31,8 @@ class User extends Authenticatable
         'role',
         'active',
         'approved',
+        'logistic_id',
+        'customer_number',
     ];
 
     /**
@@ -74,5 +77,25 @@ class User extends Authenticatable
     public function notifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(ReturnProduct::class);
+    }
+
+    public function riderOrders()
+    {
+        return $this->hasMany(Order::class, 'rider_id');
+    }
+
+    public function logistic()
+    {
+        return $this->belongsTo(Logistics::class, 'logistic_id');
     }
 }

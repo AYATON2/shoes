@@ -14,13 +14,10 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
 
-  // Check authentication on component mount
+  // Check authentication on component mount - REMOVED to allow guest viewing
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-    }
-  }, [navigate]);
+    // Guest viewing enabled
+  }, []);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
@@ -172,20 +169,20 @@ const ProductList = () => {
         <button 
           onClick={fetchProducts}
           style={{
-            background: '#000000',
+            background: '#111',
             color: 'white',
             border: 'none',
-            padding: 'var(--spacing-md) var(--spacing-lg)',
-            fontWeight: 900,
-            fontSize: 'var(--font-size-sm)',
-            textTransform: 'uppercase',
+            padding: '12px 24px',
+            fontWeight: '600',
+            fontSize: '14px',
+            borderRadius: '4px',
             cursor: 'pointer',
-            transition: 'all 0.3s ease'
+            transition: 'background 0.2s'
           }}
-          onMouseEnter={(e) => e.target.style.background = '#FF6B00'}
-          onMouseLeave={(e) => e.target.style.background = '#000000'}
+          onMouseEnter={(e) => e.target.style.background = '#333'}
+          onMouseLeave={(e) => e.target.style.background = '#111'}
         >
-          <i className="fas fa-search"></i> Filter
+          <i className="fas fa-search" style={{ marginRight: '8px' }}></i> Filter
         </button>
       </div>
 
@@ -227,15 +224,12 @@ const ProductList = () => {
           <div
             key={product.id}
             style={{
-              gridColumn: 'span 1',
-              gridRow: 'span 1',
-              background: '#ffffff',
-              border: 'none',
+              background: '#FFF',
               overflow: 'hidden',
-              transition: 'none',
               cursor: 'pointer',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              transition: 'transform 0.3s ease'
             }}
             onMouseEnter={() => setHoveredProduct(product.id)}
             onMouseLeave={() => setHoveredProduct(null)}
@@ -318,8 +312,8 @@ const ProductList = () => {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transform: hoveredProduct === product.id ? 'scale(1.1)' : 'scale(1)',
-                    transition: 'transform 0.15s ease'
+                    transform: hoveredProduct === product.id ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 />
               ) : (

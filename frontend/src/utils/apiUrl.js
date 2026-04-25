@@ -12,13 +12,13 @@ export const getApiBaseUrl = () => {
 
     // Local dev default to Laravel's artisan serve port.
     if (isLocalhost && port !== '8000') {
-      return 'http://localhost:8000';
+      return `http://${hostname}:8000`;
     }
 
     return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
   }
 
-  return 'http://localhost:8000';
+  return 'http://127.0.0.1:8000';
 };
 
 export const buildApiAssetUrl = (path) => {

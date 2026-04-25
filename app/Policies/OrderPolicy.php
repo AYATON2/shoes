@@ -14,7 +14,7 @@ class OrderPolicy
     {
         if ($user->role === 'admin') return true;
         if ($user->role === 'customer' && $order->user_id === $user->id) return true;
-        if ($user->role === 'seller' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
+        if ($user->role === 'staff' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
             $q->where('seller_id', $user->id);
         })->exists()) return true;
         return false;
@@ -23,7 +23,7 @@ class OrderPolicy
     public function update(User $user, Order $order)
     {
         if ($user->role === 'admin') return true;
-        if ($user->role === 'seller' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
+        if ($user->role === 'staff' && $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
             $q->where('seller_id', $user->id);
         })->exists()) return true;
         return false;
