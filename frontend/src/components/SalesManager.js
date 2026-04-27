@@ -6,7 +6,6 @@ const SalesManager = ({ productId = null, products = [] }) => {
   const [activeTab, setActiveTab] = useState('sales');
   const [sales, setSales] = useState([]);
   const [vouchers, setVouchers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
   const [showForm, setShowForm] = useState(false);
   
@@ -39,18 +38,16 @@ const SalesManager = ({ productId = null, products = [] }) => {
   useEffect(() => {
     fetchSales();
     fetchVouchers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSales = async () => {
     try {
-      setLoading(true);
       const response = await axios.get('/api/sales');
       setSales(response.data.data || response.data);
     } catch (error) {
       console.error('Error fetching sales:', error);
       showNotification('Error loading sales', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 

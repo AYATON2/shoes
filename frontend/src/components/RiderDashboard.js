@@ -208,9 +208,7 @@ const SIDEBAR_BG = 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)';
 const RiderDashboard = () => {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [deliverySubTab, setDeliverySubTab] = useState('pickup');
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedMapOrder, setSelectedMapOrder] = useState(null);
   const navigate = useNavigate();
@@ -219,10 +217,10 @@ const RiderDashboard = () => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
       const userRes = await axios.get('/api/user');
       const userData = userRes.data;
@@ -233,8 +231,6 @@ const RiderDashboard = () => {
     } catch (error) {
       console.error('Failed to fetch rider data:', error);
       if (error.response?.status === 401) { localStorage.removeItem('token'); window.location.href = '/login'; }
-    } finally {
-      setLoading(false);
     }
   };
 

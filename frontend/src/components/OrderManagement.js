@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
@@ -12,7 +11,6 @@ const OrderManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [assigningRider, setAssigningRider] = useState(null);
-  const navigate = useNavigate();
 
   const fetchOrders = useCallback(async (isInitial = false) => {
     try {

@@ -17,6 +17,7 @@ const LogisticsManager = () => {
 
   useEffect(() => {
     fetchLogistics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchLogistics = () => {
