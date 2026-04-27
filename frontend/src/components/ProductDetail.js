@@ -156,15 +156,17 @@ const ProductDetail = () => {
   };
 
   if (!product) return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      fontSize: '20px',
-      fontWeight: '600'
-    }}>
-      Loading...
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 20px' }}>
+      <div className="loading-bar" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
+        <div className="skeleton" style={{ height: '600px', borderRadius: '20px' }} />
+        <div>
+          <div className="skeleton" style={{ height: '48px', width: '80%', marginBottom: '20px' }} />
+          <div className="skeleton" style={{ height: '24px', width: '40%', marginBottom: '40px' }} />
+          <div className="skeleton" style={{ height: '100px', width: '100%', marginBottom: '40px' }} />
+          <div className="skeleton" style={{ height: '60px', width: '100%', borderRadius: '30px' }} />
+        </div>
+      </div>
     </div>
   );
 

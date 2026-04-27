@@ -7,7 +7,8 @@
         "watch-poll": "mix watch -- --watch-options-poll=1000",
         "hot": "mix watch --hot",
         "prod": "npm run production",
-        "production": "mix --production"
+        "production": "mix --production",
+        "build": "cd frontend && npm install && npm run build && xcopy /E /I /Y build ..\\public\\"
     },
     "devDependencies": {
         "axios": "^0.21",

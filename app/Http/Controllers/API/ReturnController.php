@@ -39,10 +39,7 @@ class ReturnController extends Controller
 
         $proof_path = null;
         if ($request->hasFile('proof_image')) {
-            $file = $request->file('proof_image');
-            $filename = time() . '_return_' . $request->order_id . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('returns'), $filename);
-            $proof_path = 'returns/' . $filename;
+            $proof_path = $request->file('proof_image')->store('returns', 'public');
         }
 
         $return = ReturnProduct::create([

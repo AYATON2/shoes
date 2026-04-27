@@ -37,7 +37,7 @@ function AppContent() {
   return (
     <div className="App">
       {showHeader && <Header />}
-      <Suspense fallback={<div style={{ padding: '24px', textAlign: 'center' }}>Loading...</div>}>
+      <Suspense fallback={<div className="loading-bar" />}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<ProductList />} />

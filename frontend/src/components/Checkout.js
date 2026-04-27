@@ -140,6 +140,9 @@ const Checkout = () => {
     if (paymentMethod === 'gcash' && !gcashScreenshotFile) {
       setNotification({ message: 'Please upload your GCash receipt screenshot', type: 'error' }); return;
     }
+    if (paymentMethod === 'gcash' && !gcashReference) {
+      setNotification({ message: 'Please enter the GCash reference number', type: 'error' }); return;
+    }
 
     setLoading(true);
     try {

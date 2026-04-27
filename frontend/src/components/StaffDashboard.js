@@ -120,26 +120,17 @@ const StaffDashboard = () => {
 
   const logisticStyle = getLogisticStyle(user?.logistic?.name);
 
-  if (initialLoading || !user) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 44, height: 44, border: '4px solid #10b981', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-        <p style={{ color: '#64748b', fontFamily: 'Outfit, sans-serif' }}>Loading…</p>
-      </div>
-    </div>
-  );
-
   const navItems = [
     { key: 'dashboard', icon: 'fa-gauge-high', label: 'Dashboard' },
     { key: 'manage-orders', icon: 'fa-bags-shopping', label: 'Order Management' },
-    ...(!user.logistic_id ? [
+    ...(!(user?.logistic_id) ? [
       { key: 'manage-products', icon: 'fa-box-open', label: 'Products' },
       { key: 'sales', icon: 'fa-tag', label: 'Sales & Promos' }
     ] : []),
     { key: 'profile', icon: 'fa-circle-user', label: 'My Profile' },
   ];
 
-  const statCards = user.logistic_id ? [
+  const statCards = user?.logistic_id ? [
     { label: 'New Orders', value: stats.pendingOrders, icon: 'fa-inbox', color: '#6366f1', bg: 'rgba(99,102,241,0.08)' },
     { label: 'In Quality Check', value: stats.qualityCheck, icon: 'fa-magnifying-glass', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
     { label: 'Ready for Pickup', value: stats.readyForPickup, icon: 'fa-truck-ramp-box', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
@@ -159,7 +150,25 @@ const StaffDashboard = () => {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } } .staff-nav-btn:hover { background: rgba(255,255,255,0.08) !important; } .staff-stat-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.12)!important; } .staff-row:hover { background:#f8fafc!important; }`}</style>
+      {/* Subtle Top Progress Bar */}
+      {initialLoading && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '3px', background: 'rgba(255,255,255,0.2)', zIndex: 9999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: '#10b981', width: '30%', animation: 'loadingBar 1.5s infinite ease-in-out' }} />
+        </div>
+      )}
+
+      <style>{`
+        @keyframes loadingBar {
+          0% { transform: translateX(-100%); width: 30%; }
+          50% { width: 60%; }
+          100% { transform: translateX(400%); width: 30%; }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } } 
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } } 
+        .staff-nav-btn:hover { background: rgba(255,255,255,0.08) !important; } 
+        .staff-stat-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.12)!important; } 
+        .staff-row:hover { background:#f8fafc!important; }
+      `}</style>
 
       {notification && <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
 
@@ -200,19 +209,19 @@ const StaffDashboard = () => {
 
         <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{user.name?.charAt(0).toUpperCase()}</div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{user.name}</div>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{user?.name?.charAt(0).toUpperCase() || '?'}</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{user?.name || 'Loading...'}</div>
           </div>
           <button onClick={handleLogout} style={{ width: '100%', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Sign Out</button>
         </div>
       </aside>
 
-      <main style={{ marginLeft: 260, flex: 1, padding: 40, animation: 'fadeIn 0.3s ease' }}>
+      <main style={{ marginLeft: 260, flex: 1, padding: 40, animation: 'fadeIn 0.3s ease', opacity: initialLoading ? 0.7 : 1, transition: 'opacity 0.3s' }}>
         {activeTab === 'dashboard' && (
           <div>
             <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', margin: 0 }}>{user.logistic_id ? 'Logistics Dashboard' : 'Store Dashboard'}</h1>
-              <p style={{ color: '#64748b', marginTop: 4 }}>Managing {user.logistic_id ? `shipments for ${logisticStyle.label}` : 'your store operations'}</p>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', margin: 0 }}>{user?.logistic_id ? 'Logistics Dashboard' : 'Store Dashboard'}</h1>
+              <p style={{ color: '#64748b', marginTop: 4 }}>Managing {user?.logistic_id ? `shipments for ${logisticStyle.label}` : 'your store operations'}</p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20, marginBottom: 32 }}>
@@ -278,16 +287,16 @@ const StaffDashboard = () => {
             <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>Account Settings</h2>
             <div style={{ background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #e2e8f0' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800 }}>{user.name?.charAt(0).toUpperCase()}</div>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800 }}>{user?.name?.charAt(0).toUpperCase() || '?'}</div>
                   <div>
-                    <div style={{ fontSize: 20, fontWeight: 800 }}>{user.name}</div>
-                    <div style={{ color: '#64748b' }}>{user.email}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800 }}>{user?.name || '...'}</div>
+                    <div style={{ color: '#64748b' }}>{user?.email}</div>
                   </div>
                </div>
                <div style={{ display: 'grid', gap: 16 }}>
                   {[
                     ['Role', 'Staff Member'],
-                    ['Assigned Channel', user.logistic?.name || 'Store (Unassigned)'],
+                    ['Assigned Channel', user?.logistic?.name || 'Store (Unassigned)'],
                     ['Account Status', 'Verified & Active']
                   ].map(([label, val]) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>

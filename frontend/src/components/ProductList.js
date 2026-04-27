@@ -4,7 +4,7 @@ import axios from 'axios';
 import Notification from './Notification';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
-const ProductList = () => {
+const ProductList = ({ limit }) => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({});
@@ -14,25 +14,26 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
 
-  // Check authentication on component mount - REMOVED to allow guest viewing
-  useEffect(() => {
-    // Guest viewing enabled
-  }, []);
+  // Quick View State
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [selectedSku, setSelectedSku] = useState(null);
+  const [quantity, setQuantity] = useState(1);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
     axios.get('/api/products', { params: filters })
       .then(res => {
-        const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+        let list = Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data) ? res.data : []);
+        if (limit) list = list.slice(0, limit);
         setProducts(list);
         setLoading(false);
       })
       .catch(err => {
-        console.warn('Failed to fetch products:', err && err.message ? err.message : err);
+        console.warn('Failed to fetch products:', err);
         setProducts([]);
         setLoading(false);
       });
-  }, [filters]);
+  }, [filters, limit]);
 
   useEffect(() => {
     fetchProducts();
@@ -55,479 +56,209 @@ const ProductList = () => {
     }
   };
 
+  const handleAddToCart = (product, sku) => {
+    if (!sku && product.skus?.length > 0) {
+      alert('Please select a size/color');
+      return;
+    }
+
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const skuId = sku ? sku.id : (product.skus && product.skus.length > 0 ? product.skus[0].id : null);
+    
+    const existingItem = cart.find(i => i.product_id === product.id && i.sku_id === skuId);
+    
+    if (existingItem) {
+      existingItem.quantity += quantity;
+      setNotification({ message: 'Quantity updated in cart!', type: 'success' });
+    } else {
+      cart.push({
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        sku_id: skuId,
+        sku_details: sku ? `${sku.size} / ${sku.color}` : null,
+        quantity: quantity
+      });
+      setNotification({ message: 'Added to cart!', type: 'success' });
+    }
+    
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('cartUpdated'));
+    setQuickViewProduct(null);
+    setQuantity(1);
+    setSelectedSku(null);
+  };
+
+  const getEffectivePrice = (product) => {
+    if (product.sales && product.sales.length > 0) {
+        const sale = product.sales[0];
+        if (sale.sale_price) return parseFloat(sale.sale_price);
+        if (sale.discount_percentage) return product.price - (product.price * sale.discount_percentage / 100);
+        return product.price - sale.discount_amount;
+    }
+    return product.price;
+  };
+
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; animation: fadeIn 0.3s ease; }
+        .modal-content { background: #FFF; width: 400px; max-height: 90vh; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        .sku-btn { border: 1px solid #E5E5E5; padding: 8px 12px; border-radius: 8px; background: #FFF; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+        .sku-btn.active { border-color: #111; background: #111; color: #FFF; }
+        @media (max-width: 768px) { .modal-content { width: 90%; } }
+      `}</style>
+
+      {notification && <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
+
+      {!limit && (
+        <>
+          {/* Category Navigation Bar */}
+          <div style={{ display: 'flex', gap: '32px', padding: '20px 16px', borderBottom: '1px solid #E5E5E5', marginBottom: '32px', overflowX: 'auto', alignItems: 'center' }}>
+            {['All', 'Men', 'Women', 'Kids'].map(category => (
+              <button key={category} onClick={() => handleCategoryChange(category)} style={{ background: 'transparent', border: 'none', fontSize: '15px', fontWeight: selectedCategory === category ? '700' : '500', color: selectedCategory === category ? '#111' : '#999', cursor: 'pointer', padding: '0 0 8px 0', borderBottom: selectedCategory === category ? '3px solid #111' : 'none' }}>
+                {category}
+              </button>
+            ))}
+          </div>
+
+          {/* Filter Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '40px', padding: '0 24px' }}>
+            <input name="brand" placeholder="SEARCH BRAND" onChange={handleFilterChange} list="brands" style={{ padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
+            <datalist id="brands">{filterOptions.brands.map(brand => <option key={brand} value={brand} />)}</datalist>
+            
+            <input name="type" placeholder="SHOE TYPE" onChange={handleFilterChange} list="types" style={{ padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
+            <datalist id="types">{filterOptions.types.map(type => <option key={type} value={type} />)}</datalist>
+
+            <button onClick={fetchProducts} style={{ background: '#111', color: 'white', border: 'none', padding: '12px 24px', fontWeight: '700', fontSize: '14px', borderRadius: '12px', cursor: 'pointer' }}>
+              <i className="fas fa-search" style={{ marginRight: '8px' }}></i> Find Shoes
+            </button>
+          </div>
+        </>
       )}
 
-      {/* Category Navigation Bar - Nike Style */}
-      <div style={{
-        display: 'flex',
-        gap: '32px',
-        padding: '20px 16px',
-        borderBottom: '1px solid #E5E5E5',
-        marginBottom: '32px',
-        overflowX: 'auto',
-        alignItems: 'center'
-      }}>
-        {['All', 'Men', 'Women', 'Kids'].map(category => (
-          <button
-            key={category}
-            onClick={() => handleCategoryChange(category)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '15px',
-              fontWeight: selectedCategory === category ? '700' : '500',
-              color: selectedCategory === category ? '#111' : '#999',
-              cursor: 'pointer',
-              padding: 0,
-              whiteSpace: 'nowrap',
-              borderBottom: selectedCategory === category ? '3px solid #111' : 'none',
-              paddingBottom: selectedCategory === category ? '8px' : '8px',
-              transition: 'none'
-            }}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-
-      {/* Nike-Style Filter Bar */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 'var(--spacing-lg)',
-        marginBottom: 'var(--spacing-2xl)',
-        padding: '0 var(--spacing-lg)'
-      }}>
-        <input 
-          name="brand" 
-          placeholder="SEARCH BRAND" 
-          onChange={handleFilterChange} 
-          list="brands"
-          style={{
-            padding: 'var(--spacing-md) var(--spacing-lg)',
-            border: '2px solid #000000',
-            background: '#f6f6f6',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            outline: 'none',
-            transition: 'none'
-          }}
-        />
-        <datalist id="brands">
-          {filterOptions.brands.map(brand => <option key={brand} value={brand} />)}
-        </datalist>
-
-        <input 
-          name="type" 
-          placeholder="SHOE TYPE" 
-          onChange={handleFilterChange} 
-          list="types"
-          style={{
-            padding: 'var(--spacing-md) var(--spacing-lg)',
-            border: '2px solid #000000',
-            background: '#f6f6f6',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            outline: 'none',
-            transition: 'none'
-          }}
-        />
-        <datalist id="types">
-          {filterOptions.types.map(type => <option key={type} value={type} />)}
-        </datalist>
-
-        <input 
-          name="performance_tech" 
-          placeholder="TECH" 
-          onChange={handleFilterChange} 
-          list="performance_tech"
-          style={{
-            padding: 'var(--spacing-md) var(--spacing-lg)',
-            border: '2px solid #000000',
-            background: '#f6f6f6',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            outline: 'none',
-            transition: 'none'
-          }}
-        />
-        <datalist id="performance_tech">
-          {filterOptions.performance_tech.map(tech => <option key={tech} value={tech} />)}
-        </datalist>
-
-        <button 
-          onClick={fetchProducts}
-          style={{
-            background: '#111',
-            color: 'white',
-            border: 'none',
-            padding: '12px 24px',
-            fontWeight: '600',
-            fontSize: '14px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'background 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.background = '#333'}
-          onMouseLeave={(e) => e.target.style.background = '#111'}
-        >
-          <i className="fas fa-search" style={{ marginRight: '8px' }}></i> Filter
-        </button>
-      </div>
-
-      {/* STAGGERED GRID - Nike Style */}
-      {loading ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '400px',
-          fontSize: '18px',
-          fontWeight: '600',
-          color: '#111'
-        }}>
-          <div>
-            <div className="spinner-border" style={{width: '50px', height: '50px', borderWidth: '3px'}} />
-            <p style={{marginTop: '20px'}}>Loading products...</p>
-          </div>
+      {/* Grid */}
+      {loading && products.length === 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '32px', padding: '0 24px' }}>
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="skeleton" style={{ height: '320px', borderRadius: '20px' }} />
+              <div className="skeleton" style={{ height: '24px', width: '60%' }} />
+              <div className="skeleton" style={{ height: '20px', width: '40%' }} />
+            </div>
+          ))}
         </div>
       ) : products.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          color: '#999'
-        }}>
-          <i className="fas fa-box-open" style={{fontSize: '48px', marginBottom: '16px', display: 'block'}}></i>
-          <p style={{fontSize: '18px', fontWeight: '600'}}>No products found</p>
-          <p style={{fontSize: '14px'}}>Try adjusting your filters</p>
-        </div>
+        <div style={{ textAlign: 'center', padding: '60px' }}><p>No products found</p></div>
       ) : (
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-        gap: 'var(--spacing-lg)',
-        padding: '0 var(--spacing-lg)',
-        autoRows: '1fr'
-      }}>
-        {products.map((product, index) => (
-          <div
-            key={product.id}
-            style={{
-              background: '#FFF',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.3s ease'
-            }}
-            onMouseEnter={() => setHoveredProduct(product.id)}
-            onMouseLeave={() => setHoveredProduct(null)}
-          >
-            {/* Product Image with Zoom Effect */}
-            <div style={{
-              background: '#f6f6f6',
-              overflow: 'hidden',
-              height: '280px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative'
-            }}>
-              {/* SALE Badge - Lazada/Shopee Style */}
-              {product.sales && product.sales.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: '#FF4444',
-                  color: '#FFF',
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  fontWeight: '900',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  boxShadow: '0 4px 12px rgba(255, 68, 68, 0.5)',
-                  zIndex: 3,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '2px',
-                  minWidth: '60px',
-                  textAlign: 'center'
-                }}>
-                  <span style={{ fontSize: '10px', fontWeight: '600' }}>SALE</span>
-                  <span style={{ fontSize: '16px', fontWeight: '900', lineHeight: '1' }}>
-                    {product.sales[0].discount_percentage 
-                      ? `${Math.round(product.sales[0].discount_percentage)}%`
-                      : `₱${product.sales[0].discount_amount}`}
-                  </span>
-                  <span style={{ fontSize: '10px', fontWeight: '600' }}>OFF</span>
-                </div>
-              )}
-              
-              {/* HOT/TRENDING Badge */}
-              {product.is_trending && (
-                <div style={{
-                  position: 'absolute',
-                  top: '12px',
-                  left: '12px',
-                  background: 'linear-gradient(135deg, #FF6B00 0%, #F4511E 100%)',
-                  color: '#FFF',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: '900',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  boxShadow: '0 4px 12px rgba(255, 68, 68, 0.4)',
-                  zIndex: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <span style={{ fontSize: '14px' }}>🔥</span>
-                  HOT
-                </div>
-              )}
-              {product.image ? (
-                <img 
-                  src={buildApiAssetUrl(`/storage/${product.image}`)}
-                  alt={product.name}
-                  onError={(e) => {
-                    e.target.src = '/default.jpg';
-                  }}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transform: hoveredProduct === product.id ? 'scale(1.05)' : 'scale(1)',
-                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }}
-                />
-              ) : (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#f6f6f6',
-                  color: '#999',
-                  fontSize: '14px'
-                }}>
-                  No Image
-                </div>
-              )}
-            </div>
-
-            {/* Product Info */}
-            <div style={{
-              padding: 'var(--spacing-lg)',
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <h4 style={{
-                  margin: 0,
-                  marginBottom: 'var(--spacing-sm)',
-                  fontSize: '1.125rem',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  color: '#000000',
-                  letterSpacing: '0.02em'
-                }}>
-                  {product.name}
-                </h4>
-                {product.gender && (
-                  <div style={{
-                    display: 'inline-block',
-                    padding: '4px 12px',
-                    background: '#111',
-                    color: '#FFF',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    borderRadius: '4px',
-                    marginBottom: '8px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {product.gender}
-                  </div>
-                )}
-                <p style={{
-                  margin: 0,
-                  marginBottom: 'var(--spacing-md)',
-                  fontSize: 'var(--font-size-sm)',
-                  color: '#666666',
-                  lineHeight: 1.5
-                }}>
-                  {product.description ? product.description.substring(0, 80) + '...' : 'Premium Quality'}
-                </p>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  marginBottom: '12px',
-                  background: Number(product.stock || 0) > 0 ? '#E8F5E9' : '#FFEBEE',
-                  color: Number(product.stock || 0) > 0 ? '#2E7D32' : '#C62828'
-                }}>
-                  {Number(product.stock || 0)} in stock
-                </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '32px', padding: '0 24px', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }}>
+          {loading && <div className="loading-bar" />}
+          {products.map(product => (
+            <div key={product.id} style={{ background: '#FFF', display: 'flex', flexDirection: 'column' }} onMouseEnter={() => setHoveredProduct(product.id)} onMouseLeave={() => setHoveredProduct(null)}>
+              {/* Image Container */}
+              <div 
+                onClick={() => setQuickViewProduct(product)}
+                style={{ background: '#F6F6F6', height: '320px', overflow: 'hidden', position: 'relative', cursor: 'pointer', borderRadius: '20px' }}
+              >
+                 {product.sales?.length > 0 && (
+                   <div style={{ position: 'absolute', top: 12, right: 12, background: '#FF4444', color: '#FFF', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, zIndex: 2 }}>
+                     -{Math.round(product.sales[0].discount_percentage || 20)}%
+                   </div>
+                 )}
+                 <img 
+                    src={buildApiAssetUrl(`/storage/${product.image}`)} alt={product.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transform: hoveredProduct === product.id ? 'scale(1.05)' : 'scale(1)', transition: 'transform 0.6s' }}
+                 />
+                 {hoveredProduct === product.id && (
+                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px', background: 'linear-gradient(transparent, rgba(0,0,0,0.1))', display: 'flex', justifyContent: 'center' }}>
+                      <span style={{ background: '#FFF', color: '#111', padding: '10px 20px', borderRadius: '30px', fontSize: '13px', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>Quick View</span>
+                   </div>
+                 )}
               </div>
 
-              {/* Price & Hidden UI */}
-              <div>
-                {/* Sale Badge */}
-                {product.sales && product.sales.length > 0 && (
-                  <div style={{
-                    display: 'inline-block',
-                    background: '#E53935',
-                    color: '#FFF',
-                    padding: '4px 12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    marginBottom: '8px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {product.sales[0].discount_percentage 
-                      ? `${product.sales[0].discount_percentage}% OFF` 
-                      : `₱${product.sales[0].discount_amount} OFF`}
-                  </div>
-                )}
+              <div style={{ padding: '20px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>{product.name}</h4>
+                  <span style={{ fontWeight: 800, fontSize: '17px' }}>₱{getEffectivePrice(product).toLocaleString()}</span>
+                </div>
+                <p style={{ color: '#666', fontSize: '14px', margin: '0 0 16px 0' }}>{product.brand} • {product.type}</p>
                 
-                {/* Price Display */}
-                <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                  {product.sales && product.sales.length > 0 ? (
-                    <>
-                      <div style={{
-                        fontSize: '1rem',
-                        fontWeight: '600',
-                        color: '#999',
-                        textDecoration: 'line-through',
-                        marginBottom: '4px'
-                      }}>
-                        ₱{parseFloat(product.price).toFixed(2)}
-                      </div>
-                      <div style={{
-                        fontSize: '1.5rem',
-                        fontWeight: '900',
-                        color: '#E53935',
-                        textTransform: 'uppercase'
-                      }}>
-                        ₱{product.sales[0].sale_price 
-                          ? parseFloat(product.sales[0].sale_price).toFixed(2)
-                          : (product.sales[0].discount_percentage
-                            ? (product.price - (product.price * product.sales[0].discount_percentage / 100)).toFixed(2)
-                            : (product.price - product.sales[0].discount_amount).toFixed(2))}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{
-                      fontSize: '1.5rem',
-                      fontWeight: '900',
-                      color: '#FF6B00',
-                      textTransform: 'uppercase'
-                    }}>
-                      ₱{parseFloat(product.price).toFixed(2)}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                   <Link to={`/product/${product.id}`} style={{ flex: 1, textDecoration: 'none', background: '#F5F5F5', color: '#111', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '13px' }}>Full Details</Link>
+                   <button onClick={() => setQuickViewProduct(product)} style={{ flex: 1, background: '#111', color: '#FFF', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>Buy Now</button>
                 </div>
-
-                {/* Buttons appear on hover */}
-                {hoveredProduct === product.id ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-                    <Link 
-                      to={`/product/${product.id}`} 
-                      style={{
-                        background: '#000000',
-                        color: 'white',
-                        padding: 'var(--spacing-md)',
-                        textDecoration: 'none',
-                        fontWeight: 900,
-                        fontSize: 'var(--font-size-sm)',
-                        textTransform: 'uppercase',
-                        textAlign: 'center',
-                        transition: 'none',
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={(e) => e.target.style.background = '#FF6B00'}
-                      onMouseLeave={(e) => e.target.style.background = '#000000'}
-                    >
-                      <i className="fas fa-eye"></i> View
-                    </Link>
-                    <button
-                      onClick={() => {
-                        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-                        const existingItem = cart.find(i => i.product_id === product.id);
-                        
-                        if (existingItem) {
-                          existingItem.quantity += 1;
-                          setNotification({ message: 'Item quantity updated!', type: 'success' });
-                        } else {
-                          cart.push({
-                            product_id: product.id,
-                            name: product.name,
-                            price: product.price,
-                            image: product.image,
-                            sku_id: product.skus && product.skus.length > 0 ? product.skus[0].id : null,
-                            quantity: 1
-                          });
-                          setNotification({ message: 'Added to cart!', type: 'success' });
-                        }
-                        localStorage.setItem('cart', JSON.stringify(cart));
-                        window.dispatchEvent(new Event('cartUpdated'));
-                      }}
-                      style={{
-                        background: '#FF6B00',
-                        color: 'white',
-                        padding: 'var(--spacing-md)',
-                        fontWeight: 900,
-                        fontSize: 'var(--font-size-sm)',
-                        textTransform: 'uppercase',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'none'
-                      }}
-                      onMouseEnter={(e) => e.target.style.background = '#000000'}
-                      onMouseLeave={(e) => e.target.style.background = '#FF6B00'}
-                    >
-                      <i className="fas fa-shopping-bag"></i> Add
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{
-                    fontSize: 'var(--font-size-xs)',
-                    color: '#999999',
-                    textTransform: 'uppercase',
-                    fontWeight: 700,
-                    letterSpacing: '0.05em'
-                  }}>
-                    Hover for details
-                  </div>
-                )}
               </div>
             </div>
+          ))}
+        </div>
+      )}
+
+       {/* Quick View Modal */}
+       {quickViewProduct && (
+         <div className="modal-overlay" onClick={() => setQuickViewProduct(null)}>
+           <div className="modal-content" onClick={e => e.stopPropagation()}>
+              {/* Top: Image */}
+              <div style={{ background: '#f6f6f6', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                 <img 
+                    src={quickViewProduct.image ? buildApiAssetUrl(`/storage/${quickViewProduct.image}`) : ''} 
+                    alt={quickViewProduct.name}
+                    style={{ height: '80%', objectFit: 'contain' }}
+                 />
+                 <button 
+                    onClick={() => setQuickViewProduct(null)}
+                    style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '50%', background: '#FFF', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
+                 >
+                    <i className="fas fa-times" />
+                 </button>
+              </div>
+ 
+             {/* Bottom: Info */}
+             <div style={{ padding: '24px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                   <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>{quickViewProduct.name}</h2>
+                   <span style={{ fontSize: '18px', fontWeight: '800', color: '#111' }}>
+                      ₱{getEffectivePrice(quickViewProduct).toLocaleString()}
+                   </span>
+                </div>
+                <p style={{ color: '#666', fontSize: '12px', marginBottom: '20px', textTransform: 'uppercase', fontWeight: 600 }}>{quickViewProduct.brand}</p>
+ 
+                <div style={{ marginBottom: '20px' }}>
+                   <h4 style={{ fontSize: '11px', fontWeight: 700, marginBottom: '8px', color: '#999' }}>SELECT SIZE / COLOR</h4>
+                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {quickViewProduct.skus?.map(sku => (
+                        <button 
+                          key={sku.id} 
+                          className={`sku-btn ${selectedSku?.id === sku.id ? 'active' : ''}`}
+                          onClick={() => setSelectedSku(sku)}
+                          disabled={sku.stock <= 0}
+                          style={{ opacity: sku.stock <= 0 ? 0.4 : 1 }}
+                        >
+                          {sku.size} / {sku.color}
+                        </button>
+                      ))}
+                   </div>
+                </div>
+ 
+                <div style={{ display: 'flex', gap: '8px' }}>
+                   <button 
+                      onClick={() => handleAddToCart(quickViewProduct, selectedSku)}
+                      style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}
+                   >
+                      Add to Bag
+                   </button>
+                   <button 
+                      onClick={() => navigate(`/product/${quickViewProduct.id}`)}
+                      style={{ width: '48px', height: '48px', borderRadius: '12px', border: '1px solid #E5E5E5', background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                   >
+                      <i className="fas fa-expand" />
+                   </button>
+                </div>
+             </div>
           </div>
-        ))}
-      </div>
+        </div>
       )}
     </div>
   );

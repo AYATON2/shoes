@@ -145,6 +145,7 @@ const CustomerDashboard = () => {
       setMessage('Return request submitted!');
       setShowReturnModal(false);
       setReturnData({ order_id: null, reason: '', proof_image: null, preview: null });
+      loadReturns();
     } catch (err) {
       alert('Failed to submit return.');
     } finally {
@@ -167,14 +168,6 @@ const CustomerDashboard = () => {
     }
   };
 
-  if (initialLoading || !user) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#FFF' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid #EEE', borderTopColor: '#111', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      </div>
-    );
-  }
-
   const pillStyle = (active) => ({
     padding: '10px 24px',
     borderRadius: '30px',
@@ -192,7 +185,19 @@ const CustomerDashboard = () => {
 
   return (
     <div style={{ background: '#FFF', minHeight: '100vh', color: '#111', fontFamily: "'Inter', sans-serif" }}>
+      {/* Subtle Top Progress Bar */}
+      {initialLoading && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '3px', background: '#EEE', zIndex: 9999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: '#111', width: '30%', animation: 'loadingBar 1.5s infinite ease-in-out' }} />
+        </div>
+      )}
+
       <style>{`
+        @keyframes loadingBar {
+          0% { transform: translateX(-100%); width: 30%; }
+          50% { width: 60%; }
+          100% { transform: translateX(400%); width: 30%; }
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .card { background: #FFF; border: 1px solid #E5E5E5; border-radius: 20px; transition: all 0.3s ease; }
@@ -201,11 +206,13 @@ const CustomerDashboard = () => {
       `}</style>
 
       {/* Header / Hero */}
-      <div style={{ padding: '80px 24px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '48px', fontWeight: '800', margin: 0, letterSpacing: '-1.5px' }}>Welcome Back, {user.name.split(' ')[0]}!</h1>
+      <div style={{ padding: '80px 24px 40px', maxWidth: '1200px', margin: '0 auto', opacity: initialLoading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
+        <h1 style={{ fontSize: '48px', fontWeight: '800', margin: 0, letterSpacing: '-1.5px' }}>
+          Welcome Back, {user?.name ? user.name.split(' ')[0] : '...'}!
+        </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
           <span style={{ background: '#F5F5F5', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: '#666' }}>
-            CUSTOMER ID: {user.customer_number || 'N/A'}
+            CUSTOMER ID: {user?.customer_number || 'N/A'}
           </span>
           <span style={{ color: '#CCC' }}>•</span>
           <span style={{ fontSize: '14px', color: '#666' }}>Premium Member</span>
@@ -361,14 +368,16 @@ const CustomerDashboard = () => {
              <div className="card" style={{ padding: '32px' }}>
                 <form onSubmit={handleProfileUpdate}>
                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Full Name</label>
+                      <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Full Name</span>
                       <input type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} />
                    </div>
                    <div style={{ marginBottom: '32px' }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Email Address</label>
+                      <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Email Address</span>
                       <input type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} />
                    </div>
-                   <button type="submit" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: '700', cursor: 'pointer' }}>Update Profile</button>
+                   <button type="submit" disabled={submitting} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: '700', cursor: submitting ? 'not-allowed' : 'pointer' }}>
+                      {submitting ? 'Updating...' : 'Update Profile'}
+                   </button>
                 </form>
              </div>
           </div>
@@ -449,12 +458,12 @@ const CustomerDashboard = () => {
             
             <form onSubmit={handleReturnSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Reason for Return</label>
+                <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Reason for Return</span>
                 <textarea value={returnData.reason} onChange={e => setReturnData({...returnData, reason: e.target.value})} placeholder="Why are you returning this item?" required style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E5E5E5', minHeight: '100px', fontFamily: 'inherit' }} />
               </div>
               
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Proof of Condition (Image)</label>
+                <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Proof of Condition (Image)</span>
                 <div 
                   onClick={() => document.getElementById('return-image').click()}
                   style={{ width: '100%', height: '150px', border: '2px dashed #E5E5E5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}

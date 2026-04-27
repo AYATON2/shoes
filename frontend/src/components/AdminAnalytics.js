@@ -13,7 +13,7 @@ const AdminAnalytics = () => {
       axios.get('/api/reports/sales'),
       axios.get('/api/reports/inventory'),
       axios.get('/api/reports/orders'),
-      axios.get('/api/orders'),
+      axios.get('/api/orders?limit=10'), // Only get few recent orders for the table
     ]).then(([sales, inv, status, ord]) => {
       setSalesReport(sales.data || []);
       setInventoryReport(inv.data || []);
@@ -22,15 +22,15 @@ const AdminAnalytics = () => {
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  const totalRevenue = salesReport.reduce((s, r) => s + parseFloat(r.revenue || 0), 0);
-  const totalOrdersCount = salesReport.reduce((s, r) => s + parseInt(r.orders || 0), 0);
-  const pendingOrders = orders.filter(o => o.status === 'received').length;
-  const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
-
   const statusCounts = orderStatusReport.reduce((acc, o) => {
     acc[o.status] = o.count;
     return acc;
   }, {});
+
+  const totalRevenue = salesReport.reduce((s, r) => s + parseFloat(r.revenue || 0), 0);
+  const totalOrdersCount = Object.values(statusCounts).reduce((s, c) => s + c, 0);
+  const shippedOrders = statusCounts['shipped'] || 0;
+  const deliveredOrders = statusCounts['delivered'] || 0;
 
   const statusColors = {
     received: '#3B82F6',
@@ -44,9 +44,21 @@ const AdminAnalytics = () => {
   const maxCount = Math.max(...Object.values(statusCounts), 1);
 
   if (loading) return (
-    <div style={{ padding: '100px', textAlign: 'center', background: '#FFF', borderRadius: '32px', margin: '20px' }}>
-      <div style={{ width: '40px', height: '40px', border: '3px solid #F3F4F6', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-      <p style={{ marginTop: '20px', color: '#64748B', fontWeight: '600' }}>Aggregating real-time data...</p>
+    <div style={{ fontFamily: "'Outfit', sans-serif" }}>
+      <div className="loading-bar" />
+      <div style={{ marginBottom: '48px' }}>
+        <div className="skeleton" style={{ height: '40px', width: '300px', marginBottom: '12px' }} />
+        <div className="skeleton" style={{ height: '20px', width: '450px' }} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '48px' }}>
+        {[1,2,3,4].map(i => (
+          <div key={i} className="skeleton" style={{ height: '180px', borderRadius: '24px' }} />
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
+        <div className="skeleton" style={{ height: '400px', borderRadius: '24px' }} />
+        <div className="skeleton" style={{ height: '400px', borderRadius: '24px' }} />
+      </div>
     </div>
   );
 
@@ -76,7 +88,7 @@ const AdminAnalytics = () => {
         {[
           { label: 'Total Revenue', value: `₱${totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: 'fa-peso-sign', color: '#10B981', bg: '#DCFCE7' },
           { label: 'Total Orders', value: totalOrdersCount, icon: 'fa-shopping-bag', color: '#6366F1', bg: '#EEF2FF' },
-          { label: 'Active Shipments', value: orders.filter(o => o.status === 'shipped').length, icon: 'fa-truck-fast', color: '#3B82F6', bg: '#EFF6FF' },
+          { label: 'Active Shipments', value: shippedOrders, icon: 'fa-truck-fast', color: '#3B82F6', bg: '#EFF6FF' },
           { label: 'Completion Rate', value: `${totalOrdersCount > 0 ? Math.round((deliveredOrders / totalOrdersCount) * 100) : 0}%`, icon: 'fa-chart-pie', color: '#F59E0B', bg: '#FFFBEB' },
         ].map(card => (
           <div key={card.label} className="kpi-card" style={{ background: '#FFF', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>

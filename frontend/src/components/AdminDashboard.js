@@ -44,6 +44,7 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -52,6 +53,7 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   const fetchData = async () => {
+    setInitialLoading(true);
     try {
       const userRes = await axios.get('/api/user');
       const userData = userRes.data;
@@ -77,6 +79,8 @@ const AdminDashboard = () => {
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -96,18 +100,6 @@ const AdminDashboard = () => {
       window.location.href = '/';
     });
   };
-
-  if (!user) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: 48, height: 48, border: `4px solid ${ACCENT}`, borderTopColor: 'transparent',
-          borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px'
-        }} />
-        <p style={{ color: '#64748b', fontFamily: 'Outfit, sans-serif' }}>Loading dashboard…</p>
-      </div>
-    </div>
-  );
 
   const statCards = [
     { label: 'Total Users', value: users.length, icon: 'fa-users', color: '#6366f1', bg: 'rgba(99,102,241,0.08)', change: '+12%' },
@@ -130,7 +122,19 @@ const AdminDashboard = () => {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: 'Outfit, sans-serif' }}>
+      {/* Subtle Top Progress Bar */}
+      {initialLoading && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '3px', background: 'rgba(255,255,255,0.2)', zIndex: 9999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: ACCENT, width: '30%', animation: 'loadingBar 1.5s infinite ease-in-out' }} />
+        </div>
+      )}
+
       <style>{`
+        @keyframes loadingBar {
+          0% { transform: translateX(-100%); width: 30%; }
+          50% { width: 60%; }
+          100% { transform: translateX(400%); width: 30%; }
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .admin-nav-btn:hover { background: rgba(255,255,255,0.08) !important; }
@@ -184,11 +188,11 @@ const AdminDashboard = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 15, fontWeight: 700
             }}>
-              {user.name?.charAt(0).toUpperCase()}
+              {user?.name?.charAt(0).toUpperCase() || '?'}
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{user.name}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{user.email}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{user?.name || 'Loading...'}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{user?.email}</div>
             </div>
           </div>
           <button onClick={handleLogout} style={{
@@ -206,14 +210,14 @@ const AdminDashboard = () => {
       </aside>
 
       {/* ── MAIN ── */}
-      <main style={{ marginLeft: 280, flex: 1, padding: '48px', minHeight: '100vh' }} className="admin-main-content">
+      <main style={{ marginLeft: 280, flex: 1, padding: '48px', minHeight: '100vh', opacity: initialLoading ? 0.7 : 1, transition: 'opacity 0.3s' }} className="admin-main-content">
 
         {activeTab === 'dashboard' && (
           <div className="animate-up">
             {/* Header */}
             <div style={{ marginBottom: 40 }}>
               <h1 style={{ fontSize: 32, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.5px' }}>
-                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {user.name.split(' ')[0]}! 👋
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {user?.name ? user.name.split(' ')[0] : '...'}! 👋
               </h1>
               <p style={{ color: '#757575', margin: '8px 0 0', fontSize: 16 }}>Here's what's happening on your platform today.</p>
             </div>

@@ -121,3 +121,33 @@ h1, h2, h3, h4, .font-display {
 .premium-table tr:hover {
   background: #FAFAFA;
 }
+
+/* Loading Effects */
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #111 0%, #3B82F6 50%, #111 100%);
+  background-size: 200% 100%;
+  animation: loadingBarMove 2s linear infinite;
+  z-index: 9999;
+  width: 100%;
+}
+
+@keyframes loadingBarMove {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #F0F0F0 25%, #F8F8F8 50%, #F0F0F0 75%);
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeletonLoading {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
