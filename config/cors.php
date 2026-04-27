@@ -22,7 +22,13 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => $allowedOrigins,
+    'allowed_origins' => array_merge(
+        $allowedOrigins,
+        [
+            'https://shoes-frontend-production.up.railway.app',
+            'http://shoes-frontend-production.up.railway.app'
+        ]
+    ),
 
     'allowed_origins_patterns' => $allowedOriginPatterns,
 
