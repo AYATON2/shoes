@@ -10,6 +10,42 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
+    public function store(Request $request)
+    {
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:customer,seller,admin',
+            'active' => 'sometimes|boolean',
+            'approved' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $role = $request->role;
+        $isApproved = $request->has('approved')
+            ? (bool) $request->approved
+            : ($role !== 'seller');
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $role,
+            'active' => $request->has('active') ? (bool) $request->active : true,
+            'approved' => $isApproved,
+        ]);
+
+        return response()->json($user, 201);
+    }
+
     public function index()
     {
         // Only admins can view all users
@@ -54,6 +90,7 @@ class UserController extends Controller
 
     public function updateProfile(Request $request)
     {
+        /** @var User $user */
         $user = auth()->user();
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',

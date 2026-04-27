@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * @property int $id
+ * @property int $product_id
+ * @property int $seller_id
+ * @property string $title
+ * @property string $description
  * @property float $discount_amount
  * @property float $discount_percentage
  * @property float $sale_price
@@ -54,6 +59,6 @@ class Sale extends Model
     {
         $now = now();
         return $this->is_active && 
-               $now->isBetween($this->start_date, $this->end_date);
+               $now->isBetween($this->start_date, $this->end_date, true);
     }
 }

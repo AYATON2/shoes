@@ -25,6 +25,7 @@ class AddressController extends Controller
             'state' => 'required|string',
             'zip' => 'nullable|string',
             'country' => 'required|string',
+            'mobile_number' => 'required|string|min:10|max:20',
             'is_default' => 'boolean',
         ]);
 
@@ -41,6 +42,7 @@ class AddressController extends Controller
             'state' => $request->state,
             'zip' => $request->zip ?? '',
             'country' => $request->country,
+            'mobile_number' => $request->mobile_number,
             'is_default' => $request->is_default ?? false,
         ]);
 
@@ -71,6 +73,7 @@ class AddressController extends Controller
             'state' => 'string',
             'zip' => 'nullable|string',
             'country' => 'string',
+            'mobile_number' => 'string|min:10|max:20',
             'is_default' => 'boolean',
         ]);
 

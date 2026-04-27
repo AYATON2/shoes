@@ -9,7 +9,9 @@ use App\Models\Payment;
 use App\Models\Address;
 use App\Models\Notification;
 use App\Models\Sku;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
@@ -50,7 +52,10 @@ class OrderController extends Controller
         }
         // Admin sees all
 
-        $orders = $query->paginate(20);
+        $perPage = (int) $request->input('per_page', 1000);
+        $perPage = max(1, min($perPage, 5000));
+
+        $orders = $query->paginate($perPage);
         return response()->json($orders);
     }
 
@@ -64,7 +69,7 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         // Log incoming request for debugging
-        \Log::info('Order creation request', [
+        Log::info('Order creation request', [
             'payment_method' => $request->payment_method,
             'has_screenshot' => $request->hasFile('payment_screenshot'),
             'items_raw' => $request->items,
@@ -113,7 +118,7 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), $validationRules);
 
         if ($validator->fails()) {
-            \Log::error('Order validation failed', ['errors' => $validator->errors()]);
+            Log::error('Order validation failed', ['errors' => $validator->errors()]);
             return response()->json(['errors' => $validator->errors()], 422);
         }
         
@@ -233,11 +238,14 @@ class OrderController extends Controller
 
             Payment::create($paymentData);
 
+            // Generate invoice for the order
+            InvoiceService::generateInvoice($order);
+
             DB::commit();
             return response()->json($order->load('orderItems.sku.product', 'shippingAddress', 'payment'), 201);
         } catch (\Exception $e) {
             DB::rollback();
-            \Log::error('Order creation failed', [
+            Log::error('Order creation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

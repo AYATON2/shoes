@@ -101,4 +101,5 @@ class UserPolicy
     {
         return $user->role === 'admin';
     }
+
 }

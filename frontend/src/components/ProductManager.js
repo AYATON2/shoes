@@ -341,6 +341,10 @@ const ProductManager = ({
                     <img
                       src={buildApiAssetUrl(`/storage/${product.image}`)}
                       alt={product.name}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/placeholder-product.svg';
+                      }}
                       style={{
                         width: '100%',
                         height: '100%',
