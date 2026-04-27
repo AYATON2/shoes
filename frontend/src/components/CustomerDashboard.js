@@ -21,13 +21,9 @@ const CustomerDashboard = () => {
   const [loadingReturns, setLoadingReturns] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
   const [message, setMessage] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
   
-  // Review Modal State
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewData, setReviewData] = useState({ product_id: null, rating: 5, comment: '' });
   
   // Return Modal State
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -43,6 +39,7 @@ const CustomerDashboard = () => {
     }
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   useEffect(() => {
@@ -63,11 +60,6 @@ const CustomerDashboard = () => {
     }
   }, [activeTab]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
 
   const loadUserData = () => {
     setInitialLoading(true);

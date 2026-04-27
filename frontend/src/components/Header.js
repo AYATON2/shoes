@@ -8,7 +8,7 @@ import { buildApiAssetUrl } from '../utils/apiUrl';
 const Header = () => {
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(!!localStorage.getItem('token'));
-  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+
   const [cartCount, setCartCount] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);

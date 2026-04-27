@@ -16,7 +16,6 @@ import axios from 'axios';
 
 const SIDEBAR_BG = '#0A0A0A';
 const ACCENT = '#FA5400';
-const ACCENT_LIGHT = 'rgba(250,84,0,0.1)';
 
 const navItems = [
   { key: 'dashboard', icon: 'fa-gauge-high', label: 'Dashboard' },
@@ -50,6 +49,7 @@ const AdminDashboard = () => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const fetchData = async () => {

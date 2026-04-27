@@ -33,9 +33,9 @@ const Footer = () => {
         <div>
           <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '24px', color: '#FFF' }}>Support</h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '12px' }}>
-            <li><Link to="#" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#FFF'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.6)'}>Shipping Info</Link></li>
-            <li><Link to="#" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#FFF'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.6)'}>Returns</Link></li>
-            <li><Link to="#" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#FFF'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.6)'}>Contact Us</Link></li>
+            <li><Link to="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#FFF'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.6)'}>Shipping Info</Link></li>
+            <li><Link to="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#FFF'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.6)'}>Returns</Link></li>
+            <li><Link to="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px', transition: 'color 0.2s' }} onMouseEnter={e=>e.currentTarget.style.color='#FFF'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.6)'}>Contact Us</Link></li>
           </ul>
         </div>
 
@@ -44,7 +44,7 @@ const Footer = () => {
           <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '24px', color: '#FFF' }}>Follow Us</h4>
           <div style={{ display: 'flex', gap: '16px' }}>
             {['facebook', 'instagram', 'twitter'].map(s => (
-              <a key={s} href="#" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', textDecoration: 'none', transition: 'background 0.2s' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.2)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}>
+              <a key={s} href="/" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', textDecoration: 'none', transition: 'background 0.2s' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.2)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}>
                 <i className={`fab fa-${s}`} />
               </a>
             ))}
@@ -57,8 +57,8 @@ const Footer = () => {
           © {new Date().getFullYear()} StepUp Footwear. All rights reserved.
         </p>
         <div style={{ display: 'flex', gap: '24px' }}>
-          <Link to="#" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '12px' }}>Privacy Policy</Link>
-          <Link to="#" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '12px' }}>Terms of Service</Link>
+          <Link to="/" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '12px' }}>Privacy Policy</Link>
+          <Link to="/" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '12px' }}>Terms of Service</Link>
         </div>
       </div>
     </footer>

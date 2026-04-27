@@ -5,7 +5,6 @@ import axios from 'axios';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 import SalesManager from './SalesManager';
 
-const ACCENT = '#111111';
 
 const EMPTY_FORM = {
   name: '', description: '', brand: '', type: '', price: '', gender: 'Unisex',

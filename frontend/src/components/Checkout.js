@@ -47,7 +47,7 @@ const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '700', marg
 const sectionStyle = { background: '#FFF', padding: '28px', borderRadius: '20px', border: '1px solid #EEE', marginBottom: '20px' };
 
 const Checkout = () => {
-  const [cart, setCart] = useState(JSON.parse(localStorage.getItem('cart') || '[]'));
+  const [cart] = useState(JSON.parse(localStorage.getItem('cart') || '[]'));
   const [shippingAddress, setShippingAddress] = useState({
     name: '', phone: '', street: '', brgy: '', province: '', city: '', zip: '', country: 'Philippines'
   });
@@ -58,7 +58,6 @@ const Checkout = () => {
   const [showGCashModal, setShowGCashModal] = useState(false);
   const [gcashReference, setGCashReference] = useState('');
   const [gcashScreenshotFile, setGCashScreenshotFile] = useState(null);
-  const [brgyOpen, setBrgyOpen] = useState(false);
   const [logisticsOptions, setLogisticsOptions] = useState([]);
   const [selectedLogisticsId, setSelectedLogisticsId] = useState('');
   const [voucherCode, setVoucherCode] = useState('');

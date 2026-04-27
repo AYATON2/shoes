@@ -3,14 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const ACCENT = '#111111';
-
-const roleMeta = {
-  admin:    { bg: '#fee2e2', color: '#dc2626', label: 'Admin' },
-  staff:    { bg: '#dbeafe', color: '#2563eb', label: 'Staff' },
-  rider:    { bg: '#fef3c7', color: '#d97706', label: 'Rider' },
-  customer: { bg: '#f0fdf4', color: '#16a34a', label: 'Customer' },
-};
 
 const EMPTY_USER = { name: '', email: '', password: '', role: 'staff', logistic_id: '' };
 
@@ -42,6 +34,7 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleActive = (userId, active) => {
