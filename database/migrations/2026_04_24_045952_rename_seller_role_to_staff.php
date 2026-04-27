@@ -13,11 +13,11 @@ class RenameSellerRoleToStaff extends Migration
      */
     public function up()
     {
-        DB::table('users')->where('role', 'seller')->update(['role' => 'staff']);
+        // DB::table('users')->where('role', 'seller')->update(['role' => 'staff']);
     }
 
     public function down()
     {
-        DB::table('users')->where('role', 'staff')->update(['role' => 'seller']);
+        // DB::table('users')->where('role', 'staff')->update(['role' => 'seller']);
     }
 }
