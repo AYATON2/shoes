@@ -130,9 +130,12 @@ const OrderCard = ({ order, type, updatingId, updateOrderStatus, onViewMap }) =>
           </div>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0f172a', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{addr?.name || order.user?.name || 'Customer'}</p>
           {phone && (
-            <a href={`tel:${phone}`} style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 12 }}>
-              <i className="fas fa-phone" />
-            </a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{phone}</span>
+              <a href={`tel:${phone}`} style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 12 }}>
+                <i className="fas fa-phone" />
+              </a>
+            </div>
           )}
         </div>
 

@@ -19,7 +19,6 @@ export const getApiBaseUrl = () => {
 
     if (!isLocalhost && !envBase) {
       // Production fallback: point to Railway so auth/API calls do not hit the Vercel static site.
-      console.warn('REACT_APP_API_URL is not set. Falling back to Railway API base URL:', RAILWAY_API_BASE_URL);
       return RAILWAY_API_BASE_URL;
     }
 
