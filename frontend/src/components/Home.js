@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ProductList from './ProductList';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -117,82 +118,43 @@ const Home = () => {
         `}</style>
       </div>
 
-      {/* Featured Section */}
+      {/* Featured Products Section (replaces static Essentials) */}
       <div style={{
         padding: '100px 20px',
         maxWidth: '1400px',
         margin: '0 auto'
       }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '32px' }}>The Essentials</h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-          gap: '12px'
-        }}>
-          {[
-            { title: 'New Arrivals', subtitle: 'Shop the latest styles', icon: 'fa-bolt', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800' },
-            { title: 'Best Sellers', subtitle: 'Our most popular picks', icon: 'fa-fire', img: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800' },
-            { title: 'Sale', subtitle: 'Exclusive discounts', icon: 'fa-tag', img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=800' }
-          ].map((item, idx) => (
-            <Link
-              key={idx}
-              to="/products"
-              style={{
-                height: '500px',
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'flex-end',
-                padding: '40px',
-                textDecoration: 'none',
-                color: '#FFF',
-                overflow: 'hidden',
-                borderRadius: '4px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.querySelector('img').style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; }}
-            >
-              <img 
-                src={item.img} 
-                alt={item.title}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  zIndex: 1,
-                  transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              />
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)',
-                zIndex: 2
-              }} />
-              <div style={{ position: 'relative', zIndex: 3 }}>
-                <h3 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 8px 0' }}>{item.title}</h3>
-                <p style={{ fontSize: '15px', opacity: 0.9 }}>{item.subtitle}</p>
-                <button style={{
-                  marginTop: '16px',
-                  background: '#FFF',
-                  color: '#111',
-                  border: 'none',
-                  padding: '8px 20px',
-                  borderRadius: '20px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}>Shop</button>
-              </div>
-            </Link>
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+          <div>
+            <h2 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 8px 0', letterSpacing: '-1px' }}>New Arrivals & Best Sellers</h2>
+            <p style={{ color: '#666', fontSize: '16px', margin: 0 }}>Explore our latest drops and most popular picks.</p>
+          </div>
+          <Link to="/products" style={{ color: '#111', fontWeight: '700', fontSize: '15px', textDecoration: 'none', borderBottom: '2px solid #111', paddingBottom: '4px' }}>
+            Shop All →
+          </Link>
         </div>
+        
+        {/* Render actual products just like Customer Dashboard */}
+        <ProductList limit={8} />
+
+        {/* Guest CTA */}
+        {!localStorage.getItem('token') && (
+          <div style={{ 
+            marginTop: '60px', 
+            padding: '40px', 
+            background: '#F9F9F9', 
+            borderRadius: '24px', 
+            textAlign: 'center',
+            border: '1px solid #EEE'
+          }}>
+            <h3 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '16px' }}>Join the Community</h3>
+            <p style={{ color: '#666', marginBottom: '24px', maxWidth: '500px', margin: '0 auto 24px' }}>Sign in or sign up to unlock exclusive drops, manage your orders, and get personalized recommendations.</p>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <Link to="/login" style={{ background: '#111', color: '#FFF', padding: '12px 32px', borderRadius: '30px', textDecoration: 'none', fontWeight: '600' }}>Sign In</Link>
+              <Link to="/register" style={{ background: '#FFF', color: '#111', padding: '12px 32px', borderRadius: '30px', textDecoration: 'none', fontWeight: '600', border: '1px solid #E5E5E5' }}>Create Account</Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Why Choose Us */}

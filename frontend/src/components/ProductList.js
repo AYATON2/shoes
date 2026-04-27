@@ -126,14 +126,14 @@ const ProductList = ({ limit }) => {
           </div>
 
           {/* Filter Bar */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '40px', padding: '0 24px' }}>
-            <input name="brand" placeholder="SEARCH BRAND" onChange={handleFilterChange} list="brands" style={{ padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '40px', padding: '0 16px', alignItems: 'center' }}>
+            <input name="brand" placeholder="SEARCH BRAND" onChange={handleFilterChange} list="brands" style={{ flex: '1 1 200px', padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
             <datalist id="brands">{filterOptions.brands.map(brand => <option key={brand} value={brand} />)}</datalist>
             
-            <input name="type" placeholder="SHOE TYPE" onChange={handleFilterChange} list="types" style={{ padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
+            <input name="type" placeholder="SHOE TYPE" onChange={handleFilterChange} list="types" style={{ flex: '1 1 200px', padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
             <datalist id="types">{filterOptions.types.map(type => <option key={type} value={type} />)}</datalist>
 
-            <button onClick={fetchProducts} style={{ background: '#111', color: 'white', border: 'none', padding: '12px 24px', fontWeight: '700', fontSize: '14px', borderRadius: '12px', cursor: 'pointer' }}>
+            <button onClick={fetchProducts} style={{ flex: '0 1 auto', whiteSpace: 'nowrap', background: '#111', color: 'white', border: 'none', padding: '14px 28px', fontWeight: '700', fontSize: '14px', borderRadius: '12px', cursor: 'pointer' }}>
               <i className="fas fa-search" style={{ marginRight: '8px' }}></i> Find Shoes
             </button>
           </div>
@@ -201,17 +201,17 @@ const ProductList = ({ limit }) => {
          <div className="modal-overlay" onClick={() => setQuickViewProduct(null)}>
            <div className="modal-content" onClick={e => e.stopPropagation()}>
               {/* Top: Image */}
-              <div style={{ background: '#f6f6f6', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <div style={{ background: '#f6f6f6', height: '280px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                  <img 
                     src={quickViewProduct.image ? buildApiAssetUrl(`/storage/${quickViewProduct.image}`) : ''} 
                     alt={quickViewProduct.name}
-                    style={{ height: '80%', objectFit: 'contain' }}
+                    style={{ height: '80%', objectFit: 'contain', zIndex: 1 }}
                  />
                  <button 
                     onClick={() => setQuickViewProduct(null)}
-                    style={{ position: 'absolute', top: '16px', right: '16px', width: '32px', height: '32px', borderRadius: '50%', background: '#FFF', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
+                    style={{ position: 'absolute', top: '16px', right: '16px', width: '36px', height: '36px', borderRadius: '50%', background: '#FFF', border: '1px solid #EEE', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100 }}
                  >
-                    <i className="fas fa-times" />
+                    <i className="fas fa-times" style={{ color: '#000', fontSize: '16px', fontWeight: '900' }} />
                  </button>
               </div>
  
@@ -242,7 +242,7 @@ const ProductList = ({ limit }) => {
                    </div>
                 </div>
  
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                    <button 
                       onClick={() => handleAddToCart(quickViewProduct, selectedSku)}
                       style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}
@@ -251,9 +251,9 @@ const ProductList = ({ limit }) => {
                    </button>
                    <button 
                       onClick={() => navigate(`/product/${quickViewProduct.id}`)}
-                      style={{ width: '48px', height: '48px', borderRadius: '12px', border: '1px solid #E5E5E5', background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ width: '48px', height: '48px', flexShrink: 0, borderRadius: '12px', border: '1px solid #E5E5E5', background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                    >
-                      <i className="fas fa-expand" />
+                      <i className="fas fa-expand" style={{ color: '#111' }} />
                    </button>
                 </div>
              </div>
