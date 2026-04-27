@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ProductList = ({ limit }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ brands: [], types: [], performance_tech: [] });
@@ -21,7 +22,15 @@ const ProductList = ({ limit }) => {
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
-    axios.get('/api/products', { params: filters })
+    const searchParams = new URLSearchParams(location.search);
+    const specialFilter = searchParams.get('filter');
+    
+    const apiParams = { ...filters };
+    if (specialFilter) {
+      apiParams.special_filter = specialFilter;
+    }
+    
+    axios.get('/api/products', { params: apiParams })
       .then(res => {
         let list = Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data) ? res.data : []);
         if (limit) list = list.slice(0, limit);
@@ -33,7 +42,7 @@ const ProductList = ({ limit }) => {
         setProducts([]);
         setLoading(false);
       });
-  }, [filters, limit]);
+  }, [filters, limit, location.search]);
 
   useEffect(() => {
     fetchProducts();

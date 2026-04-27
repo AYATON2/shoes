@@ -43,6 +43,26 @@ class ProductController extends Controller
                 $query->where('gender', $request->gender);
             }
             
+            // Handle special filters from Homepage
+            if ($request->has('special_filter')) {
+                if ($request->special_filter == 'new') {
+                    $query->orderBy('created_at', 'desc');
+                } else if ($request->special_filter == 'sale') {
+                    $now = now();
+                    $query->whereHas('sales', function($q) use ($now) {
+                        $q->where('is_active', true)
+                          ->where('start_date', '<=', $now)
+                          ->where('end_date', '>=', $now);
+                    });
+                } else if ($request->special_filter == 'bestseller') {
+                    // Use view_count as a proxy for bestsellers
+                    $query->orderBy('view_count', 'desc');
+                }
+            } else {
+                // Default sorting
+                $query->orderBy('created_at', 'desc');
+            }
+            
             // Handle limit parameter - if provided and high, get all, otherwise paginate
             $limit = $request->input('limit', 20);
             if ($limit >= 1000) {
