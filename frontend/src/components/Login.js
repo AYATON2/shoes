@@ -28,6 +28,11 @@ const Login = () => {
         else navigate('/dashboard');
       })
       .catch(err => {
+        console.error('Login Error details:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          message: err.message
+        });
         setError(err.response?.data?.message || 'Login failed. Please try again.');
         setLoading(false);
       });

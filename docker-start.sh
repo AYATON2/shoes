@@ -34,7 +34,7 @@ php artisan config:clear || true
 php artisan cache:clear || true
 
 # Run migrations on boot (idempotent).
-if php artisan migrate --force; then
+if php artisan migrate --force --seed; then
 	echo "[startup] Migrations completed"
 else
 	echo "[startup] Migration failed, continuing startup so app stays reachable"
