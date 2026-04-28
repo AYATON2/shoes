@@ -30,7 +30,9 @@ return [
         ]
     ),
 
-    'allowed_origins_patterns' => $allowedOriginPatterns,
+    'allowed_origins_patterns' => [
+        '/^https:\/\/.*\.up\.railway\.app$/',
+    ],
 
     'allowed_headers' => ['*'],
 

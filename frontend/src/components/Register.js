@@ -30,28 +30,23 @@ const Register = () => {
     
     setLoading(true);
     
-    axios.get('/sanctum/csrf-cookie').then(() => {
-      axios.post('/api/register', form)
-        .then(res => {
-          localStorage.setItem('token', res.data.token);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
-          axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-          
-          const role = res.data.user.role;
-          if (role === 'customer') navigate('/customer-dashboard');
-          else if (role === 'staff') navigate('/staff-dashboard');
-          else if (role === 'admin') navigate('/admin-dashboard');
-          else if (role === 'rider') navigate('/rider-dashboard');
-          else navigate('/dashboard');
-        })
-        .catch(err => {
-          setError(err.response?.data?.message || 'Registration failed. Please try again.');
-          setLoading(false);
-        });
-    }).catch(err => {
-      setError('Could not connect to the server. Please ensure the backend is running.');
-      setLoading(false);
-    });
+    axios.post('/api/register', form)
+      .then(res => {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        
+        const role = res.data.user.role;
+        if (role === 'customer') navigate('/customer-dashboard');
+        else if (role === 'staff') navigate('/staff-dashboard');
+        else if (role === 'admin') navigate('/admin-dashboard');
+        else if (role === 'rider') navigate('/rider-dashboard');
+        else navigate('/dashboard');
+      })
+      .catch(err => {
+        setError(err.response?.data?.message || 'Registration failed. Please try again.');
+        setLoading(false);
+      });
   };
 
   return (
