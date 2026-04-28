@@ -104,6 +104,10 @@ const ProductList = ({ limit }) => {
     
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
+    
+    // Clear notification after 3 seconds
+    setTimeout(() => setNotification(null), 3000);
+    
     setQuickViewProduct(null);
     setQuantity(1);
     setSelectedSku(null);
@@ -279,6 +283,37 @@ const ProductList = ({ limit }) => {
           </div>
         </div>
       )}
+       {/* Notification Toast */}
+       {notification && (
+         <div style={{
+           position: 'fixed',
+           bottom: '32px',
+           left: '50%',
+           transform: 'translateX(-50%)',
+           background: '#111',
+           color: '#FFF',
+           padding: '16px 32px',
+           borderRadius: '40px',
+           fontSize: '14px',
+           fontWeight: '700',
+           boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+           zIndex: 2000,
+           display: 'flex',
+           alignItems: 'center',
+           gap: '12px',
+           animation: 'slideUp 0.3s ease-out'
+         }}>
+           <i className="fas fa-check-circle" style={{ color: '#10B981' }} />
+           {typeof notification === "object" ? notification?.message : notification}
+         </div>
+       )}
+
+       <style>{`
+         @keyframes slideUp {
+           from { transform: translate(-50%, 100%); opacity: 0; }
+           to { transform: translate(-50%, 0); opacity: 1; }
+         }
+       `}</style>
     </div>
   );
 };

@@ -185,51 +185,61 @@ const AdminProducts = () => {
       ) : (
         <div style={{ background: '#FFF', padding: '40px', borderRadius: '24px', border: '1px solid #EEE' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '32px' }}>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-          <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-             <div style={{ display: 'grid', gap: '20px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Name</label>
-                  <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #EEE' }} required />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: '#1E293B' }}>Product Name</label>
+                  <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box' }} placeholder="e.g. Air Jordan 1 Retro" required />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                    <div>
-                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Brand</label>
-                     <input type="text" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #EEE' }} />
+                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: '#1E293B' }}>Brand</label>
+                     <input type="text" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box' }} placeholder="Nike" />
                    </div>
                    <div>
-                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Price (₱)</label>
-                     <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #EEE' }} required />
+                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: '#1E293B' }}>Price (₱)</label>
+                     <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box' }} placeholder="0.00" required />
                    </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Product Image</label>
-                  <input type="file" onChange={e => { const f = e.target.files[0]; setFormData({...formData, image: f, imagePreview: URL.createObjectURL(f)}); }} style={{ width: '100%' }} />
-                  {formData.imagePreview && <img src={formData.imagePreview} alt="" style={{ marginTop: '16px', height: '120px', borderRadius: '12px', objectFit: 'cover' }} />}
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: '#1E293B' }}>Product Image</label>
+                  <div style={{ padding: '20px', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: '#F8FAFC' }}>
+                    <input type="file" id="prod-img" onChange={e => { const f = e.target.files[0]; if(f) setFormData({...formData, image: f, imagePreview: URL.createObjectURL(f)}); }} style={{ display: 'none' }} />
+                    <label htmlFor="prod-img" style={{ cursor: 'pointer', color: '#6366F1', fontWeight: '700', fontSize: '14px' }}>
+                      <i className="fas fa-cloud-upload-alt" style={{ marginRight: '8px' }}></i>
+                      {formData.image ? 'Change Image' : 'Upload Image'}
+                    </label>
+                  </div>
+                  {formData.imagePreview && <img src={formData.imagePreview} alt="" style={{ marginTop: '16px', width: '100%', height: '180px', borderRadius: '16px', objectFit: 'cover', border: '1px solid #E2E8F0' }} />}
                 </div>
              </div>
-             <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Description</label>
-                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', height: '100px', padding: '12px', borderRadius: '10px', border: '1px solid #EEE', marginBottom: '24px' }} />
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: '#1E293B' }}>Description</label>
+                  <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', height: '120px', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '14px', boxSizing: 'border-box', lineHeight: '1.6' }} placeholder="Describe the product features..." />
+                </div>
                 
-                <h4 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '16px' }}>Variants (Size/Color/Stock)</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '8px', marginBottom: '16px' }}>
-                   <input type="text" placeholder="Size" value={newSku.size} onChange={e => setNewSku({...newSku, size: e.target.value})} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #EEE' }} />
-                   <input type="text" placeholder="Color" value={newSku.color} onChange={e => setNewSku({...newSku, color: e.target.value})} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #EEE' }} />
-                   <input type="number" placeholder="Stock" value={newSku.stock} onChange={e => setNewSku({...newSku, stock: e.target.value})} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #EEE' }} />
-                   <button type="button" onClick={handleAddSku} style={{ background: '#111', color: '#FFF', border: 'none', borderRadius: '8px', padding: '0 16px', fontWeight: '600', cursor: 'pointer' }}>+</button>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                   {formData.skus.map((s, i) => (
-                     <span key={i} style={{ background: '#F5F5F5', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
-                        {s.size} / {s.color} ({s.stock}) 
-                        <button type="button" onClick={() => setFormData({...formData, skus: formData.skus.filter((_, idx) => idx !== i)})} style={{ background: 'none', border: 'none', marginLeft: '6px', cursor: 'pointer' }}>&times;</button>
-                     </span>
-                   ))}
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#1E293B' }}>Variants (Size/Color/Stock)</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '10px', marginBottom: '16px' }}>
+                     <input type="text" placeholder="Size" value={newSku.size} onChange={e => setNewSku({...newSku, size: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
+                     <input type="text" placeholder="Color" value={newSku.color} onChange={e => setNewSku({...newSku, color: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
+                     <input type="number" placeholder="Qty" value={newSku.stock} onChange={e => setNewSku({...newSku, stock: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
+                     <button type="button" onClick={handleAddSku} style={{ background: '#0F172A', color: '#FFF', border: 'none', borderRadius: '10px', width: '44px', fontWeight: '900', cursor: 'pointer' }}>+</button>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '150px', overflowY: 'auto', padding: '4px' }}>
+                     {formData.skus.map((s, i) => (
+                       <span key={i} style={{ background: '#F1F5F9', padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {s.size} / {s.color} ({s.stock}) 
+                          <button type="button" onClick={() => setFormData({...formData, skus: formData.skus.filter((_, idx) => idx !== i)})} style={{ background: 'none', border: 'none', padding: 0, color: '#94A3B8', cursor: 'pointer', fontSize: '14px' }}>&times;</button>
+                       </span>
+                     ))}
+                  </div>
                 </div>
              </div>
-             <div style={{ gridColumn: 'span 2', display: 'flex', gap: '16px', marginTop: '32px' }}>
-                <button type="submit" disabled={loading} style={{ flex: 1, padding: '16px', borderRadius: '40px', border: 'none', background: '#111', color: '#FFF', fontWeight: '700', cursor: 'pointer' }}>{loading ? 'Saving...' : 'Save Product'}</button>
-                <button type="button" onClick={() => { setShowForm(false); setEditingProduct(null); setFormData(EMPTY_FORM); }} style={{ flex: 1, padding: '16px', borderRadius: '40px', border: '1px solid #EEE', background: '#FFF', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '16px', marginTop: '16px' }}>
+                <button type="submit" disabled={loading} style={{ flex: 2, padding: '18px', borderRadius: '16px', border: 'none', background: '#0F172A', color: '#FFF', fontWeight: '800', cursor: 'pointer', fontSize: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>{loading ? 'Saving Product...' : 'Save Product'}</button>
+                <button type="button" onClick={() => { setShowForm(false); setEditingProduct(null); setFormData(EMPTY_FORM); }} style={{ flex: 1, padding: '18px', borderRadius: '16px', border: '1px solid #E2E8F0', background: '#FFF', fontWeight: '800', color: '#64748B', cursor: 'pointer', fontSize: '16px' }}>Cancel</button>
              </div>
           </form>
         </div>
