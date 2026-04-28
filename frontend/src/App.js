@@ -26,6 +26,7 @@ const ArchiveManager = lazy(() => import('./components/ArchiveManager'));
 const Checkout = lazy(() => import('./components/Checkout'));
 const Profile = lazy(() => import('./components/Profile'));
 const LeaveReview = lazy(() => import('./components/LeaveReview'));
+const InvoiceDetail = lazy(() => import('./components/InvoiceDetail'));
 
 function AppContent() {
   const location = useLocation();
@@ -60,6 +61,7 @@ function AppContent() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/reviews" element={<LeaveReview />} />
+          <Route path="/invoice/:orderId" element={<InvoiceDetail />} />
 
         </Routes>
       </Suspense>

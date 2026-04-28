@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Leaflet marker fix
@@ -62,6 +62,17 @@ const LiveMap = ({ orders, height = 350 }) => {
     return BUTUAN_CENTER;
   };
 
+  const getOrderBrgy = (order) => {
+    const addr = order.shippingAddress || order.shipping_address || {};
+    const addrStr = ((addr.street || '') + ' ' + (addr.city || '')).toLowerCase();
+    for (const [brgy] of Object.entries(BARANGAY_COORDS)) {
+      if (addrStr.includes(brgy)) {
+        return brgy.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
+    }
+    return 'Butuan City';
+  };
+
   if (!MapContainer) return null;
 
   // Center on the first order if there's only one
@@ -74,6 +85,9 @@ const LiveMap = ({ orders, height = 350 }) => {
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {orders.map(o => (
           <Marker key={o.id} position={getOrderCoords(o)}>
+            <Tooltip permanent direction="top" offset={[0, -20]} className="custom-tooltip">
+               <div style={{ fontWeight: 800, fontSize: 12 }}>{getOrderBrgy(o)}</div>
+            </Tooltip>
             <Popup>
               <div style={{ fontFamily: 'Outfit, sans-serif' }}>
                 <p style={{ margin: 0, fontWeight: 700 }}>Order #{o.id}</p>

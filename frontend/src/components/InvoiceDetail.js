@@ -24,13 +24,15 @@ const InvoiceDetail = () => {
   const fetchInvoice = useCallback(async () => {
     try {
       setLoading(true);
-      // Get invoice data
-      const res = await axios.get(`/api/invoices/${orderId}`, getAuthConfig());
-      setInvoice(res.data.invoice);
-      
-      // Get order data separately if needed
-      const orderRes = await axios.get(`/api/orders/${orderId}`, getAuthConfig());
-      setOrder(orderRes.data);
+      const res = await axios.get(`/api/orders/${orderId}/invoice`, getAuthConfig());
+      const orderData = res.data.order;
+      setOrder(orderData);
+      setInvoice({
+         invoice_number: `INV-${orderData.id.toString().padStart(6, '0')}`,
+         issue_date: orderData.created_at,
+         due_date: new Date(new Date(orderData.created_at).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+         id: orderData.id
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load invoice');
     } finally {
@@ -41,42 +43,6 @@ const InvoiceDetail = () => {
   useEffect(() => {
     fetchInvoice();
   }, [fetchInvoice]);
-
-  const handleDownload = async () => {
-    try {
-      setDownloading(true);
-      const res = await axios.get(`/api/invoices/${invoice.id}/download`, {
-        ...getAuthConfig(),
-        responseType: 'blob'
-      });
-      
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${invoice.invoice_number}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError('Failed to download invoice');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  const handleEmail = async () => {
-    try {
-      setEmailSending(true);
-      await axios.post(`/api/invoices/${invoice.id}/email`, {}, getAuthConfig());
-      alert('Invoice sent to your email');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send invoice');
-    } finally {
-      setEmailSending(false);
-    }
-  };
 
   const handlePrint = () => {
     window.print();
@@ -136,20 +102,6 @@ const InvoiceDetail = () => {
             style={{ padding: '10px 16px', background: '#e3f2fd', color: '#1976d2', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
           >
             <i className="fas fa-print"></i> Print
-          </button>
-          <button 
-            onClick={handleDownload}
-            disabled={downloading}
-            style={{ padding: '10px 16px', background: '#e8f5e9', color: '#388e3c', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', opacity: downloading ? 0.6 : 1 }}
-          >
-            <i className="fas fa-download"></i> {downloading ? 'Downloading...' : 'Download PDF'}
-          </button>
-          <button 
-            onClick={handleEmail}
-            disabled={emailSending}
-            style={{ padding: '10px 16px', background: '#fff3e0', color: '#f57c00', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', opacity: emailSending ? 0.6 : 1 }}
-          >
-            <i className="fas fa-envelope"></i> {emailSending ? 'Sending...' : 'Email'}
           </button>
         </div>
       </div>

@@ -166,6 +166,11 @@ class ProductController extends Controller
             }
             
             return response()->json($product);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Product not found',
+                'message' => 'The requested product does not exist.'
+            ], 404);
         } catch (\Exception $e) {
             Log::error('Product show error: ' . $e->getMessage());
             return response()->json([

@@ -40,5 +40,8 @@ else
 	echo "[startup] Migration failed, continuing startup so app stays reachable"
 fi
 
+# Create storage symlink for uploaded images
+php artisan storage:link || true
+
 # Start Laravel HTTP server on Railway-assigned port.
 exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}

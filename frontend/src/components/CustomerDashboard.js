@@ -304,6 +304,9 @@ const CustomerDashboard = () => {
                     </div>
 
                     <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+                      <button onClick={() => navigate(`/invoice/${order.id}`)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E5E5E5', background: '#FFF', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>
+                         View Invoice
+                      </button>
                       {activeTab === 'tracking' && (
                          <button onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E5E5E5', background: '#FFF', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>
                             {expandedOrder === order.id ? 'Hide Details' : 'Track Order'}
