@@ -4,6 +4,8 @@ export const getApiBaseUrl = () => {
   const envBase = normalizeBaseUrl(process.env.REACT_APP_API_URL);
   if (envBase) return envBase;
 
+  const RAILWAY_BACKEND = 'https://shoes-production-04ab.up.railway.app';
+
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port } = window.location;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
@@ -12,8 +14,9 @@ export const getApiBaseUrl = () => {
       return `http://${hostname}:8000`;
     }
 
-    // Default to current domain (works for same-domain setups and relative deployments)
-    const finalUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    // On Railway, if they are separate services, we MUST point to the backend service.
+    // If you have a different backend domain, please update this link or set REACT_APP_API_URL.
+    const finalUrl = hostname.includes('railway.app') ? RAILWAY_BACKEND : `${protocol}//${hostname}${port ? `:${port}` : ''}`;
     console.log('Final Resolved API URL:', finalUrl);
     return finalUrl;
   }
