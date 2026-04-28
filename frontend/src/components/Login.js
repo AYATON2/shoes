@@ -23,7 +23,7 @@ const Login = () => {
         const token = data.token || data.data?.token;
 
         if (!user || !token) {
-           throw new Error('Invalid response from server: user or token missing');
+           throw new Error(`Invalid response from ${axios.defaults.baseURL}: user or token missing`);
         }
 
         localStorage.setItem('token', token);
