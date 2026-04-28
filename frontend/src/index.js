@@ -17,6 +17,15 @@ if (token) {
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+// Global error handler for ChunkLoadErrors (Stale Build Recovery)
+window.addEventListener('error', (e) => {
+  if (e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk'))) {
+    console.warn('Stale build detected (404 on JS chunk). Reloading page to fetch latest version...');
+    window.location.reload();
+  }
+}, true);
+
 root.render(
   <React.StrictMode>
     <App />

@@ -69,7 +69,7 @@ const Header = () => {
       .catch(console.error);
   };
 
-  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+  const unreadNotificationsCount = Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0;
 
   const logout = () => {
     axios.post('/api/logout').then(() => {
