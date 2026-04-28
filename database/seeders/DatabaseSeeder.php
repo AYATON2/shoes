@@ -14,25 +14,37 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        \App\Models\User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@stepup.com',
-            'password' => bcrypt('password'),
-            'role' => 'admin',
-        ]);
+        \App\Models\User::updateOrCreate(
+            ['email' => 'admin@stepup.com'],
+            [
+                'name' => 'Admin User',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+                'active' => true,
+                'approved' => true
+            ]
+        );
 
-        \App\Models\User::create([
-            'name' => 'Staff User',
-            'email' => 'staff@stepup.com',
-            'password' => bcrypt('password'),
-            'role' => 'staff',
-        ]);
+        \App\Models\User::updateOrCreate(
+            ['email' => 'staff@stepup.com'],
+            [
+                'name' => 'Staff User',
+                'password' => bcrypt('password'),
+                'role' => 'staff',
+                'active' => true,
+                'approved' => true
+            ]
+        );
 
-        \App\Models\User::create([
-            'name' => 'Customer User',
-            'email' => 'customer@stepup.com',
-            'password' => bcrypt('password'),
-            'role' => 'customer',
-        ]);
+        \App\Models\User::updateOrCreate(
+            ['email' => 'customer@stepup.com'],
+            [
+                'name' => 'Customer User',
+                'password' => bcrypt('password'),
+                'role' => 'customer',
+                'active' => true,
+                'approved' => true
+            ]
+        );
     }
 }

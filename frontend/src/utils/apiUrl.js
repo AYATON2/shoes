@@ -17,12 +17,9 @@ export const getApiBaseUrl = () => {
       return `http://${hostname}:8000`;
     }
 
-    if (!isLocalhost && !envBase) {
-      // Production fallback: point to Railway so auth/API calls do not hit the Vercel static site.
-      return RAILWAY_API_BASE_URL;
-    }
-
-    return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    const finalUrl = envBase || (isLocalhost && port !== '8000' ? `http://${hostname}:8000` : (!isLocalhost && !envBase ? RAILWAY_API_BASE_URL : `${protocol}//${hostname}${port ? `:${port}` : ''}`));
+    console.log('Final Resolved API URL:', finalUrl);
+    return finalUrl;
   }
 
   return 'http://127.0.0.1:8000';

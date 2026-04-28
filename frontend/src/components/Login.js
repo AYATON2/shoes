@@ -16,11 +16,20 @@ const Login = () => {
     
     axios.post('/api/login', { email, password })
       .then(res => {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        console.log('Login Response:', res.data);
+        const data = res.data;
+        const user = data.user || data.data?.user;
+        const token = data.token || data.data?.token;
+
+        if (!user || !token) {
+           throw new Error('Invalid response from server: user or token missing');
+        }
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        const role = res.data.user.role;
+        const role = user.role;
         if (role === 'customer') navigate('/customer-dashboard');
         else if (role === 'staff') navigate('/staff-dashboard');
         else if (role === 'admin') navigate('/admin-dashboard');
