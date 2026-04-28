@@ -184,7 +184,10 @@ const Header = () => {
               <button onClick={logout} style={{ background: 'transparent', color: '#E11D48', border: '1px solid #E5E5E5', padding: '8px 16px', borderRadius: '30px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s' }}>Logout</button>
             </div>
           ) : (
-            <Link to="/login" style={{ background: '#111', color: '#FFF', textDecoration: 'none', padding: '8px 20px', borderRadius: '30px', fontWeight: '600' }}>Sign In</Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <Link to="/login" style={{ color: '#111', textDecoration: 'none', fontSize: '15px', fontWeight: '600' }}>Sign In</Link>
+              <Link to="/register" style={{ background: '#111', color: '#FFF', textDecoration: 'none', padding: '8px 20px', borderRadius: '30px', fontWeight: '600', fontSize: '14px' }}>Join Us</Link>
+            </div>
           ))}
         </nav>
       </div>
