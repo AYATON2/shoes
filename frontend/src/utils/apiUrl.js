@@ -1,4 +1,11 @@
-const normalizeBaseUrl = (url) => (url || '').replace(/\/+$/, '');
+const normalizeBaseUrl = (url) => {
+  if (!url) return '';
+  let normalized = url.trim().replace(/\/+$/, '');
+  if (normalized && !normalized.startsWith('http')) {
+    normalized = `https://${normalized}`;
+  }
+  return normalized;
+};
 
 export const getApiBaseUrl = () => {
   const envBase = normalizeBaseUrl(process.env.REACT_APP_API_URL);
