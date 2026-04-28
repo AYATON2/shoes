@@ -49,7 +49,17 @@ const ProductList = ({ limit }) => {
   }, [fetchProducts]);
 
   useEffect(() => {
-    axios.get('/api/products/filter-options').then(res => setFilterOptions(res.data));
+    axios.get('/api/products/filter-options')
+      .then(res => {
+        setFilterOptions({
+          brands: Array.isArray(res.data?.brands) ? res.data.brands : [],
+          types: Array.isArray(res.data?.types) ? res.data.types : [],
+          performance_tech: Array.isArray(res.data?.performance_tech) ? res.data.performance_tech : []
+        });
+      })
+      .catch(err => {
+        console.error('Failed to fetch filter options:', err);
+      });
   }, []);
 
   const handleFilterChange = (e) => {
@@ -137,10 +147,10 @@ const ProductList = ({ limit }) => {
           {/* Filter Bar */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '40px', padding: '0 16px', alignItems: 'center' }}>
             <input name="brand" placeholder="SEARCH BRAND" onChange={handleFilterChange} list="brands" style={{ flex: '1', minWidth: '200px', padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
-            <datalist id="brands">{filterOptions.brands.map(brand => <option key={brand} value={brand} />)}</datalist>
+            <datalist id="brands">{(filterOptions?.brands || []).map(brand => <option key={brand} value={brand} />)}</datalist>
             
             <input name="type" placeholder="SHOE TYPE" onChange={handleFilterChange} list="types" style={{ flex: '1', minWidth: '200px', padding: '14px 20px', border: '2px solid #EEE', background: '#F9F9F9', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none' }} />
-            <datalist id="types">{filterOptions.types.map(type => <option key={type} value={type} />)}</datalist>
+            <datalist id="types">{(filterOptions?.types || []).map(type => <option key={type} value={type} />)}</datalist>
 
             <button onClick={fetchProducts} style={{ flex: '0 1 auto', whiteSpace: 'nowrap', background: '#111', color: 'white', border: 'none', padding: '14px 28px', fontWeight: '700', fontSize: '14px', borderRadius: '12px', cursor: 'pointer' }}>
               <i className="fas fa-search" style={{ marginRight: '8px' }}></i> Find Shoes
