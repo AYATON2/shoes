@@ -264,6 +264,32 @@ const ProductList = ({ limit }) => {
                       ))}
                    </div>
                 </div>
+
+                {selectedSku && (
+                    <div style={{ marginBottom: '20px', padding: '12px', background: '#F8F8F8', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#666' }}>Available Stock:</span>
+                       <span style={{ fontSize: '14px', fontWeight: 800, color: selectedSku.stock < 5 ? '#EF4444' : '#111' }}>
+                          {selectedSku.stock} pairs left
+                       </span>
+                    </div>
+                )}
+
+                <div style={{ marginBottom: '24px' }}>
+                    <h4 style={{ fontSize: '11px', fontWeight: 700, marginBottom: '12px', color: '#999' }}>QUANTITY</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EEE', borderRadius: '12px', padding: '4px' }}>
+                          <button 
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', fontWeight: 700 }}
+                          >-</button>
+                          <span style={{ width: '40px', textAlign: 'center', fontWeight: 800, fontSize: '16px' }}>{quantity}</span>
+                          <button 
+                            onClick={() => setQuantity(Math.min(selectedSku ? selectedSku.stock : 99, quantity + 1))}
+                            style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', fontWeight: 700 }}
+                          >+</button>
+                       </div>
+                    </div>
+                 </div>
  
                 <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                    <button 
