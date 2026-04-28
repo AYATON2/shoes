@@ -12,7 +12,7 @@ const CustomerDashboard = () => {
   const location = useLocation();
 
   const [user, setUser] = useState(null);
-  const [profileData, setProfileData] = useState({ name: '', email: '' });
+  const [profileData, setProfileData] = useState({ name: '', email: '', password: '', password_confirmation: '' });
   const [activeTab, setActiveTab] = useState('overview');
   const [orders, setOrders] = useState([]);
   const [returns, setReturns] = useState([]);
@@ -70,7 +70,7 @@ const CustomerDashboard = () => {
           return;
         }
         setUser(res.data);
-        setProfileData({ name: res.data.name, email: res.data.email });
+        setProfileData({ name: res.data.name, email: res.data.email, password: '', password_confirmation: '' });
         setInitialLoading(false);
       })
       .catch(() => {
@@ -114,7 +114,7 @@ const CustomerDashboard = () => {
       'received': 'Order Received',
       'quality_check': 'Quality Check',
       'ready_for_pickup': 'Ready for Pickup',
-      'shipped': 'Shipped',
+      'shipped': 'Out for Delivery',
       'delivered': 'Delivered',
       'cancelled': 'Cancelled',
       'returned': 'Returned to Store'
@@ -151,6 +151,7 @@ const CustomerDashboard = () => {
     try {
       const res = await axios.put('/api/user', profileData);
       setUser(res.data);
+      setProfileData(prev => ({ ...prev, password: '', password_confirmation: '' }));
       setMessage('Profile updated successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -363,9 +364,17 @@ const CustomerDashboard = () => {
                       <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Full Name</span>
                       <input type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} />
                    </div>
-                   <div style={{ marginBottom: '32px' }}>
+                   <div style={{ marginBottom: '20px' }}>
                       <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Email Address</span>
                       <input type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} />
+                   </div>
+                   <div style={{ marginBottom: '20px' }}>
+                      <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>New Password (Optional)</span>
+                      <input type="password" value={profileData.password || ''} onChange={e => setProfileData({...profileData, password: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} placeholder="Leave blank to keep current" />
+                   </div>
+                   <div style={{ marginBottom: '32px' }}>
+                      <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>Confirm New Password</span>
+                      <input type="password" value={profileData.password_confirmation || ''} onChange={e => setProfileData({...profileData, password_confirmation: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E5E5' }} placeholder="Must match new password" />
                    </div>
                    <button type="submit" disabled={submitting} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: '#111', color: '#FFF', fontWeight: '700', cursor: submitting ? 'not-allowed' : 'pointer' }}>
                       {submitting ? 'Updating...' : 'Update Profile'}

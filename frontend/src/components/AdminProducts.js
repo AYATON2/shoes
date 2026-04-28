@@ -222,9 +222,9 @@ const AdminProducts = () => {
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#1E293B' }}>Variants (Size/Color/Stock)</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '10px', marginBottom: '16px' }}>
-                     <input type="text" placeholder="Size" value={newSku.size} onChange={e => setNewSku({...newSku, size: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
-                     <input type="text" placeholder="Color" value={newSku.color} onChange={e => setNewSku({...newSku, color: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
-                     <input type="number" placeholder="Qty" value={newSku.stock} onChange={e => setNewSku({...newSku, stock: e.target.value})} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
+                     <input type="text" placeholder="Size" value={newSku.size} onChange={e => setNewSku({...newSku, size: e.target.value})} style={{ width: '100%', minWidth: 0, padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
+                     <input type="text" placeholder="Color" value={newSku.color} onChange={e => setNewSku({...newSku, color: e.target.value})} style={{ width: '100%', minWidth: 0, padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
+                     <input type="number" placeholder="Qty" value={newSku.stock} onChange={e => setNewSku({...newSku, stock: e.target.value})} style={{ width: '100%', minWidth: 0, padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', boxSizing: 'border-box' }} />
                      <button type="button" onClick={handleAddSku} style={{ background: '#0F172A', color: '#FFF', border: 'none', borderRadius: '10px', width: '44px', fontWeight: '900', cursor: 'pointer' }}>+</button>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '150px', overflowY: 'auto', padding: '4px' }}>

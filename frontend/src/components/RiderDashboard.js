@@ -56,10 +56,10 @@ const LiveMap = ({ orders, height = 350 }) => {
     const addrStr = ((addr.street || '') + ' ' + (addr.city || '')).toLowerCase();
     for (const [brgy, coords] of Object.entries(BARANGAY_COORDS)) {
       if (addrStr.includes(brgy)) {
-        return [coords[0] + (Math.random() - 0.5) * 0.002, coords[1] + (Math.random() - 0.5) * 0.002];
+        return [coords[0], coords[1]];
       }
     }
-    return [BUTUAN_CENTER[0] + (Math.random() - 0.5) * 0.01, BUTUAN_CENTER[1] + (Math.random() - 0.5) * 0.01];
+    return BUTUAN_CENTER;
   };
 
   if (!MapContainer) return null;

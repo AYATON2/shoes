@@ -68,7 +68,6 @@ class OrderController extends Controller
 
     public function store(Request $request)
     {
-        // Log incoming request for debugging
         Log::info('Order creation request', [
             'payment_method' => $request->payment_method,
             'has_screenshot' => $request->hasFile('payment_screenshot'),
@@ -76,32 +75,12 @@ class OrderController extends Controller
             'address_id' => $request->shipping_address_id
         ]);
 
-        // Handle items sent as JSON string from FormData
-        $items = $request->items;
-        if (is_string($items)) {
-            $items = json_decode($items, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return response()->json(['error' => 'Invalid items JSON format'], 422);
-            }
-        }
-        
-        // Validate items structure first
-        if (!$items || !is_array($items) || count($items) === 0) {
-            return response()->json(['error' => 'Items are required and must be an array'], 422);
+        try {
+            $items = $this->parseAndValidateItems($request->items);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 422);
         }
 
-        foreach ($items as $index => $item) {
-            if (!isset($item['sku_id']) || !isset($item['quantity'])) {
-                return response()->json(['error' => "Item at index {$index} is missing sku_id or quantity"], 422);
-            }
-            if (!is_numeric($item['sku_id']) || !is_numeric($item['quantity'])) {
-                return response()->json(['error' => "Item at index {$index} has invalid sku_id or quantity format"], 422);
-            }
-            if ($item['quantity'] < 1) {
-                return response()->json(['error' => "Item at index {$index} must have quantity of at least 1"], 422);
-            }
-        }
-        
         $validationRules = [
             'shipping_address_id' => 'required|exists:addresses,id',
             'payment_method' => 'required|in:gcash,cod',
@@ -109,7 +88,6 @@ class OrderController extends Controller
             'voucher_id' => 'nullable|exists:vouchers,id',
         ];
 
-        // Validate file upload for GCash
         if ($request->payment_method === 'gcash') {
             $validationRules['payment_screenshot'] = 'required|image|mimes:jpeg,png,jpg|max:5120';
             $validationRules['gcash_reference'] = 'required|string|max:100';
@@ -121,8 +99,7 @@ class OrderController extends Controller
             Log::error('Order validation failed', ['errors' => $validator->errors()]);
             return response()->json(['errors' => $validator->errors()], 422);
         }
-        
-        // Additional check: Verify address belongs to user
+
         $address = Address::find($request->shipping_address_id);
         if (!$address) {
             return response()->json(['error' => 'Shipping address not found'], 404);
@@ -134,70 +111,13 @@ class OrderController extends Controller
         DB::beginTransaction();
         try {
             $user = auth()->user();
-            
             if (!$user) {
-                DB::rollback();
-                return response()->json(['error' => 'User not authenticated'], 401);
-            }
-            
-            $total = 0;
-            $orderItems = [];
-
-            foreach ($items as $item) {
-                $sku = Sku::find($item['sku_id']);
-                if (!$sku) {
-                    DB::rollback();
-                    return response()->json(['error' => "SKU not found: {$item['sku_id']}"], 404);
-                }
-                if ($sku->stock < $item['quantity']) {
-                    DB::rollback();
-                    return response()->json(['error' => "Insufficient stock for SKU {$item['sku_id']}. Available: {$sku->stock}, Requested: {$item['quantity']}"], 400);
-                }
-                $price = $sku->product->price;
-                $total += $price * $item['quantity'];
-                $orderItems[] = [
-                    'sku_id' => $item['sku_id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $price,
-                ];
-                $sku->decrement('stock', $item['quantity']);
+                throw new \Exception('User not authenticated', 401);
             }
 
-            $shipping_fee = 50.00; // Default fee
-            
-            // Logistics Logic
-            $logistics_id = $request->logistics_id;
-            $rider_id = null;
-            $is_local = false;
-
-            // Check coverage
-            $city = strtolower($address->city);
-            if (str_contains($city, 'butuan') || str_contains($city, 'agusan')) {
-                $is_local = true;
-                $localLogistics = \App\Models\Logistics::where('is_local', true)->first();
-                $logistics_id = $localLogistics ? $localLogistics->id : $logistics_id;
-                $shipping_fee = $localLogistics ? $localLogistics->base_cost : $shipping_fee;
-            } else {
-                if ($logistics_id) {
-                    $selectedLogistics = \App\Models\Logistics::find($logistics_id);
-                    $shipping_fee = $selectedLogistics ? $selectedLogistics->base_cost : $shipping_fee;
-                }
-            }
-
-            // Voucher Logic
-            $discount_amount = 0;
-            if ($request->voucher_id) {
-                $voucher = \App\Models\Voucher::find($request->voucher_id);
-                if ($voucher && $voucher->is_active && (!$voucher->expires_at || $voucher->expires_at->isFuture())) {
-                    if ($total >= $voucher->min_spend) {
-                        if ($voucher->type === 'percentage') {
-                            $discount_amount = $total * ($voucher->value / 100);
-                        } else {
-                            $discount_amount = $voucher->value;
-                        }
-                    }
-                }
-            }
+            [$total, $orderItems] = $this->processOrderItems($items);
+            [$logistics_id, $shipping_fee, $is_local] = $this->determineLogisticsAndFee($address, $request->logistics_id);
+            $discount_amount = $this->calculateDiscount($request->voucher_id, $total);
 
             $order = Order::create([
                 'user_id' => $user->id,
@@ -209,7 +129,7 @@ class OrderController extends Controller
                 'discount_amount' => $discount_amount,
                 'voucher_id' => $request->voucher_id,
                 'logistics_id' => $logistics_id,
-                'rider_id' => $rider_id,
+                'rider_id' => null,
                 'is_local' => $is_local,
             ]);
 
@@ -218,43 +138,137 @@ class OrderController extends Controller
                 OrderItem::create($item);
             }
 
-            // Handle payment screenshot upload for GCash
-            $paymentData = [
-                'order_id' => $order->id,
-                'method' => $request->payment_method,
-                'amount' => $total + $shipping_fee,
-                'status' => 'pending',
-            ];
-
-            if ($request->payment_method === 'gcash' && $request->hasFile('payment_screenshot')) {
-                $file = $request->file('payment_screenshot');
-                $filename = time() . '_' . $order->id . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('payment_proofs'), $filename);
-                $paymentData['payment_screenshot'] = 'payment_proofs/' . $filename;
-                $paymentData['gcash_reference'] = $request->gcash_reference;
-            } elseif ($request->payment_method === 'cod') {
-                $paymentData['status'] = 'completed';
-            }
-
-            Payment::create($paymentData);
-
-            // Generate invoice for the order
+            $this->handlePaymentCreation($request, $order, $total, $shipping_fee);
             InvoiceService::generateInvoice($order);
 
             DB::commit();
             return response()->json($order->load('orderItems.sku.product', 'shippingAddress', 'payment'), 201);
         } catch (\Exception $e) {
             DB::rollback();
-            Log::error('Order creation failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('Order creation failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            $status = $e->getCode();
+            $status = ($status >= 400 && $status < 600) ? $status : 500;
             return response()->json([
                 'error' => 'Order failed',
                 'message' => $e->getMessage(),
                 'details' => config('app.debug') ? $e->getTraceAsString() : null
-            ], 500);
+            ], $status);
         }
+    }
+
+    private function parseAndValidateItems($itemsRaw)
+    {
+        $items = $itemsRaw;
+        if (is_string($items)) {
+            $items = json_decode($items, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception('Invalid items JSON format', 422);
+            }
+        }
+        
+        if (!$items || !is_array($items) || count($items) === 0) {
+            throw new \Exception('Items are required and must be an array', 422);
+        }
+
+        foreach ($items as $index => $item) {
+            if (!isset($item['sku_id']) || !isset($item['quantity'])) {
+                throw new \Exception("Item at index {$index} is missing sku_id or quantity", 422);
+            }
+            if (!is_numeric($item['sku_id']) || !is_numeric($item['quantity'])) {
+                throw new \Exception("Item at index {$index} has invalid sku_id or quantity format", 422);
+            }
+            if ($item['quantity'] < 1) {
+                throw new \Exception("Item at index {$index} must have quantity of at least 1", 422);
+            }
+        }
+
+        return $items;
+    }
+
+    private function processOrderItems(array $items)
+    {
+        $total = 0;
+        $orderItems = [];
+
+        foreach ($items as $item) {
+            $sku = Sku::find($item['sku_id']);
+            if (!$sku) {
+                throw new \Exception("SKU not found: {$item['sku_id']}", 404);
+            }
+            if ($sku->stock < $item['quantity']) {
+                throw new \Exception("Insufficient stock for SKU {$item['sku_id']}. Available: {$sku->stock}, Requested: {$item['quantity']}", 400);
+            }
+            $price = $sku->product->price;
+            $total += $price * $item['quantity'];
+            $orderItems[] = [
+                'sku_id' => $item['sku_id'],
+                'quantity' => $item['quantity'],
+                'price' => $price,
+            ];
+            $sku->decrement('stock', $item['quantity']);
+        }
+
+        return [$total, $orderItems];
+    }
+
+    private function determineLogisticsAndFee($address, $logistics_id)
+    {
+        $shipping_fee = 50.00;
+        $is_local = false;
+
+        $city = strtolower($address->city);
+        if (str_contains($city, 'butuan') || str_contains($city, 'agusan')) {
+            $is_local = true;
+            $localLogistics = \App\Models\Logistics::where('is_local', true)->first();
+            $logistics_id = $localLogistics ? $localLogistics->id : $logistics_id;
+            $shipping_fee = $localLogistics ? $localLogistics->base_cost : $shipping_fee;
+        } else {
+            if ($logistics_id) {
+                $selectedLogistics = \App\Models\Logistics::find($logistics_id);
+                $shipping_fee = $selectedLogistics ? $selectedLogistics->base_cost : $shipping_fee;
+            }
+        }
+
+        return [$logistics_id, $shipping_fee, $is_local];
+    }
+
+    private function calculateDiscount($voucher_id, $total)
+    {
+        if (!$voucher_id) return 0;
+        
+        $voucher = \App\Models\Voucher::find($voucher_id);
+        if ($voucher && $voucher->is_active && (!$voucher->expires_at || $voucher->expires_at->isFuture())) {
+            if ($total >= $voucher->min_spend) {
+                if ($voucher->type === 'percentage') {
+                    return $total * ($voucher->value / 100);
+                } else {
+                    return $voucher->value;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private function handlePaymentCreation(Request $request, Order $order, $total, $shipping_fee)
+    {
+        $paymentData = [
+            'order_id' => $order->id,
+            'method' => $request->payment_method,
+            'amount' => $total + $shipping_fee,
+            'status' => 'pending',
+        ];
+
+        if ($request->payment_method === 'gcash' && $request->hasFile('payment_screenshot')) {
+            $file = $request->file('payment_screenshot');
+            $filename = time() . '_' . $order->id . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('payment_proofs'), $filename);
+            $paymentData['payment_screenshot'] = 'payment_proofs/' . $filename;
+            $paymentData['gcash_reference'] = $request->gcash_reference;
+        } elseif ($request->payment_method === 'cod') {
+            $paymentData['status'] = 'completed';
+        }
+
+        Payment::create($paymentData);
     }
 
     public function update(Request $request, $id)
@@ -334,7 +348,7 @@ class OrderController extends Controller
                 'received' => 'Your order has been received',
                 'quality_check' => 'Your order is undergoing quality check',
                 'ready_for_pickup' => 'Your order is ready for pick up',
-                'shipped' => 'Your order has been shipped',
+                'shipped' => 'Your order is out for delivery',
                 'delivered' => 'Your order has been delivered',
                 'cancelled' => 'Your order has been cancelled',
                 'returned' => 'Your order has been returned'

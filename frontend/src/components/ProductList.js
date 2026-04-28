@@ -211,7 +211,11 @@ const ProductList = ({ limit }) => {
                 
                 <div style={{ display: 'flex', gap: '10px' }}>
                    <Link to={`/product/${product.id}`} style={{ flex: 1, textDecoration: 'none', background: '#F5F5F5', color: '#111', textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '13px' }}>Full Details</Link>
-                   <button onClick={() => setQuickViewProduct(product)} style={{ flex: 1, background: '#111', color: '#FFF', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>Buy Now</button>
+                   <button onClick={(e) => {
+                       e.stopPropagation();
+                       const availableSku = product.skus?.find(s => s.stock > 0) || product.skus?.[0];
+                       handleAddToCart(product, availableSku);
+                   }} style={{ flex: 1, background: '#111', color: '#FFF', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>Buy Now</button>
                 </div>
               </div>
             </div>
