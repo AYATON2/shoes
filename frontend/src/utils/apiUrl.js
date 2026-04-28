@@ -4,20 +4,18 @@ const RAILWAY_API_BASE_URL = 'https://shoes-production-04ab.up.railway.app';
 
 export const getApiBaseUrl = () => {
   const envBase = normalizeBaseUrl(process.env.REACT_APP_API_URL);
-  if (envBase) {
-    return envBase;
-  }
+  if (envBase) return envBase;
 
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port } = window.location;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
-    // Local dev default to Laravel's artisan serve port.
     if (isLocalhost && port !== '8000') {
       return `http://${hostname}:8000`;
     }
 
-    const finalUrl = envBase || (isLocalhost && port !== '8000' ? `http://${hostname}:8000` : (!isLocalhost && !envBase ? RAILWAY_API_BASE_URL : `${protocol}//${hostname}${port ? `:${port}` : ''}`));
+    // Default to current domain (works for same-domain setups and relative deployments)
+    const finalUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
     console.log('Final Resolved API URL:', finalUrl);
     return finalUrl;
   }
