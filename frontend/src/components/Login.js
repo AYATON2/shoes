@@ -14,16 +14,20 @@ const Login = () => {
     setError('');
     setLoading(true);
     
+    const loginUrl = `${axios.defaults.baseURL}/api/login`;
+    console.log('Attempting Login at:', loginUrl);
+    
     axios.post('/api/login', { email, password })
       .then(res => {
-        console.log('Raw Login Response Data:', res.data);
-        console.log('Data Type:', typeof res.data);
+        console.log('Login Success! Response Keys:', Object.keys(res.data));
+        console.log('Full Response Data:', JSON.stringify(res.data, null, 2));
+        
         const data = res.data;
         const user = data.user || data.data?.user;
         const token = data.token || data.data?.token;
 
         if (!user || !token) {
-           throw new Error(`Invalid response from ${axios.defaults.baseURL}: user or token missing`);
+           throw new Error(`Incomplete Data from ${loginUrl}. Keys found: ${Object.keys(data).join(', ')}`);
         }
 
         localStorage.setItem('token', token);
