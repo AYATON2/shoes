@@ -7,6 +7,8 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { getApiBaseUrl } from './utils/apiUrl';
 
+console.log('App Version: 1.0.5 - Build Time: ' + new Date().toISOString());
+
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = getApiBaseUrl();
 axios.defaults.headers.common['Accept'] = 'application/json';
