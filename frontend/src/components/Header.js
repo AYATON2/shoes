@@ -2,7 +2,7 @@
 // Premium Header
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const Header = () => {
@@ -19,7 +19,7 @@ const Header = () => {
   const fetchNotifications = useCallback(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('/api/notifications')
+      api.get('/api/notifications')
         .then(res => setNotifications(res.data))
         .catch(err => console.error('Error fetching notifications:', err));
     }
@@ -28,8 +28,7 @@ const Header = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      axios.get('/api/user')
+      api.get('/api/user')
         .then(res => {
           setUser(res.data);
           setLoadingUser(false);
@@ -62,7 +61,7 @@ const Header = () => {
   }, [fetchNotifications]);
 
   const markNotificationsAsRead = () => {
-    axios.patch('/api/notifications/read')
+    api.patch('/api/notifications/read')
       .then(() => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       })
@@ -72,7 +71,7 @@ const Header = () => {
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   const logout = () => {
-    axios.post('/api/logout').then(() => {
+    api.post('/api/logout').then(() => {
       localStorage.removeItem('token');
       setUser(null);
       navigate('/');
@@ -83,7 +82,7 @@ const Header = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) { navigate('/login'); return; }
-      const response = await axios.get('/api/user');
+      const response = await api.get('/api/user');
       const freshUser = response.data;
       setUser(freshUser);
       if (freshUser.role === 'customer') navigate('/customer-dashboard');

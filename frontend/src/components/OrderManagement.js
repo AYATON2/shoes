@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const OrderManagement = () => {
@@ -15,7 +15,7 @@ const OrderManagement = () => {
   const fetchOrders = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
-      const res = await axios.get('/api/orders');
+      const res = await api.get('/api/orders');
       setOrders(res.data.data || res.data || []);
       setError(null);
     } catch (err) {
@@ -28,7 +28,7 @@ const OrderManagement = () => {
 
   const fetchRiders = async () => {
     try {
-      const res = await axios.get('/api/riders');
+      const res = await api.get('/api/riders');
       setRiders(res.data);
     } catch (err) {
       console.error('Fetch riders error:', err);
@@ -44,7 +44,7 @@ const OrderManagement = () => {
 
   const updateStatus = async (orderId, status) => {
     try {
-      await axios.put(`/api/orders/${orderId}`, { status });
+      await api.put(`/api/orders/${orderId}`, { status });
       fetchOrders();
     } catch (err) {
       alert('Failed to update status');
@@ -54,7 +54,7 @@ const OrderManagement = () => {
   const assignRider = async (orderId, riderId) => {
     setAssigningRider(orderId);
     try {
-      await axios.put(`/api/orders/${orderId}`, { rider_id: riderId });
+      await api.put(`/api/orders/${orderId}`, { rider_id: riderId });
       fetchOrders();
     } catch (err) {
       alert('Failed to assign rider');
@@ -65,7 +65,7 @@ const OrderManagement = () => {
 
   const verifyPayment = async (orderId, action) => {
     try {
-      await axios.post(`/api/orders/${orderId}/verify-payment`, { action });
+      await api.post(`/api/orders/${orderId}/verify-payment`, { action });
       fetchOrders();
     } catch (err) {
       alert(err.response?.data?.message || 'Verification failed');

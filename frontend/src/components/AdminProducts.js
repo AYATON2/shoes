@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 import SalesManager from './SalesManager';
 
@@ -31,7 +31,7 @@ const AdminProducts = () => {
 
   const fetchProducts = useCallback(() => {
     const params = viewMode === 'archived' ? '?only_archived=true&limit=1000' : '?limit=1000';
-    axios.get(`/api/products${params}`).then(res => setProducts(res.data.data || [])).catch(err => {
+    api.get(`/api/products${params}`).then(res => setProducts(res.data.data || [])).catch(err => {
       if (err.response?.status === 401) navigate('/login');
     });
   }, [navigate, viewMode]);
@@ -40,7 +40,7 @@ const AdminProducts = () => {
 
   const handleArchive = (productId, archive = true) => {
     const action = archive ? 'archive' : 'unarchive';
-    axios.patch(`/api/products/${productId}/${action}`).then(() => {
+    api.patch(`/api/products/${productId}/${action}`).then(() => {
       showToast(`Product ${archive ? 'archived' : 'restored'}`);
       fetchProducts();
     }).catch(console.error);
@@ -48,7 +48,7 @@ const AdminProducts = () => {
 
   const handleDelete = (productId) => {
     if (!window.confirm('Permanently delete this product?')) return;
-    axios.delete(`/api/products/${productId}`).then(() => {
+    api.delete(`/api/products/${productId}`).then(() => {
       showToast('Product deleted');
       fetchProducts();
     }).catch(console.error);
@@ -74,7 +74,7 @@ const AdminProducts = () => {
 
     const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
     try {
-      await axios.post(url, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post(url, data, { headers: { 'Content-Type': 'multipart/form-data' } });
       showToast(editingProduct ? 'Product updated' : 'Product added');
       setShowForm(false); setEditingProduct(null); setFormData(EMPTY_FORM);
       fetchProducts();

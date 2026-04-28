@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ReturnManager = () => {
@@ -12,7 +12,7 @@ const ReturnManager = () => {
 
   const fetchReturns = () => {
     setLoading(true);
-    axios.get('/api/returns').then(res => {
+    api.get('/api/returns').then(res => {
       setReturns(res.data);
       setLoading(false);
     }).catch(err => {
@@ -22,7 +22,7 @@ const ReturnManager = () => {
   };
 
   const updateStatus = (id, newStatus) => {
-    axios.patch(`/api/returns/${id}/status`, { status: newStatus }).then(() => {
+    api.patch(`/api/returns/${id}/status`, { status: newStatus }).then(() => {
       fetchReturns();
     }).catch(err => console.error(err));
   };

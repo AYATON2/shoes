@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const ProductManager = ({
@@ -27,7 +27,7 @@ const ProductManager = ({
 
   const fetchSales = useCallback(async () => {
     try {
-      const response = await axios.get('/api/sales');
+      const response = await api.get('/api/sales');
       const allSales = response.data.data || response.data || [];
       
       // Filter to only active sales without specific products (templates) and not expired
@@ -48,11 +48,11 @@ const ProductManager = ({
     try {
       setLoading(true);
       console.log('ProductManager: Fetching products from API...');
-      const response = await axios.get('/api/products?limit=1000');
+      const response = await api.get('/api/products?limit=1000');
       const allProducts = response.data.data || [];
       console.log('ProductManager: All products from API:', allProducts);
       
-      const userRes = await axios.get('/api/user');
+      const userRes = await api.get('/api/user');
       console.log('ProductManager: Current user ID:', userRes.data.id);
       
       const staffProducts = allProducts.filter(p => p.seller_id === userRes.data.id);
@@ -87,7 +87,7 @@ const ProductManager = ({
 
   const handleUpdateStock = async (productId, newStock) => {
     try {
-      await axios.put(`/api/products/${productId}/stock`, { stock: parseInt(newStock) });
+      await api.put(`/api/products/${productId}/stock`, { stock: parseInt(newStock) });
       showNotification('Stock updated successfully!', 'success');
       
       // Update local state
@@ -146,7 +146,7 @@ const ProductManager = ({
         end_date: sale.end_date
       };
 
-      await axios.post('/api/sales', payload);
+      await api.post('/api/sales', payload);
       showNotification('Sale applied to product successfully!', 'success');
       
       // Refresh products
@@ -169,12 +169,12 @@ const ProductManager = ({
 
     try {
       // Find and delete the product-specific sale
-      const response = await axios.get('/api/sales');
+      const response = await api.get('/api/sales');
       const allSales = response.data.data || response.data || [];
       const productSale = allSales.find(s => s.product_id === productId);
       
       if (productSale) {
-        await axios.delete(`/api/sales/${productSale.id}`);
+        await api.delete(`/api/sales/${productSale.id}`);
         showNotification('Product removed from sale!', 'success');
         
         if (onProductsUpdate) {

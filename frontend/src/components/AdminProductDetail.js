@@ -1,14 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ProductDetail from './ProductDetail';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AdminProductDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
-    axios.post('/api/logout').then(() => {
+    api.post('/api/logout').then(() => {
       localStorage.removeItem('token');
       window.location.href = '/';
     }).catch(() => {

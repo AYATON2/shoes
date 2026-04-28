@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -30,12 +30,11 @@ const Register = () => {
     
     setLoading(true);
     
-    axios.get('/sanctum/csrf-cookie').then(() => {
-      axios.post('/api/register', form)
+    api.get('/sanctum/csrf-cookie').then(() => {
+      api.post('/api/register', form)
         .then(res => {
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
-          axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
           
           const role = res.data.user.role;
           if (role === 'customer') navigate('/customer-dashboard');
@@ -48,7 +47,7 @@ const Register = () => {
           setError(err.response?.data?.message || 'Registration failed. Please try again.');
           setLoading(false);
         });
-    }).catch(err => {
+    }).catch(() => {
       setError('Could not connect to the server. Please ensure the backend is running.');
       setLoading(false);
     });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import Notification from './Notification';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
@@ -30,7 +30,7 @@ const ProductList = ({ limit }) => {
       apiParams.special_filter = specialFilter;
     }
     
-    axios.get('/api/products', { params: apiParams })
+    api.get('/api/products', { params: apiParams })
       .then(res => {
         let list = Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data) ? res.data : []);
         if (limit) list = list.slice(0, limit);
@@ -49,7 +49,7 @@ const ProductList = ({ limit }) => {
   }, [fetchProducts]);
 
   useEffect(() => {
-    axios.get('/api/products/filter-options').then(res => setFilterOptions(res.data));
+    api.get('/api/products/filter-options').then(res => setFilterOptions(res.data));
   }, []);
 
   const handleFilterChange = (e) => {

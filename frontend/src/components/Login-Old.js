@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -8,11 +8,10 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.get('/sanctum/csrf-cookie').then(() => {
-      axios.post('/api/login', form).then(res => {
+    api.get('/sanctum/csrf-cookie').then(() => {
+      api.post('/api/login', form).then(res => {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
         const role = res.data.user.role;
         if (role === 'customer') navigate('/customer-dashboard');
         else if (role === 'seller') navigate('/seller-dashboard');

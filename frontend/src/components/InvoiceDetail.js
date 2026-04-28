@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 
 const InvoiceDetail = () => {
   const { orderId } = useParams();
@@ -12,24 +12,15 @@ const InvoiceDetail = () => {
   const [downloading, setDownloading] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
 
-  const getAuthConfig = () => {
-    const token = localStorage.getItem('token');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    };
-  };
-
   const fetchInvoice = useCallback(async () => {
     try {
       setLoading(true);
       // Get invoice data
-      const res = await axios.get(`/api/invoices/${orderId}`, getAuthConfig());
+      const res = await api.get(`/api/invoices/${orderId}`);
       setInvoice(res.data.invoice);
       
       // Get order data separately if needed
-      const orderRes = await axios.get(`/api/orders/${orderId}`, getAuthConfig());
+      const orderRes = await api.get(`/api/orders/${orderId}`);
       setOrder(orderRes.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load invoice');
@@ -45,8 +36,7 @@ const InvoiceDetail = () => {
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      const res = await axios.get(`/api/invoices/${invoice.id}/download`, {
-        ...getAuthConfig(),
+      const res = await api.get(`/api/invoices/${invoice.id}/download`, {
         responseType: 'blob'
       });
       
@@ -69,7 +59,7 @@ const InvoiceDetail = () => {
   const handleEmail = async () => {
     try {
       setEmailSending(true);
-      await axios.post(`/api/invoices/${invoice.id}/email`, {}, getAuthConfig());
+      await api.post(`/api/invoices/${invoice.id}/email`, {});
       alert('Invoice sent to your email');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send invoice');

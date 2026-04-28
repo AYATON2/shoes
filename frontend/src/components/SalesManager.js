@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import './SalesManager.css';
 
 const SalesManager = ({ productId = null, products = [] }) => {
@@ -43,7 +43,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const fetchSales = async () => {
     try {
-      const response = await axios.get('/api/sales');
+      const response = await api.get('/api/sales');
       setSales(response.data.data || response.data);
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -53,7 +53,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const fetchVouchers = async () => {
     try {
-      const response = await axios.get('/api/vouchers');
+      const response = await api.get('/api/vouchers');
       setVouchers(response.data);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
@@ -72,10 +72,10 @@ const SalesManager = ({ productId = null, products = [] }) => {
       if (payload.discount_percentage === '') payload.discount_percentage = null;
       
       if (editingSale) {
-        await axios.put(`/api/sales/${editingSale.id}`, payload);
+        await api.put(`/api/sales/${editingSale.id}`, payload);
         showNotification('Sale updated!', 'success');
       } else {
-        await axios.post('/api/sales', payload);
+        await api.post('/api/sales', payload);
         showNotification('Sale created!', 'success');
       }
       fetchSales();
@@ -89,10 +89,10 @@ const SalesManager = ({ productId = null, products = [] }) => {
     e.preventDefault();
     try {
       if (editingVoucher) {
-        await axios.put(`/api/vouchers/${editingVoucher.id}`, voucherFormData);
+        await api.put(`/api/vouchers/${editingVoucher.id}`, voucherFormData);
         showNotification('Voucher updated!', 'success');
       } else {
-        await axios.post('/api/vouchers', voucherFormData);
+        await api.post('/api/vouchers', voucherFormData);
         showNotification('Voucher created!', 'success');
       }
       fetchVouchers();
@@ -104,7 +104,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const handleSaleDelete = async (id) => {
     if (window.confirm('Delete this sale?')) {
-      await axios.delete(`/api/sales/${id}`);
+      await api.delete(`/api/sales/${id}`);
       showNotification('Sale deleted');
       fetchSales();
     }
@@ -112,7 +112,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const handleVoucherDelete = async (id) => {
     if (window.confirm('Delete this voucher?')) {
-      await axios.delete(`/api/vouchers/${id}`);
+      await api.delete(`/api/vouchers/${id}`);
       showNotification('Voucher deleted');
       fetchVouchers();
     }
@@ -132,7 +132,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
 
   const handleSaleToggle = async (id) => {
     try {
-      await axios.patch(`/api/sales/${id}/toggle`);
+      await api.patch(`/api/sales/${id}/toggle`);
       showNotification('Sale status updated');
       fetchSales();
     } catch (error) {

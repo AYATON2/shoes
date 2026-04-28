@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const ReviewManager = () => {
   const [reviews, setReviews] = useState([]);
@@ -11,7 +11,7 @@ const ReviewManager = () => {
 
   const fetchReviews = () => {
     setLoading(true);
-    axios.get('/api/admin/reviews').then(res => {
+    api.get('/api/admin/reviews').then(res => {
       setReviews(res.data);
       setLoading(false);
     }).catch(err => {
@@ -21,7 +21,7 @@ const ReviewManager = () => {
   };
 
   const toggleArchive = (id) => {
-    axios.patch(`/api/reviews/${id}/archive`).then(() => {
+    api.patch(`/api/reviews/${id}/archive`).then(() => {
       fetchReviews();
     }).catch(err => console.error(err));
   };
