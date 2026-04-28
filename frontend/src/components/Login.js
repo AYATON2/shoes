@@ -16,7 +16,8 @@ const Login = () => {
     
     axios.post('/api/login', { email, password })
       .then(res => {
-        console.log('Login Response:', res.data);
+        console.log('Raw Login Response Data:', res.data);
+        console.log('Data Type:', typeof res.data);
         const data = res.data;
         const user = data.user || data.data?.user;
         const token = data.token || data.data?.token;
