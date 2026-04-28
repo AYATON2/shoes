@@ -1,7 +1,5 @@
 const normalizeBaseUrl = (url) => (url || '').replace(/\/+$/, '');
 
-const RAILWAY_API_BASE_URL = 'https://shoes-production-04ab.up.railway.app';
-
 export const getApiBaseUrl = () => {
   const envBase = normalizeBaseUrl(process.env.REACT_APP_API_URL);
   if (envBase) return envBase;
