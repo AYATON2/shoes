@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AdminAnalytics = () => {
   const [salesReport, setSalesReport] = useState([]);
@@ -10,10 +10,10 @@ const AdminAnalytics = () => {
 
   useEffect(() => {
     Promise.all([
-      axios.get('/api/reports/sales'),
-      axios.get('/api/reports/inventory'),
-      axios.get('/api/reports/orders'),
-      axios.get('/api/orders?limit=10'), // Only get few recent orders for the table
+      api.get('/api/reports/sales'),
+      api.get('/api/reports/inventory'),
+      api.get('/api/reports/orders'),
+      api.get('/api/orders?limit=10'), // Only get few recent orders for the table
     ]).then(([sales, inv, status, ord]) => {
       setSalesReport(sales.data || []);
       setInventoryReport(inv.data || []);

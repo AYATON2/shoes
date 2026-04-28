@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
 
   useEffect(() => {
-    axios.get('/api/user').then(res => {
+    api.get('/api/user').then(res => {
       setUser(res.data);
       setForm({ name: res.data.name, email: res.data.email, password: '', password_confirmation: '' });
     });
@@ -14,7 +14,7 @@ const Profile = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.put('/api/user', form).then(res => {
+    api.put('/api/user', form).then(res => {
       setUser(res.data);
       setForm({ ...form, password: '', password_confirmation: '' });
       alert('Profile updated');

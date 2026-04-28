@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
 const LeaveReview = () => {
@@ -28,7 +28,7 @@ const LeaveReview = () => {
 
   const fetchOrderDetails = async () => {
     try {
-      const res = await axios.get(`/api/orders/${orderId}`);
+      const res = await api.get(`/api/orders/${orderId}`);
       setOrder(res.data);
       // Select first product by default if exists
       if (res.data.order_items && res.data.order_items.length > 0) {
@@ -47,7 +47,7 @@ const LeaveReview = () => {
     
     setSubmitting(true);
     try {
-      await axios.post('/api/reviews', {
+      await api.post('/api/reviews', {
         product_id: selectedProduct.id,
         rating,
         comment

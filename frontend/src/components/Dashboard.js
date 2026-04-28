@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -8,14 +8,14 @@ const Dashboard = () => {
   const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', zip: '', country: '', is_default: false });
 
   useEffect(() => {
-    axios.get('/api/user').then(res => setUser(res.data));
-    axios.get('/api/orders').then(res => setOrders(res.data.data));
-    axios.get('/api/addresses').then(res => setAddresses(res.data));
+    api.get('/api/user').then(res => setUser(res.data));
+    api.get('/api/orders').then(res => setOrders(res.data.data));
+    api.get('/api/addresses').then(res => setAddresses(res.data));
   }, []);
 
   const addAddress = (e) => {
     e.preventDefault();
-    axios.post('/api/addresses', newAddress).then(res => {
+    api.post('/api/addresses', newAddress).then(res => {
       setAddresses([...addresses, res.data]);
       setNewAddress({ street: '', city: '', state: '', zip: '', country: '', is_default: false });
     });
@@ -32,7 +32,7 @@ const Dashboard = () => {
           {orders.map(order => (
             <div key={order.id}>
               Order #{order.id} - Status: {order.status} - Total: ${order.total}
-              <button onClick={() => axios.get(`/api/orders/${order.id}/invoice`).then(res => console.log(res.data))}>View Invoice</button>
+              <button onClick={() => api.get(`/api/orders/${order.id}/invoice`).then(res => console.log(res.data))}>View Invoice</button>
             </div>
           ))}
           <h2>My Addresses</h2>
@@ -60,9 +60,9 @@ const Dashboard = () => {
       {user.role === 'admin' && (
         <div>
           <h2>Admin Panel</h2>
-          <button onClick={() => axios.get('/api/reports/inventory').then(res => console.log(res.data))}>View Inventory Report</button>
-          <button onClick={() => axios.get('/api/reports/sales').then(res => console.log(res.data))}>View Sales Report</button>
-          <button onClick={() => axios.get('/api/reports/orders').then(res => console.log(res.data))}>View Order Status Report</button>
+          <button onClick={() => api.get('/api/reports/inventory').then(res => console.log(res.data))}>View Inventory Report</button>
+          <button onClick={() => api.get('/api/reports/sales').then(res => console.log(res.data))}>View Sales Report</button>
+          <button onClick={() => api.get('/api/reports/orders').then(res => console.log(res.data))}>View Order Status Report</button>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import Notification from './Notification';
 import OrderManagement from './OrderManagement';
 import ProductManager from './ProductManager';
@@ -43,7 +43,7 @@ const StaffDashboard = () => {
   const fetchData = useCallback(async (showInitialLoader = false) => {
     if (showInitialLoader) setInitialLoading(true);
     try {
-      const userRes = await axios.get('/api/user');
+      const userRes = await api.get('/api/user');
       const userData = userRes.data;
       if (userData.role !== 'staff') {
         if (userData.role === 'customer') navigate('/customer-dashboard');
@@ -54,8 +54,8 @@ const StaffDashboard = () => {
       setUser(userData);
       
       const [ordersRes, productsRes] = await Promise.all([
-        axios.get('/api/orders'),
-        userData.logistic_id ? Promise.resolve({ data: { data: [] } }) : axios.get('/api/products?limit=1000')
+        api.get('/api/orders'),
+        userData.logistic_id ? Promise.resolve({ data: { data: [] } }) : api.get('/api/products?limit=1000')
       ]);
 
       const allOrders = ordersRes.data.data || [];
@@ -85,11 +85,10 @@ const StaffDashboard = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     fetchData(true);
   }, [fetchData, navigate]);
 
-  const handleLogout = () => axios.post('/api/logout').finally(() => { localStorage.removeItem('token'); window.location.href = '/'; });
+  const handleLogout = () => api.post('/api/logout').finally(() => { localStorage.removeItem('token'); window.location.href = '/'; });
 
   // Product Manager Handlers
   const handleEditProductFromManager = (product) => {
@@ -112,7 +111,7 @@ const StaffDashboard = () => {
     if (editingProduct) data.append('_method', 'PUT');
 
     const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
-    axios.post(url, data)
+    api.post(url, data)
       .then(() => { setShowAddProductForm(false); setEditingProduct(null); setNotification({ message: 'Success!', type: 'success' }); fetchData(); })
       .catch(() => setNotification({ message: 'Error saving product', type: 'error' }))
       .finally(() => setLoading(false));

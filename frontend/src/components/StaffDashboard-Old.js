@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { Bar, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend } from 'chart.js';
 
@@ -23,10 +23,10 @@ const SellerDashboard = () => {
       navigate('/login');
       return;
     }
-    axios.get('/api/user').then(res => setUser(res.data));
-    axios.get('/api/products').then(res => setProducts(res.data.data));
-    axios.get('/api/orders').then(res => setOrders(res.data.data));
-    axios.get('/api/reports/seller-sales').then(res => setSales(res.data));
+    api.get('/api/user').then(res => setUser(res.data));
+    api.get('/api/products').then(res => setProducts(res.data.data));
+    api.get('/api/orders').then(res => setOrders(res.data.data));
+    api.get('/api/reports/seller-sales').then(res => setSales(res.data));
   }, [navigate]);
 
   const addProduct = (e) => {
@@ -41,7 +41,7 @@ const SellerDashboard = () => {
     });
     formData.append('skus', JSON.stringify(skus));
     console.log('Sending product data:', formData);
-    axios.post('/api/products', formData, { headers: {'Content-Type': 'multipart/form-data'} }).then(res => {
+    api.post('/api/products', formData, { headers: {'Content-Type': 'multipart/form-data'} }).then(res => {
       setProducts([...products, res.data]);
       setNewProduct({ name: '', description: '', brand: '', type: '', material: '', performance_tech: '', release_date: '', gender: '', age_group: '', price: '', stock: '', image: null });
       setSkus([{ size: '', color: '', width: '', stock: '' }]);
@@ -57,21 +57,21 @@ const SellerDashboard = () => {
   };
 
   const updateStatus = (orderId, status) => {
-    axios.put(`/api/orders/${orderId}`, { status }).then(res => {
+    api.put(`/api/orders/${orderId}`, { status }).then(res => {
       setOrders(orders.map(o => o.id === orderId ? res.data : o));
     });
   };
 
   const handleProfileUpdate = (e) => {
     e.preventDefault();
-    axios.put('/api/user', { name: user.name, email: user.email }).then(res => {
+    api.put('/api/user', { name: user.name, email: user.email }).then(res => {
       setUser(res.data);
       alert('Profile updated successfully');
     }).catch(err => alert('Update failed'));
   };
 
   const handleLogout = () => {
-    axios.post('/api/logout').then(() => {
+    api.post('/api/logout').then(() => {
       localStorage.removeItem('token');
       window.location.href = '/';
     });

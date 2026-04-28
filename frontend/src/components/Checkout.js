@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import Notification from './Notification';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
@@ -67,14 +67,12 @@ const Checkout = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    
     // Fetch user for name auto-population
-    axios.get('/api/user').then(res => {
+    api.get('/api/user').then(res => {
       setShippingAddress(prev => ({ ...prev, name: res.data.name }));
     }).catch(console.error);
 
-    axios.get('/api/logistics').then(res => setLogisticsOptions(res.data)).catch(console.error);
+    api.get('/api/logistics').then(res => setLogisticsOptions(res.data)).catch(console.error);
   }, [navigate]);
 
   const isButuan = (city) => city?.toLowerCase().includes('butuan');
@@ -106,7 +104,7 @@ const Checkout = () => {
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) return;
     try {
-      const res = await axios.post('/api/vouchers/validate', { code: voucherCode });
+      const res = await api.post('/api/vouchers/validate', { code: voucherCode });
       setAppliedVoucher(res.data);
       setNotification({ message: `Voucher "${res.data.code}" applied! ✓`, type: 'success' });
     } catch (err) {
@@ -158,7 +156,7 @@ const Checkout = () => {
         zip: shippingAddress.zip,
         country: 'Philippines'
       };
-      const addressRes = await axios.post('/api/addresses', addressPayload);
+      const addressRes = await api.post('/api/addresses', addressPayload);
       const addressId = addressRes.data.id;
 
       const { total } = calculateTotal();
@@ -174,7 +172,7 @@ const Checkout = () => {
         formData.append('gcash_reference', gcashReference);
       }
 
-      const res = await axios.post('/api/orders', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/api/orders', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       localStorage.removeItem('cart');
       window.dispatchEvent(new Event('cartUpdated'));
       setOrderSuccess(res.data);

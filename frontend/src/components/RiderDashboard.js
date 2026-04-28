@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -225,11 +225,11 @@ const RiderDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const userRes = await axios.get('/api/user');
+      const userRes = await api.get('/api/user');
       const userData = userRes.data;
       if (userData.role !== 'rider') { navigate('/login'); return; }
       setUser(userData);
-      const ordersRes = await axios.get('/api/rider/orders');
+      const ordersRes = await api.get('/api/rider/orders');
       setOrders(ordersRes.data || []);
     } catch (error) {
       console.error('Failed to fetch rider data:', error);
@@ -237,12 +237,12 @@ const RiderDashboard = () => {
     }
   };
 
-  const handleLogout = () => axios.post('/api/logout').finally(() => { localStorage.removeItem('token'); window.location.href = '/'; });
+  const handleLogout = () => api.post('/api/logout').finally(() => { localStorage.removeItem('token'); window.location.href = '/'; });
 
   const updateOrderStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId);
     try {
-      await axios.put(`/api/orders/${orderId}`, { status: newStatus });
+      await api.put(`/api/orders/${orderId}`, { status: newStatus });
       await fetchData();
     } catch (error) {
       console.error('Failed to update order status:', error);

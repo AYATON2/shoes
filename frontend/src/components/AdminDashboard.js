@@ -12,7 +12,7 @@ import ReturnManager from './ReturnManager';
 import ArchiveManager from './ArchiveManager';
 import SalesManager from './SalesManager';
 import OrderManagement from './OrderManagement';
-import axios from 'axios';
+import api from '../utils/api';
 
 const SIDEBAR_BG = '#0A0A0A';
 const ACCENT = '#FA5400';
@@ -55,7 +55,7 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setInitialLoading(true);
     try {
-      const userRes = await axios.get('/api/user');
+      const userRes = await api.get('/api/user');
       const userData = userRes.data;
       if (userData.role !== 'admin') {
         if (userData.role === 'customer') navigate('/customer-dashboard');
@@ -66,9 +66,9 @@ const AdminDashboard = () => {
       }
       setUser(userData);
       const [usersRes, productsRes, ordersRes] = await Promise.all([
-        axios.get('/api/users'),
-        axios.get('/api/products'),
-        axios.get('/api/orders'),
+        api.get('/api/users'),
+        api.get('/api/products'),
+        api.get('/api/orders'),
       ]);
       setUsers(usersRes.data);
       setProducts(productsRes.data.data || []);
@@ -85,17 +85,17 @@ const AdminDashboard = () => {
   };
 
   const fetchInventory = () => {
-    axios.get('/api/reports/inventory').then(res => setInventoryReport(res.data)).catch(err => console.error(err));
+    api.get('/api/reports/inventory').then(res => setInventoryReport(res.data)).catch(err => console.error(err));
   };
   const fetchSales = () => {
-    axios.get('/api/reports/sales').then(res => setSalesReport(res.data)).catch(err => console.error(err));
+    api.get('/api/reports/sales').then(res => setSalesReport(res.data)).catch(err => console.error(err));
   };
   const fetchOrderStatus = () => {
-    axios.get('/api/reports/orders').then(res => setOrderStatusReport(res.data)).catch(err => console.error(err));
+    api.get('/api/reports/orders').then(res => setOrderStatusReport(res.data)).catch(err => console.error(err));
   };
 
   const handleLogout = () => {
-    axios.post('/api/logout').finally(() => {
+    api.post('/api/logout').finally(() => {
       localStorage.removeItem('token');
       window.location.href = '/';
     });

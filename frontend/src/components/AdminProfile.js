@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AdminProfile = () => {
   const [user, setUser] = useState(null);
@@ -17,7 +17,7 @@ const AdminProfile = () => {
   }, [navigate]);
 
   useEffect(() => {
-    axios.get('/api/user').then(res => setUser(res.data)).catch(err => {
+    api.get('/api/user').then(res => setUser(res.data)).catch(err => {
       console.error('Failed to fetch user:', err);
       if (err.response?.status === 401) {
         localStorage.removeItem('token');
@@ -34,7 +34,7 @@ const AdminProfile = () => {
 
   const updateProfile = (e) => {
     e.preventDefault();
-    axios.put('/api/user', profileForm).then(res => {
+    api.put('/api/user', profileForm).then(res => {
       setUser(res.data);
       alert('Profile updated successfully!');
     }).catch(err => {

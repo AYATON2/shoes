@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 
 
 const EMPTY_USER = { name: '', email: '', password: '', role: 'staff', logistic_id: '' };
@@ -23,13 +23,13 @@ const AdminUsers = () => {
   };
 
   const fetchData = () => {
-    axios.get('/api/users').then(res => {
+    api.get('/api/users').then(res => {
       // Filter out only current user or sensitve roles if needed, but here we show all except admin
       setUsers(res.data.filter(u => u.role !== 'admin'));
     }).catch(err => {
       if (err.response?.status === 401) navigate('/login');
     });
-    axios.get('/api/logistics').then(res => setLogistics(res.data)).catch(console.error);
+    api.get('/api/logistics').then(res => setLogistics(res.data)).catch(console.error);
   };
 
   useEffect(() => {
@@ -39,21 +39,21 @@ const AdminUsers = () => {
 
   const toggleActive = (userId, active) => {
     const endpoint = active ? `/api/users/${userId}/activate` : `/api/users/${userId}/deactivate`;
-    axios.patch(endpoint).then(() => fetchData()).catch(console.error);
+    api.patch(endpoint).then(() => fetchData()).catch(console.error);
   };
 
   const updateRole = (userId, role) => {
-    axios.put(`/api/users/${userId}`, { role }).then(() => fetchData()).catch(console.error);
+    api.put(`/api/users/${userId}`, { role }).then(() => fetchData()).catch(console.error);
   };
 
   const updateLogistic = (userId, logistic_id) => {
-    axios.put(`/api/users/${userId}`, { logistic_id: logistic_id || null }).then(() => fetchData()).catch(console.error);
+    api.put(`/api/users/${userId}`, { logistic_id: logistic_id || null }).then(() => fetchData()).catch(console.error);
   };
 
   const handleAddUser = (e) => {
     e.preventDefault();
     setLoading(true);
-    axios.post('/api/users', newUser).then(() => {
+    api.post('/api/users', newUser).then(() => {
       showToast('Account created successfully');
       setNewUser(EMPTY_USER);
       setShowAddModal(false);

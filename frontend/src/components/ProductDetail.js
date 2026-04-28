@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import Notification from './Notification';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
@@ -17,8 +17,8 @@ const ProductDetail = () => {
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
-    axios.get(`/api/products/${id}`).then(res => setProduct(res.data));
-    axios.get(`/api/products/${id}/reviews`).then(res => setReviews(res.data));
+    api.get(`/api/products/${id}`).then(res => setProduct(res.data));
+    api.get(`/api/products/${id}/reviews`).then(res => setReviews(res.data));
   }, [id]);
 
   const getUniqueColors = () => {

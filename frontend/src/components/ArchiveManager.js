@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const ArchiveManager = () => {
   const [archivedOrders, setArchivedOrders] = useState([]);
@@ -12,7 +12,7 @@ const ArchiveManager = () => {
   const fetchArchivedOrders = () => {
     setLoading(true);
     // Fetch orders with archived=true query parameter
-    axios.get('/api/orders?archived=true').then(res => {
+    api.get('/api/orders?archived=true').then(res => {
       setArchivedOrders(res.data.data || []);
       setLoading(false);
     }).catch(err => {
@@ -22,7 +22,7 @@ const ArchiveManager = () => {
   };
 
   const unarchiveOrder = (id) => {
-    axios.patch(`/api/orders/${id}/archive`).then(() => {
+    api.patch(`/api/orders/${id}/archive`).then(() => {
       fetchArchivedOrders();
     }).catch(err => console.error(err));
   };

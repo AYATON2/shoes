@@ -4,7 +4,7 @@ import AdminUsers from './AdminUsers';
 import AdminProducts from './AdminProducts';
 import AdminReports from './AdminReports';
 import AdminProfile from './AdminProfile';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(() => {
@@ -41,17 +41,17 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const userRes = await axios.get('/api/user');
+      const userRes = await api.get('/api/user');
       setUser(userRes.data);
       localStorage.setItem('user', JSON.stringify(userRes.data));
       
-      const usersRes = await axios.get('/api/users');
+      const usersRes = await api.get('/api/users');
       setUsers(usersRes.data);
       
-      const productsRes = await axios.get('/api/products');
+      const productsRes = await api.get('/api/products');
       setProducts(productsRes.data.data);
       
-      const ordersRes = await axios.get('/api/orders');
+      const ordersRes = await api.get('/api/orders');
       setOrders(ordersRes.data.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -64,19 +64,19 @@ const AdminDashboard = () => {
   };
 
   const fetchInventory = () => {
-    axios.get('/api/reports/inventory').then(res => setInventoryReport(res.data)).catch(err => console.error('Failed to fetch inventory report:', err));
+    api.get('/api/reports/inventory').then(res => setInventoryReport(res.data)).catch(err => console.error('Failed to fetch inventory report:', err));
   };
 
   const fetchSales = () => {
-    axios.get('/api/reports/sales').then(res => setSalesReport(res.data)).catch(err => console.error('Failed to fetch sales report:', err));
+    api.get('/api/reports/sales').then(res => setSalesReport(res.data)).catch(err => console.error('Failed to fetch sales report:', err));
   };
 
   const fetchOrderStatus = () => {
-    axios.get('/api/reports/orders').then(res => setOrderStatusReport(res.data)).catch(err => console.error('Failed to fetch order status report:', err));
+    api.get('/api/reports/orders').then(res => setOrderStatusReport(res.data)).catch(err => console.error('Failed to fetch order status report:', err));
   };
 
   const handleLogout = () => {
-    axios.post('/api/logout').then(() => {
+    api.post('/api/logout').then(() => {
       localStorage.removeItem('token');
       window.location.href = '/';
     }).catch(err => {

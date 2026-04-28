@@ -1,7 +1,7 @@
 // Premium Customer Dashboard - Redesigned Light Version
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import ProductList from './ProductList';
 import { buildApiAssetUrl } from '../utils/apiUrl';
 
@@ -37,7 +37,6 @@ const CustomerDashboard = () => {
       navigate('/login');
       return;
     }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     loadUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -63,7 +62,7 @@ const CustomerDashboard = () => {
 
   const loadUserData = () => {
     setInitialLoading(true);
-    axios.get('/api/user')
+    api.get('/api/user')
       .then(res => {
         if (res.data.role !== 'customer') {
           navigate(res.data.role === 'admin' ? '/admin-dashboard' : '/staff-dashboard');
@@ -81,7 +80,7 @@ const CustomerDashboard = () => {
 
   const loadOrders = () => {
     setLoadingOrders(true);
-    axios.get('/api/orders')
+    api.get('/api/orders')
       .then(res => {
         setOrders(res.data.data || res.data);
         setLoadingOrders(false);
@@ -91,7 +90,7 @@ const CustomerDashboard = () => {
 
   const loadReturns = () => {
     setLoadingReturns(true);
-    axios.get('/api/returns')
+    api.get('/api/returns')
       .then(res => {
         setReturns(res.data.data || res.data);
         setLoadingReturns(false);
@@ -101,7 +100,7 @@ const CustomerDashboard = () => {
 
   const loadNotifications = () => {
     setLoadingNotifications(true);
-    axios.get('/api/notifications')
+    api.get('/api/notifications')
       .then(res => {
         setNotifications(res.data.data || res.data);
         setLoadingNotifications(false);
@@ -133,7 +132,7 @@ const CustomerDashboard = () => {
     fd.append('proof_image', returnData.proof_image);
 
     try {
-      await axios.post('/api/returns', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post('/api/returns', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setMessage('Return request submitted!');
       setShowReturnModal(false);
       setReturnData({ order_id: null, reason: '', proof_image: null, preview: null });
@@ -149,7 +148,7 @@ const CustomerDashboard = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await axios.put('/api/user', profileData);
+      const res = await api.put('/api/user', profileData);
       setUser(res.data);
       setMessage('Profile updated successfully!');
       setTimeout(() => setMessage(''), 3000);

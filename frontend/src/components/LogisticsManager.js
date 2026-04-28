@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const ACCENT = '#111111';
 
@@ -22,7 +22,7 @@ const LogisticsManager = () => {
 
   const fetchLogistics = () => {
     setLoading(true);
-    axios.get('/api/logistics').then(res => {
+    api.get('/api/logistics').then(res => {
       setLogistics(res.data);
       setLoading(false);
     }).catch(err => {
@@ -39,7 +39,7 @@ const LogisticsManager = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const action = editingId ? axios.put(`/api/logistics/${editingId}`, formData) : axios.post('/api/logistics', formData);
+    const action = editingId ? api.put(`/api/logistics/${editingId}`, formData) : api.post('/api/logistics', formData);
     
     action.then(() => {
       showToast(editingId ? 'Courier updated!' : 'Courier added!');
@@ -59,7 +59,7 @@ const LogisticsManager = () => {
 
   const deleteLogistics = (id) => {
     if (window.confirm('Are you sure you want to delete this courier?')) {
-      axios.delete(`/api/logistics/${id}`).then(() => {
+      api.delete(`/api/logistics/${id}`).then(() => {
         showToast('Courier deleted');
         fetchLogistics();
       }).catch(err => showToast('Delete failed', 'error'));

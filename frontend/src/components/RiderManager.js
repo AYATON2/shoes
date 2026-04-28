@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const RiderManager = () => {
   const [riders, setRiders] = useState([]);
@@ -18,7 +18,7 @@ const RiderManager = () => {
 
   const fetchRiders = () => {
     setLoading(true);
-    axios.get('/api/riders').then(res => {
+    api.get('/api/riders').then(res => {
       setRiders(res.data);
       setLoading(false);
     }).catch(err => {
@@ -35,7 +35,7 @@ const RiderManager = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    axios.post('/api/riders', formData).then(() => {
+    api.post('/api/riders', formData).then(() => {
       fetchRiders();
       setFormData({ name: '', email: '', password: '', city: 'Butuan' });
     }).catch(err => {
