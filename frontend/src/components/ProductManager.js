@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { formatCurrency, formatDate } from '../utils/format';
 
 const ProductManager = ({
   products: passedProducts,
@@ -339,7 +340,7 @@ const ProductManager = ({
                 }}>
                   {product.image ? (
                     <img
-                      src={buildApiAssetUrl(`/storage/${product.image}`)}
+                      src={buildStorageUrl(product.image)}
                       alt={product.name}
                       onError={(e) => {
                         e.currentTarget.onerror = null;
@@ -388,7 +389,7 @@ const ProductManager = ({
                       fontWeight: '700',
                       color: '#FF6B00'
                     }}>
-                      ₱{parseFloat(product.price).toFixed(2)}
+                      {formatCurrency(product.price)}
                     </span>
                     <span style={{
                       padding: '4px 12px',
@@ -661,7 +662,7 @@ const ProductManager = ({
                     <div style={{ fontSize: '13px', color: '#666', marginLeft: '26px',  marginTop: '4px' }}>
                       {sale.discount_percentage ? `${sale.discount_percentage}% off` : `₱${sale.discount_amount} off`}
                       <br />
-                      {new Date(sale.start_date).toLocaleDateString()} - {new Date(sale.end_date).toLocaleDateString()}
+                      {formatDate(sale.start_date)} - {formatDate(sale.end_date)}
                     </div>
                   </label>
                 ))

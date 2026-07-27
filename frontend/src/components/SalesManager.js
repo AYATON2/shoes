@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './SalesManager.css';
+import { formatDate } from '../utils/format';
 
 const SalesManager = ({ productId = null, products = [] }) => {
   const [activeTab, setActiveTab] = useState('sales');
@@ -285,7 +286,7 @@ const SalesManager = ({ productId = null, products = [] }) => {
                   <td style={{ padding: '20px 24px', fontSize: 13, color: '#475569', fontWeight: 600 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <i className="far fa-calendar-alt" style={{ color: '#94a3b8' }} />
-                      {new Date(s.start_date).toLocaleDateString()} - {new Date(s.end_date).toLocaleDateString()}
+                      {formatDate(s.start_date)} - {formatDate(s.end_date)}
                     </div>
                   </td>
                   <td style={{ padding: '20px 24px', textAlign: 'center' }}>

@@ -44,6 +44,42 @@ class Sale extends Model
         'sale_price' => 'decimal:2'
     ];
 
+    /**
+     * Sales that are enabled and whose date range covers the given moment.
+     */
+    public function scopeCurrentlyActive($query, $now = null)
+    {
+        $now = $now ?: now();
+
+        return $query->where('is_active', true)
+            ->where('start_date', '<=', $now)
+            ->where('end_date', '>=', $now);
+    }
+
+    /**
+     * Sales that apply to every product of a seller.
+     */
+    public function scopeStoreWide($query)
+    {
+        return $query->whereNull('product_id');
+    }
+
+    /**
+     * Discounted price for an original price, honouring percentage over amount.
+     */
+    public static function calculateSalePrice($originalPrice, $discountPercentage, $discountAmount): float
+    {
+        $price = (float) $originalPrice;
+
+        if ($discountPercentage) {
+            $price -= $price * ((float) $discountPercentage / 100);
+        } elseif ($discountAmount) {
+            $price -= (float) $discountAmount;
+        }
+
+        return max(0, $price);
+    }
+
     public function product()
     {
         return $this->belongsTo(Product::class);

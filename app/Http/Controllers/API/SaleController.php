@@ -28,9 +28,7 @@ class SaleController extends Controller
         if ($request->has('active')) {
             $now = now();
             if ($request->active === 'true') {
-                $query->where('is_active', true)
-                    ->where('start_date', '<=', $now)
-                    ->where('end_date', '>=', $now);
+                $query->currentlyActive($now);
             } else {
                 $query->where(function ($q) use ($now) {
                     $q->where('is_active', false)
@@ -56,10 +54,7 @@ class SaleController extends Controller
     // Get active sales across the platform
     public function getActiveSales(Request $request)
     {
-        $now = now();
-        $sales = Sale::where('is_active', true)
-            ->where('start_date', '<=', $now)
-            ->where('end_date', '>=', $now)
+        $sales = Sale::currentlyActive()
             ->with('product', 'seller')
             ->orderBy('start_date', 'desc')
             ->paginate(20);
@@ -81,7 +76,7 @@ class SaleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $user = auth()->user();
@@ -92,18 +87,10 @@ class SaleController extends Controller
 
             // Check authorization - seller can only create sales for their products
             if ($user->role === 'staff' && $product->seller_id !== $user->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+                return $this->unauthorizedResponse();
             }
 
-            // Calculate sale price for product-specific sale
-            $originalPrice = $product->price;
-            $salePrice = $originalPrice;
-
-            if ($request->discount_percentage) {
-                $salePrice = $originalPrice - ($originalPrice * ($request->discount_percentage / 100));
-            } elseif ($request->discount_amount) {
-                $salePrice = $originalPrice - $request->discount_amount;
-            }
+            $salePrice = Sale::calculateSalePrice($product->price, $request->discount_percentage, $request->discount_amount);
         } else {
             // Store-wide sale - no specific product
             $salePrice = null;
@@ -129,10 +116,10 @@ class SaleController extends Controller
             'start_date' => $startDate,
             'end_date' => $endDate,
             'is_active' => true,
-            'sale_price' => $salePrice !== null ? max(0, $salePrice) : null // Ensure price doesn't go below 0
+            'sale_price' => $salePrice
         ]);
 
-        if ($this->shouldNotifySaleActivation($sale)) {
+        if ($sale->isCurrentlyActive()) {
             $this->createSaleNotifications($sale);
         }
 
@@ -148,8 +135,8 @@ class SaleController extends Controller
         $originalStartDate = $sale->start_date;
 
         // Check authorization
-        if ($user->role === 'staff' && $sale->seller_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$this->canManageSale($sale, $user)) {
+            return $this->unauthorizedResponse();
         }
 
         $validator = Validator::make($request->all(), [
@@ -164,14 +151,14 @@ class SaleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         // If product_id is being changed, validate ownership for sellers.
         if ($request->has('product_id') && $request->product_id) {
             $product = Product::findOrFail($request->product_id);
             if ($user->role === 'seller' && $product->seller_id !== $user->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+                return $this->unauthorizedResponse();
             }
         }
 
@@ -197,17 +184,9 @@ class SaleController extends Controller
 
         // Recalculate sale price (only for product-specific sales)
         if ($sale->product_id && ($request->has('discount_amount') || $request->has('discount_percentage') || $request->has('product_id'))) {
-            $product = $sale->product;
-            $originalPrice = $product->price;
-            $salePrice = $originalPrice;
-
-            if ($sale->discount_percentage) {
-                $salePrice = $originalPrice - ($originalPrice * ($sale->discount_percentage / 100));
-            } elseif ($sale->discount_amount) {
-                $salePrice = $originalPrice - $sale->discount_amount;
-            }
-
-            $sale->update(['sale_price' => max(0, $salePrice)]);
+            $sale->update([
+                'sale_price' => Sale::calculateSalePrice($sale->product->price, $sale->discount_percentage, $sale->discount_amount),
+            ]);
         } elseif (!$sale->product_id) {
             $sale->update(['sale_price' => null]);
         }
@@ -215,7 +194,7 @@ class SaleController extends Controller
         $sale->refresh();
         $startDateMovedToActive = $originalStartDate > now() && $sale->start_date <= now();
         if ((!$wasActive && $sale->is_active) || $startDateMovedToActive) {
-            if ($this->shouldNotifySaleActivation($sale)) {
+            if ($sale->isCurrentlyActive()) {
                 $this->createSaleNotifications($sale);
             }
         }
@@ -230,8 +209,8 @@ class SaleController extends Controller
         $user = auth()->user();
 
         // Check authorization
-        if ($user->role === 'staff' && $sale->seller_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$this->canManageSale($sale, $user)) {
+            return $this->unauthorizedResponse();
         }
 
         $sale->delete();
@@ -244,24 +223,23 @@ class SaleController extends Controller
         $sale = Sale::findOrFail($id);
         $user = auth()->user();
 
-        if ($user->role === 'staff' && $sale->seller_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$this->canManageSale($sale, $user)) {
+            return $this->unauthorizedResponse();
         }
 
         $sale->update(['is_active' => !$sale->is_active]);
         $sale->refresh();
 
-        if ($this->shouldNotifySaleActivation($sale)) {
+        if ($sale->isCurrentlyActive()) {
             $this->createSaleNotifications($sale);
         }
 
         return response()->json($sale);
     }
 
-    private function shouldNotifySaleActivation(Sale $sale)
+    private function canManageSale(Sale $sale, $user): bool
     {
-        $now = now();
-        return $sale->is_active && $sale->start_date <= $now && $sale->end_date >= $now;
+        return $user->role !== 'staff' || $sale->seller_id === $user->id;
     }
 
     private function createSaleNotifications(Sale $sale)

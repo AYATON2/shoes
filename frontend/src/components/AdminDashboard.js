@@ -13,6 +13,7 @@ import ArchiveManager from './ArchiveManager';
 import SalesManager from './SalesManager';
 import OrderManagement from './OrderManagement';
 import axios from 'axios';
+import { clearSession, getToken } from '../utils/auth';
 
 const SIDEBAR_BG = '#0A0A0A';
 const ACCENT = '#FA5400';
@@ -46,8 +47,7 @@ const AdminDashboard = () => {
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { navigate('/login'); return; }
+    if (!getToken()) { navigate('/login'); return; }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       if (error.response?.status === 401) {
-        localStorage.removeItem('token');
+        clearSession();
         window.location.href = '/login';
       }
     } finally {
@@ -96,7 +96,7 @@ const AdminDashboard = () => {
 
   const handleLogout = () => {
     axios.post('/api/logout').finally(() => {
-      localStorage.removeItem('token');
+      clearSession();
       window.location.href = '/';
     });
   };

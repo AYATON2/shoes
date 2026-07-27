@@ -15,7 +15,7 @@ class UserController extends Controller
     {
         // Only admins can view all users
         if (auth()->user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
         
         $users = User::with('logistic')->get();
@@ -25,7 +25,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         if (auth()->user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
 
         $validator = Validator::make($request->all(), [
@@ -37,7 +37,7 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $user = User::create([
@@ -63,7 +63,7 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return $this->validationErrorResponse($validator, false);
         }
 
         $user->update($request->only('name', 'email'));

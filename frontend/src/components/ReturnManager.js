@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
 
 const ReturnManager = () => {
   const [returns, setReturns] = useState([]);
@@ -71,7 +71,7 @@ const ReturnManager = () => {
                       <td style={{ maxWidth: '250px' }}>{ret.reason}</td>
                       <td>
                         {ret.proof_image ? (
-                          <a href={buildApiAssetUrl(ret.proof_image)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost">
+                          <a href={buildStorageUrl(ret.proof_image)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost">
                             <i className="fas fa-image" style={{ marginRight: '4px' }}></i> View
                           </a>
                         ) : (

@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import ProductList from './ProductList';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { formatCurrency, formatDateTime } from '../utils/format';
+import { applyAuthToken } from '../utils/auth';
 
 const ACCENT = '#FA5400';
 
@@ -32,12 +34,10 @@ const CustomerDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!applyAuthToken()) {
       navigate('/login');
       return;
     }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     loadUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -284,7 +284,7 @@ const CustomerDashboard = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <p style={{ fontSize: '12px', color: '#999', margin: '0 0 4px 0' }}>#{order.id}</p>
-                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>₱{parseFloat(order.total).toFixed(2)}</h4>
+                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>{formatCurrency(order.total)}</h4>
                       </div>
                       <span style={{ 
                         padding: '6px 12px', borderRadius: '30px', fontSize: '12px', fontWeight: '700',
@@ -298,7 +298,7 @@ const CustomerDashboard = () => {
                     <div style={{ marginTop: '20px', display: 'flex', gap: '8px', overflowX: 'auto' }}>
                       {order.order_items?.map((item, i) => (
                         <div key={i} style={{ width: '50px', height: '50px', borderRadius: '8px', background: '#F5F5F5', overflow: 'hidden', flexShrink: 0 }}>
-                           <img src={item.sku?.product?.image ? buildApiAssetUrl(`/storage/${item.sku.product.image}`) : ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                           <img src={buildStorageUrl(item.sku?.product?.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       ))}
                     </div>
@@ -401,7 +401,7 @@ const CustomerDashboard = () => {
                  {returns.map(ret => (
                    <div key={ret.id} className="card" style={{ padding: '24px', display: 'flex', gap: '20px' }}>
                      <div style={{ width: '100px', height: '100px', borderRadius: '12px', background: '#F5F5F5', overflow: 'hidden', flexShrink: 0 }}>
-                       <img src={ret.proof_image ? buildApiAssetUrl(`/storage/${ret.proof_image}`) : ''} alt="Proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       <img src={buildStorageUrl(ret.proof_image)} alt="Proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                      </div>
                      <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -442,7 +442,7 @@ const CustomerDashboard = () => {
                    <div key={notif.id} className="card" style={{ padding: '24px', borderLeft: notif.read ? 'none' : `4px solid ${ACCENT}` }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111' }}>{notif.title}</h4>
-                         <span style={{ fontSize: '11px', color: '#999' }}>{new Date(notif.created_at).toLocaleString()}</span>
+                         <span style={{ fontSize: '11px', color: '#999' }}>{formatDateTime(notif.created_at)}</span>
                       </div>
                       <p style={{ fontSize: '14px', color: '#444', margin: 0, whiteSpace: 'pre-wrap' }}>{notif.message}</p>
                    </div>

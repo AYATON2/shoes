@@ -6,6 +6,7 @@ import axios from 'axios';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { getApiBaseUrl } from './utils/apiUrl';
+import { applyAuthToken } from './utils/auth';
 
 console.log('App Version: 1.0.5 - Build Time: ' + new Date().toISOString());
 
@@ -13,10 +14,7 @@ axios.defaults.withCredentials = true;
 axios.defaults.baseURL = getApiBaseUrl();
 axios.defaults.headers.common['Accept'] = 'application/json';
 
-const token = localStorage.getItem('token');
-if (token) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
+applyAuthToken();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 

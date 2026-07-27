@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { getCart, saveCart } from '../utils/cart';
+import { formatCurrencyCompact } from '../utils/format';
+import { getEffectivePrice } from '../utils/pricing';
 
 const ProductList = ({ limit }) => {
   const navigate = useNavigate();
@@ -81,7 +84,7 @@ const ProductList = ({ limit }) => {
       return;
     }
 
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cart = getCart();
     const skuId = sku ? sku.id : (product.skus && product.skus.length > 0 ? product.skus[0].id : null);
     
     const existingItem = cart.find(i => i.product_id === product.id && i.sku_id === skuId);
@@ -102,8 +105,7 @@ const ProductList = ({ limit }) => {
       setNotification({ message: 'Added to cart!', type: 'success' });
     }
     
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('cartUpdated'));
+    saveCart(cart);
     
     // Clear notification after 3 seconds
     setTimeout(() => setNotification(null), 3000);
@@ -111,16 +113,6 @@ const ProductList = ({ limit }) => {
     setQuickViewProduct(null);
     setQuantity(1);
     setSelectedSku(null);
-  };
-
-  const getEffectivePrice = (product) => {
-    if (product.sales && product.sales.length > 0) {
-        const sale = product.sales[0];
-        if (sale.sale_price) return parseFloat(sale.sale_price);
-        if (sale.discount_percentage) return product.price - (product.price * sale.discount_percentage / 100);
-        return product.price - sale.discount_amount;
-    }
-    return product.price;
   };
 
   return (
@@ -192,7 +184,7 @@ const ProductList = ({ limit }) => {
                    </div>
                  )}
                  <img 
-                    src={buildApiAssetUrl(`/storage/${product.image}`)} alt={product.name}
+                    src={buildStorageUrl(product.image)} alt={product.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', transform: hoveredProduct === product.id ? 'scale(1.05)' : 'scale(1)', transition: 'transform 0.6s' }}
                  />
                  {hoveredProduct === product.id && (
@@ -205,7 +197,7 @@ const ProductList = ({ limit }) => {
               <div style={{ padding: '20px 0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                   <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>{product.name}</h4>
-                  <span style={{ fontWeight: 800, fontSize: '17px' }}>₱{getEffectivePrice(product).toLocaleString()}</span>
+                  <span style={{ fontWeight: 800, fontSize: '17px' }}>{formatCurrencyCompact(getEffectivePrice(product))}</span>
                 </div>
                 <p style={{ color: '#666', fontSize: '14px', margin: '0 0 16px 0' }}>{product.brand} • {product.type}</p>
                 
@@ -230,7 +222,7 @@ const ProductList = ({ limit }) => {
               {/* Top: Image */}
               <div style={{ background: '#f6f6f6', height: '280px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                  <img 
-                    src={quickViewProduct.image ? buildApiAssetUrl(`/storage/${quickViewProduct.image}`) : ''} 
+                    src={buildStorageUrl(quickViewProduct.image)} 
                     alt={quickViewProduct.name}
                     style={{ height: '80%', objectFit: 'contain', zIndex: 1 }}
                  />
@@ -247,7 +239,7 @@ const ProductList = ({ limit }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                    <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>{quickViewProduct.name}</h2>
                    <span style={{ fontSize: '18px', fontWeight: '800', color: '#111' }}>
-                      ₱{getEffectivePrice(quickViewProduct).toLocaleString()}
+                      {formatCurrencyCompact(getEffectivePrice(quickViewProduct))}
                    </span>
                 </div>
                 <p style={{ color: '#666', fontSize: '12px', marginBottom: '20px', textTransform: 'uppercase', fontWeight: 600 }}>{quickViewProduct.brand}</p>

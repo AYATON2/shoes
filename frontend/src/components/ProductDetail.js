@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { getToken } from '../utils/auth';
+import { buildCartItem, getCart, saveCart } from '../utils/cart';
+import { formatCurrency, formatDate } from '../utils/format';
+import { getActiveSale, getEffectivePrice, getSaleBadgeText } from '../utils/pricing';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -47,109 +51,52 @@ const ProductDetail = () => {
     }
   };
 
-  const addToCart = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+  /**
+   * Guard the cart actions: returns false (and reports why) when they can't run.
+   */
+  const canAddToCart = () => {
+    if (!getToken()) {
       navigate('/login');
-      return;
+      return false;
     }
     if (!selectedSku) {
       setNotification({ message: 'Please select a size and color', type: 'error' });
-      return;
+      return false;
     }
-    
-    // Calculate the actual price (considering sales)
-    let actualPrice = product.price;
-    if (product.sales && product.sales.length > 0) {
-      const sale = product.sales[0];
-      if (sale.sale_price) {
-        actualPrice = sale.sale_price;
-      } else if (sale.discount_percentage) {
-        actualPrice = product.price - (product.price * sale.discount_percentage / 100);
-      } else if (sale.discount_amount) {
-        actualPrice = product.price - sale.discount_amount;
-      }
-    }
-    
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    return true;
+  };
+
+  const addToCart = () => {
+    if (!canAddToCart()) return;
+
+    const cart = getCart();
     const existing = cart.find(item => item.sku_id === selectedSku.id);
     if (existing) {
       existing.quantity += 1;
       setNotification({ message: 'Item quantity updated!', type: 'success' });
     } else {
-      cart.push({
-        product_id: product.id,
-        sku_id: selectedSku.id,
-        quantity: 1,
-        name: product.name,
-        price: actualPrice,
-        image: product.image,
-        size: selectedSku.size,
-        color: selectedSku.color
-      });
+      cart.push(buildCartItem(product, selectedSku, getEffectivePrice(product)));
       setNotification({ message: 'Added to cart!', type: 'success' });
     }
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('cartUpdated'));
+    saveCart(cart);
   };
 
   const handleBuyNow = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    if (!selectedSku) {
-      setNotification({ message: 'Please select a size and color', type: 'error' });
-      return;
-    }
-    
-    // Calculate the actual price (considering sales)
-    let actualPrice = product.price;
-    if (product.sales && product.sales.length > 0) {
-      const sale = product.sales[0];
-      if (sale.sale_price) {
-        actualPrice = sale.sale_price;
-      } else if (sale.discount_percentage) {
-        actualPrice = product.price - (product.price * sale.discount_percentage / 100);
-      } else if (sale.discount_amount) {
-        actualPrice = product.price - sale.discount_amount;
-      }
-    }
-    
+    if (!canAddToCart()) return;
+
     // Update cart with new selection
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cart = getCart();
     const existingIndex = cart.findIndex(item => item.product_id === product.id);
     
     if (existingIndex !== -1) {
-      // Replace existing item with new size/color selection
-      cart[existingIndex] = {
-        product_id: product.id,
-        sku_id: selectedSku.id,
-        quantity: cart[existingIndex].quantity, // Keep the same quantity
-        name: product.name,
-        price: actualPrice,
-        image: product.image,
-        size: selectedSku.size,
-        color: selectedSku.color
-      };
+      // Replace existing item with new size/color selection, keeping the quantity
+      cart[existingIndex] = buildCartItem(product, selectedSku, getEffectivePrice(product), cart[existingIndex].quantity);
       setNotification({ message: 'Cart updated!', type: 'success' });
     } else {
-      // Add as new item
-      cart.push({
-        product_id: product.id,
-        sku_id: selectedSku.id,
-        quantity: 1,
-        name: product.name,
-        price: actualPrice,
-        image: product.image,
-        size: selectedSku.size,
-        color: selectedSku.color
-      });
+      cart.push(buildCartItem(product, selectedSku, getEffectivePrice(product)));
     }
     
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new Event('cartUpdated'));
+    saveCart(cart);
     
     // Redirect to checkout
     setTimeout(() => navigate('/checkout'), 500);
@@ -225,9 +172,7 @@ const ProductDetail = () => {
                 <span>ON SALE</span>
               </div>
               <div style={{ fontSize: '16px', fontWeight: '900' }}>
-                {product.sales[0].discount_percentage 
-                  ? `${product.sales[0].discount_percentage}% OFF` 
-                  : `₱${product.sales[0].discount_amount} OFF`}
+                {getSaleBadgeText(getActiveSale(product))}
               </div>
               {product.sales[0].title && (
                 <div style={{ fontSize: '10px', fontWeight: '600', opacity: 0.9, marginTop: '2px' }}>
@@ -262,7 +207,7 @@ const ProductDetail = () => {
             </div>
           )}
           <img
-            src={product.image ? buildApiAssetUrl(`/storage/${product.image}`) : '/default.jpg'}
+            src={buildStorageUrl(product.image, '/default.jpg')}
             alt={product.name}
             style={{
               width: '100%',
@@ -313,9 +258,7 @@ const ProductDetail = () => {
                 marginBottom: '12px',
                 textTransform: 'uppercase'
               }}>
-                {product.sales[0].discount_percentage 
-                  ? `${product.sales[0].discount_percentage}% OFF` 
-                  : `₱${product.sales[0].discount_amount} OFF`}
+                {getSaleBadgeText(getActiveSale(product))}
               </div>
             )}
             
@@ -330,18 +273,14 @@ const ProductDetail = () => {
                     textDecoration: 'line-through',
                     marginBottom: '8px'
                   }}>
-                    ₱{parseFloat(product.price).toFixed(2)}
+                    {formatCurrency(product.price)}
                   </div>
                   <div style={{
                     fontSize: '2rem',
                     fontWeight: '900',
                     color: '#FF4444'
                   }}>
-                    ₱{product.sales[0].sale_price 
-                      ? parseFloat(product.sales[0].sale_price).toFixed(2)
-                      : (product.sales[0].discount_percentage
-                        ? (product.price - (product.price * product.sales[0].discount_percentage / 100)).toFixed(2)
-                        : (product.price - product.sales[0].discount_amount).toFixed(2))}
+                    {formatCurrency(getEffectivePrice(product))}
                   </div>
                 </>
               ) : (
@@ -350,7 +289,7 @@ const ProductDetail = () => {
                   fontWeight: '900',
                   color: '#FF6B00'
                 }}>
-                  ₱{parseFloat(product.price).toFixed(2)}
+                  {formatCurrency(product.price)}
                 </div>
               )}
             </div>
@@ -607,7 +546,7 @@ const ProductDetail = () => {
                     </div>
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: '800', color: '#0F172A' }}>{review.user?.name || 'Verified Buyer'}</div>
-                      <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: '600' }}>{new Date(review.created_at).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: '600' }}>{formatDate(review.created_at)}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '2px' }}>

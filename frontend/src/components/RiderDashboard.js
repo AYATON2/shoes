@@ -4,6 +4,8 @@ import axios from 'axios';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { formatCurrency, formatDate } from '../utils/format';
+import { clearSession, getToken } from '../utils/auth';
 
 // Leaflet marker fix
 if (L.Icon.Default) {
@@ -129,11 +131,11 @@ const OrderCard = ({ order, type, updatingId, updateOrderStatus, onViewMap }) =>
             </span>
           </div>
           <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-            {new Date(order.created_at).toLocaleDateString()}
+            {formatDate(order.created_at)}
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: 17, fontWeight: 900, color: '#0f172a', display: 'block' }}>₱{parseFloat(order.total || 0).toFixed(2)}</span>
+          <span style={{ fontSize: 17, fontWeight: 900, color: '#0f172a', display: 'block' }}>{formatCurrency(order.total || 0)}</span>
         </div>
       </div>
 
@@ -231,8 +233,7 @@ const RiderDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { navigate('/login'); return; }
+    if (!getToken()) { navigate('/login'); return; }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
@@ -247,11 +248,11 @@ const RiderDashboard = () => {
       setOrders(ordersRes.data || []);
     } catch (error) {
       console.error('Failed to fetch rider data:', error);
-      if (error.response?.status === 401) { localStorage.removeItem('token'); window.location.href = '/login'; }
+      if (error.response?.status === 401) { clearSession(); window.location.href = '/login'; }
     }
   };
 
-  const handleLogout = () => axios.post('/api/logout').finally(() => { localStorage.removeItem('token'); window.location.href = '/'; });
+  const handleLogout = () => axios.post('/api/logout').finally(() => { clearSession(); window.location.href = '/'; });
 
   const updateOrderStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId);
@@ -366,7 +367,7 @@ const RiderDashboard = () => {
                 { label: 'Ready for Pickup', value: pendingOrders.length, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', icon: 'fa-box' },
                 { label: 'Out for Delivery', value: activeDeliveries.length, color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', icon: 'fa-truck-fast' },
                 { label: 'Delivered Today', value: completedDeliveries.length, color: '#10b981', bg: 'rgba(16,185,129,0.08)', icon: 'fa-circle-check' },
-                { label: 'Total Earnings', value: `₱${totalEarnings.toFixed(2)}`, color: '#6366f1', bg: 'rgba(99,102,241,0.08)', icon: 'fa-peso-sign' },
+                { label: 'Total Earnings', value: formatCurrency(totalEarnings), color: '#6366f1', bg: 'rgba(99,102,241,0.08)', icon: 'fa-peso-sign' },
               ].map((s, i) => (
                 <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '22px 20px', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -462,7 +463,7 @@ const RiderDashboard = () => {
                           <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{o.shippingAddress?.city}</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#0f172a' }}>₱{parseFloat(o.total || 0).toFixed(2)}</p>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#0f172a' }}>{formatCurrency(o.total || 0)}</p>
                         </div>
                       </div>
                     ))}
@@ -565,13 +566,13 @@ const RiderDashboard = () => {
                         <td style={{ padding: '13px 20px', fontSize: 14, fontWeight: 700, color: '#0f172a' }}>#{o.id}</td>
                         <td style={{ padding: '13px 20px', fontSize: 13, color: '#475569' }}>{o.user?.name || '—'}</td>
                         <td style={{ padding: '13px 20px', fontSize: 12, color: '#64748b' }}>{o.shipping_address?.city || '—'}</td>
-                        <td style={{ padding: '13px 20px', fontSize: 13, fontWeight: 700, color: '#10b981' }}>₱{parseFloat(o.total || 0).toFixed(2)}</td>
+                        <td style={{ padding: '13px 20px', fontSize: 13, fontWeight: 700, color: '#10b981' }}>{formatCurrency(o.total || 0)}</td>
                         <td style={{ padding: '13px 20px', fontSize: 12 }}>
                           <span style={{ background: o.payment_method === 'cod' ? '#fef3c7' : '#ede9fe', color: o.payment_method === 'cod' ? '#b45309' : '#7c3aed', padding: '2px 10px', borderRadius: 20, fontWeight: 600 }}>
                             {o.payment_method === 'cod' ? 'COD' : 'GCash'}
                           </span>
                         </td>
-                        <td style={{ padding: '13px 20px', fontSize: 12, color: '#94a3b8' }}>{new Date(o.updated_at).toLocaleDateString()}</td>
+                        <td style={{ padding: '13px 20px', fontSize: 12, color: '#94a3b8' }}>{formatDate(o.updated_at)}</td>
                       </tr>
                     ))}
                   </tbody>

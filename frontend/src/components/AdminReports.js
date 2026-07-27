@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getToken } from '../utils/auth';
 
 const AdminReports = () => {
   const [inventoryReport, setInventoryReport] = useState([]);
@@ -10,8 +11,7 @@ const AdminReports = () => {
 
   // Check authentication on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!getToken()) {
       navigate('/login');
       return;
     }
