@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Validator;
 
 class VoucherController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['auth:sanctum', 'role:admin,staff'])->except(['validateVoucher']);
+    }
+
     public function index()
     {
         return response()->json(Voucher::latest()->get());

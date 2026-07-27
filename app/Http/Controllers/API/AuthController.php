@@ -17,7 +17,6 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'in:customer,staff,rider',
         ]);
 
         if ($validator->fails()) {
@@ -34,7 +33,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'customer',
+            'role' => 'customer',
             'customer_number' => $customerNumber,
         ]);
 
@@ -60,6 +59,11 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
+
+        if (!$user->active) {
+            return response()->json(['message' => 'This account has been deactivated.'], 403);
+        }
+
         $token = $user->createToken('API Token')->plainTextToken;
 
         return response()->json(['user' => $user, 'token' => $token]);

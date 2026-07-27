@@ -22,17 +22,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_merge(
+    'allowed_origins' => array_values(array_unique(array_merge(
         $allowedOrigins,
         [
             'https://shoes-frontend-production.up.railway.app',
-            'http://shoes-frontend-production.up.railway.app'
         ]
-    ),
+    ))),
 
-    'allowed_origins_patterns' => [
-        '/^https:\/\/.*\.up\.railway\.app$/',
-    ],
+    'allowed_origins_patterns' => $allowedOriginPatterns,
 
     'allowed_headers' => ['*'],
 

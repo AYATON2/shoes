@@ -18,13 +18,10 @@ Route::get('/', function () {
 });
 
 Route::get('/storage/{path}', function ($path) {
-    if (str_contains($path, '..')) {
-        abort(404);
-    }
+    $baseDir = realpath(storage_path('app/public'));
+    $filePath = realpath($baseDir . '/' . ltrim($path, '/'));
 
-    $filePath = storage_path('app/public/' . ltrim($path, '/'));
-
-    if (!file_exists($filePath)) {
+    if ($filePath === false || !is_file($filePath) || !str_starts_with($filePath, $baseDir . DIRECTORY_SEPARATOR)) {
         abort(404);
     }
 
