@@ -24,7 +24,10 @@ const ArchiveManager = () => {
   const unarchiveOrder = (id) => {
     axios.patch(`/api/orders/${id}/archive`).then(() => {
       fetchArchivedOrders();
-    }).catch(err => console.error(err));
+    }).catch(err => {
+      console.error('Failed to unarchive order:', err);
+      alert(err.response?.data?.message || 'Failed to unarchive order. Please try again.');
+    });
   };
 
   return (

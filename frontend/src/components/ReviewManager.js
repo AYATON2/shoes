@@ -23,7 +23,10 @@ const ReviewManager = () => {
   const toggleArchive = (id) => {
     axios.patch(`/api/reviews/${id}/archive`).then(() => {
       fetchReviews();
-    }).catch(err => console.error(err));
+    }).catch(err => {
+      console.error('Failed to update review:', err);
+      alert(err.response?.data?.message || 'Failed to update review. Please try again.');
+    });
   };
 
   // Helper function to render stars

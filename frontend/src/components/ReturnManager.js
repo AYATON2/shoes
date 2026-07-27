@@ -24,7 +24,10 @@ const ReturnManager = () => {
   const updateStatus = (id, newStatus) => {
     axios.patch(`/api/returns/${id}/status`, { status: newStatus }).then(() => {
       fetchReturns();
-    }).catch(err => console.error(err));
+    }).catch(err => {
+      console.error('Failed to update return status:', err);
+      alert(err.response?.data?.message || 'Failed to update return status. Please try again.');
+    });
   };
 
   const getStatusBadgeClass = (status) => {

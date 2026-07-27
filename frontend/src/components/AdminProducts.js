@@ -24,17 +24,22 @@ const AdminProducts = () => {
   const [viewMode, setViewMode] = useState('active'); // active, archived
   const navigate = useNavigate();
 
-  const showToast = (msg, type = 'success') => {
+  const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
 
   const fetchProducts = useCallback(() => {
     const params = viewMode === 'archived' ? '?only_archived=true&limit=1000' : '?limit=1000';
     axios.get(`/api/products${params}`).then(res => setProducts(res.data.data || [])).catch(err => {
-      if (err.response?.status === 401) navigate('/login');
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        console.error('Failed to fetch products:', err);
+        showToast('Failed to load products', 'error');
+      }
     });
-  }, [navigate, viewMode]);
+  }, [navigate, viewMode, showToast]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -43,7 +48,10 @@ const AdminProducts = () => {
     axios.patch(`/api/products/${productId}/${action}`).then(() => {
       showToast(`Product ${archive ? 'archived' : 'restored'}`);
       fetchProducts();
-    }).catch(console.error);
+    }).catch(err => {
+      console.error(`Failed to ${action} product:`, err);
+      showToast(err.response?.data?.message || `Failed to ${action} product`, 'error');
+    });
   };
 
   const handleDelete = (productId) => {
@@ -51,7 +59,10 @@ const AdminProducts = () => {
     axios.delete(`/api/products/${productId}`).then(() => {
       showToast('Product deleted');
       fetchProducts();
-    }).catch(console.error);
+    }).catch(err => {
+      console.error('Failed to delete product:', err);
+      showToast(err.response?.data?.message || 'Failed to delete product', 'error');
+    });
   };
 
   const handleAddSku = () => {

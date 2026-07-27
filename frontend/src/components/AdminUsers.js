@@ -27,9 +27,17 @@ const AdminUsers = () => {
       // Filter out only current user or sensitve roles if needed, but here we show all except admin
       setUsers(res.data.filter(u => u.role !== 'admin'));
     }).catch(err => {
-      if (err.response?.status === 401) navigate('/login');
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        console.error('Failed to fetch users:', err);
+        showToast('Failed to load users', 'error');
+      }
     });
-    axios.get('/api/logistics').then(res => setLogistics(res.data)).catch(console.error);
+    axios.get('/api/logistics').then(res => setLogistics(res.data)).catch(err => {
+      console.error('Failed to fetch logistics:', err);
+      showToast('Failed to load couriers', 'error');
+    });
   };
 
   useEffect(() => {
@@ -39,15 +47,24 @@ const AdminUsers = () => {
 
   const toggleActive = (userId, active) => {
     const endpoint = active ? `/api/users/${userId}/activate` : `/api/users/${userId}/deactivate`;
-    axios.patch(endpoint).then(() => fetchData()).catch(console.error);
+    axios.patch(endpoint).then(() => fetchData()).catch(err => {
+      console.error('Failed to update user status:', err);
+      showToast(err.response?.data?.message || 'Failed to update user status', 'error');
+    });
   };
 
   const updateRole = (userId, role) => {
-    axios.put(`/api/users/${userId}`, { role }).then(() => fetchData()).catch(console.error);
+    axios.put(`/api/users/${userId}`, { role }).then(() => fetchData()).catch(err => {
+      console.error('Failed to update user role:', err);
+      showToast(err.response?.data?.message || 'Failed to update role', 'error');
+    });
   };
 
   const updateLogistic = (userId, logistic_id) => {
-    axios.put(`/api/users/${userId}`, { logistic_id: logistic_id || null }).then(() => fetchData()).catch(console.error);
+    axios.put(`/api/users/${userId}`, { logistic_id: logistic_id || null }).then(() => fetchData()).catch(err => {
+      console.error('Failed to update user courier:', err);
+      showToast(err.response?.data?.message || 'Failed to update courier', 'error');
+    });
   };
 
   const handleAddUser = (e) => {
