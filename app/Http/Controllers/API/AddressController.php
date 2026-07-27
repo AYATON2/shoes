@@ -29,7 +29,7 @@ class AddressController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return $this->validationErrorResponse($validator, false);
         }
 
         $address = Address::create([
@@ -75,7 +75,7 @@ class AddressController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return $this->validationErrorResponse($validator, false);
         }
 
         $data = $request->all();

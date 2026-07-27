@@ -28,7 +28,7 @@ class LogisticsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return $this->validationErrorResponse($validator, false);
         }
 
         $logistic = Logistics::create($request->all());

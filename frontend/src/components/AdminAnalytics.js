@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatCurrency, formatCurrencyGrouped, formatDate } from '../utils/format';
 
 const AdminAnalytics = () => {
   const [salesReport, setSalesReport] = useState([]);
@@ -86,7 +87,7 @@ const AdminAnalytics = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '48px' }}>
         {[
-          { label: 'Total Revenue', value: `₱${totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: 'fa-peso-sign', color: '#10B981', bg: '#DCFCE7' },
+          { label: 'Total Revenue', value: formatCurrencyGrouped(totalRevenue), icon: 'fa-peso-sign', color: '#10B981', bg: '#DCFCE7' },
           { label: 'Total Orders', value: totalOrdersCount, icon: 'fa-shopping-bag', color: '#6366F1', bg: '#EEF2FF' },
           { label: 'Active Shipments', value: shippedOrders, icon: 'fa-truck-fast', color: '#3B82F6', bg: '#EFF6FF' },
           { label: 'Completion Rate', value: `${totalOrdersCount > 0 ? Math.round((deliveredOrders / totalOrdersCount) * 100) : 0}%`, icon: 'fa-chart-pie', color: '#F59E0B', bg: '#FFFBEB' },
@@ -181,7 +182,7 @@ const AdminAnalytics = () => {
                   <td style={{ padding: '20px 32px', fontWeight: '800', fontSize: '14px', color: '#0F172A' }}>#{o.id}</td>
                   <td style={{ padding: '20px 32px', fontSize: '14px', fontWeight: '600', color: '#334155' }}>{o.user?.name || '—'}</td>
                   <td style={{ padding: '20px 32px', fontSize: '14px', color: '#64748B' }}>{(o.orderItems || o.order_items || []).length} Units</td>
-                  <td style={{ padding: '20px 32px', fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>₱{parseFloat(o.total || o.total_amount || 0).toFixed(2)}</td>
+                  <td style={{ padding: '20px 32px', fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(o.total || o.total_amount || 0)}</td>
                   <td style={{ padding: '20px 32px' }}>
                     <span style={{
                       padding: '6px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px',
@@ -189,7 +190,7 @@ const AdminAnalytics = () => {
                       color: o.status === 'delivered' ? '#16A34A' : o.status === 'cancelled' ? '#DC2626' : '#D97706'
                     }}>{o.status?.replace('_', ' ')}</span>
                   </td>
-                  <td style={{ padding: '20px 32px', fontSize: '13px', color: '#94A3B8', fontWeight: '500' }}>{new Date(o.created_at).toLocaleDateString()}</td>
+                  <td style={{ padding: '20px 32px', fontSize: '13px', color: '#94A3B8', fontWeight: '500' }}>{formatDate(o.created_at)}</td>
                 </tr>
               ))}
             </tbody>

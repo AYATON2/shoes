@@ -3,11 +3,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { applyAuthToken, clearSession, getToken } from '../utils/auth';
+import { CART_UPDATED_EVENT, getCart } from '../utils/cart';
+import { formatCurrency, formatTime } from '../utils/format';
+import { dashboardPathForRole } from '../utils/roles';
 
 const Header = () => {
   const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(!!localStorage.getItem('token'));
+  const [loadingUser, setLoadingUser] = useState(!!getToken());
 
   const [cartCount, setCartCount] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
@@ -17,8 +21,7 @@ const Header = () => {
   const navigate = useNavigate();
 
   const fetchNotifications = useCallback(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    if (getToken()) {
       axios.get('/api/notifications')
         .then(res => setNotifications(res.data))
         .catch(err => console.error('Error fetching notifications:', err));
@@ -26,9 +29,7 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (applyAuthToken()) {
       axios.get('/api/user')
         .then(res => {
           setUser(res.data);
@@ -36,7 +37,7 @@ const Header = () => {
           fetchNotifications();
         })
         .catch(() => {
-          localStorage.removeItem('token');
+          clearSession();
           setLoadingUser(false);
         });
     } else {
@@ -44,19 +45,19 @@ const Header = () => {
     }
     
     const updateCartCount = () => {
-      const items = JSON.parse(localStorage.getItem('cart') || '[]');
+      const items = getCart();
       setCartCount(items.length);
       setCartItems(items);
     };
     
     updateCartCount();
-    window.addEventListener('cartUpdated', updateCartCount);
+    window.addEventListener(CART_UPDATED_EVENT, updateCartCount);
     
     // Polling for notifications every 30s
     const notifInterval = setInterval(fetchNotifications, 30000);
     
     return () => {
-      window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener(CART_UPDATED_EVENT, updateCartCount);
       clearInterval(notifInterval);
     };
   }, [fetchNotifications]);
@@ -73,7 +74,7 @@ const Header = () => {
 
   const logout = () => {
     axios.post('/api/logout').then(() => {
-      localStorage.removeItem('token');
+      clearSession();
       setUser(null);
       navigate('/');
     });
@@ -81,18 +82,13 @@ const Header = () => {
 
   const goToDashboard = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) { navigate('/login'); return; }
+      if (!getToken()) { navigate('/login'); return; }
       const response = await axios.get('/api/user');
       const freshUser = response.data;
       setUser(freshUser);
-      if (freshUser.role === 'customer') navigate('/customer-dashboard');
-      else if (freshUser.role === 'staff') navigate('/staff-dashboard');
-      else if (freshUser.role === 'admin') navigate('/admin-dashboard');
-      else if (freshUser.role === 'rider') navigate('/rider-dashboard');
-      else navigate('/customer-dashboard');
+      navigate(dashboardPathForRole(freshUser.role, '/customer-dashboard'));
     } catch (error) {
-      localStorage.removeItem('token');
+      clearSession();
       setUser(null);
       navigate('/login');
     }
@@ -114,7 +110,7 @@ const Header = () => {
         <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
           <Link to="/products" style={{ color: '#111', textDecoration: 'none', fontSize: '15px', fontWeight: '500' }}>Products</Link>
           
-          {(user?.role === 'customer' || (loadingUser && localStorage.getItem('token'))) && (
+          {(user?.role === 'customer' || (loadingUser && getToken())) && (
             <div style={{ position: 'relative' }}>
               <button onClick={() => setCartOpen(!cartOpen)} style={{ background: 'transparent', border: 'none', color: '#111', fontSize: '20px', cursor: 'pointer', position: 'relative', padding: '8px', display: 'flex', alignItems: 'center' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
@@ -131,11 +127,11 @@ const Header = () => {
                         <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
                           {cartItems.map((item, idx) => (
                             <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: '16px', paddingBottom: '16px', borderBottom: idx === cartItems.length - 1 ? 'none' : '1px solid #F5F5F5' }}>
-                              <img src={item.image ? buildApiAssetUrl(`/storage/${item.image}`) : ''} alt="" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                              <img src={buildStorageUrl(item.image)} alt="" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
                               <div style={{ flex: 1 }}>
                                 <p style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>{item.name}</p>
                                 <p style={{ margin: '4px 0', fontSize: '12px', color: '#757575' }}>Size: {item.size} | Qty: {item.quantity}</p>
-                                <p style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>₱{parseFloat(item.price).toFixed(2)}</p>
+                                <p style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>{formatCurrency(item.price)}</p>
                               </div>
                             </div>
                           ))}
@@ -149,7 +145,7 @@ const Header = () => {
             </div>
           )}
 
-          {(user?.role === 'customer' || (loadingUser && localStorage.getItem('token'))) && (
+          {(user?.role === 'customer' || (loadingUser && getToken())) && (
             <div style={{ position: 'relative' }}>
               <button onClick={() => { if (!notificationsOpen) markNotificationsAsRead(); setNotificationsOpen(!notificationsOpen); }} style={{ background: 'transparent', border: 'none', color: '#111', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', position: 'relative' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
@@ -167,7 +163,7 @@ const Header = () => {
                           <div key={idx} style={{ padding: '12px', marginBottom: '8px', borderRadius: '8px', background: notif.read ? 'transparent' : 'rgba(250, 84, 0, 0.05)', borderLeft: notif.read ? '2px solid transparent' : '2px solid #FA5400' }}>
                              <p style={{ margin: 0, fontSize: '13px', color: '#111', fontWeight: notif.read ? '500' : '700' }}>{notif.title || 'Notification'}</p>
                              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#666' }}>{notif.message}</p>
-                             <span style={{ fontSize: '10px', color: '#999', marginTop: '4px', display: 'block' }}>{new Date(notif.created_at).toLocaleTimeString()}</span>
+                             <span style={{ fontSize: '10px', color: '#999', marginTop: '4px', display: 'block' }}>{formatTime(notif.created_at)}</span>
                           </div>
                         ))}
                       </div>

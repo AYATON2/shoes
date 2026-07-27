@@ -36,11 +36,7 @@ class Product extends Model
     // Get active sale for this product
     public function activeSale()
     {
-        return $this->sales()
-            ->where('is_active', true)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->first();
+        return $this->sales()->currentlyActive()->first();
     }
 
     // Computed stock attribute (sum of all SKU stocks)

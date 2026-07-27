@@ -97,7 +97,7 @@ class OrderController extends Controller
 
         if ($validator->fails()) {
             Log::error('Order validation failed', ['errors' => $validator->errors()]);
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $address = Address::find($request->shipping_address_id);
@@ -290,7 +290,7 @@ class OrderController extends Controller
                            ));
             
             if (!$isAuthorized) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+                return $this->unauthorizedResponse();
             }
         } else {
             // Only admin, staff, or riders can update order workflow
@@ -304,7 +304,7 @@ class OrderController extends Controller
                             ($user->role === 'rider' && ($order->rider_id === $user->id || ($order->rider_id === null && $order->is_local)));
 
             if (!$isAuthorized) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+                return $this->unauthorizedResponse();
             }
         }
 
@@ -314,7 +314,7 @@ class OrderController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $oldStatus = $order->status;
@@ -358,7 +358,6 @@ class OrderController extends Controller
 
             if (in_array($newStatus, ['shipped', 'delivered', 'cancelled'], true)) {
                 $order->loadMissing('orderItems.sku.product.sales');
-                $now = now();
                 $lines = [];
 
                 foreach ($order->orderItems as $item) {
@@ -368,8 +367,8 @@ class OrderController extends Controller
                     $line = "- {$productName} x{$item->quantity} - Price: PHP {$price}";
 
                     if ($product && $product->sales) {
-                        $activeSale = $product->sales->first(function ($sale) use ($now) {
-                            return $sale->is_active && $now->between($sale->start_date, $sale->end_date);
+                        $activeSale = $product->sales->first(function ($sale) {
+                            return $sale->isCurrentlyActive();
                         });
 
                         if ($activeSale) {
@@ -432,7 +431,7 @@ class OrderController extends Controller
                       $q->where('seller_id', $user->id);
                   })->exists()
               )))) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
 
         $validator = Validator::make($request->all(), [
@@ -440,7 +439,7 @@ class OrderController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $payment = $order->payment;

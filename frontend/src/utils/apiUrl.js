@@ -60,3 +60,9 @@ export const buildApiAssetUrl = (path) => {
       : `/storage/${path}`;
   return `${getApiBaseUrl()}${normalizedPath}`;
 };
+
+/**
+ * URL for a stored upload (product image, payment proof, ...), or the fallback
+ * when the record has no file attached.
+ */
+export const buildStorageUrl = (path, fallback = '') => (path ? buildApiAssetUrl(path) : fallback);

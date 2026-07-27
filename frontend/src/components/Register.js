@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { storeSession } from '../utils/auth';
+import { dashboardPathForRole } from '../utils/roles';
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -32,16 +34,8 @@ const Register = () => {
     
     axios.post('/api/register', form)
       .then(res => {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        
-        const role = res.data.user.role;
-        if (role === 'customer') navigate('/customer-dashboard');
-        else if (role === 'staff') navigate('/staff-dashboard');
-        else if (role === 'admin') navigate('/admin-dashboard');
-        else if (role === 'rider') navigate('/rider-dashboard');
-        else navigate('/dashboard');
+        storeSession(res.data.token, res.data.user);
+        navigate(dashboardPathForRole(res.data.user.role));
       })
       .catch(err => {
         setError(err.response?.data?.message || 'Registration failed. Please try again.');

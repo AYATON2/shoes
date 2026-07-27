@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { formatDate } from '../utils/format';
+import { authHeaders } from '../utils/auth';
 
 const InvoiceDetail = () => {
   const { orderId } = useParams();
@@ -10,14 +12,7 @@ const InvoiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const getAuthConfig = () => {
-    const token = localStorage.getItem('token');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    };
-  };
+  const getAuthConfig = () => ({ headers: authHeaders() });
 
   const fetchInvoice = useCallback(async () => {
     try {
@@ -115,8 +110,8 @@ const InvoiceDetail = () => {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#111', marginBottom: '8px' }}>{invoice.invoice_number}</div>
-            <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Issue Date:</strong> {new Date(invoice.issue_date).toLocaleDateString()}</p>
-            <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Due Date:</strong> {new Date(invoice.due_date).toLocaleDateString()}</p>
+            <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Issue Date:</strong> {formatDate(invoice.issue_date)}</p>
+            <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Due Date:</strong> {formatDate(invoice.due_date)}</p>
             <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Order ID:</strong> #{order.id}</p>
           </div>
         </div>
@@ -139,7 +134,7 @@ const InvoiceDetail = () => {
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#666', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '1px' }}>Order Information</p>
-            <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Order Date:</strong> {new Date(order.created_at).toLocaleDateString()}</p>
+            <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Order Date:</strong> {formatDate(order.created_at)}</p>
             <p style={{ margin: '5px 0', fontSize: '14px' }}><strong>Order Status:</strong> <strong style={{ color: '#111' }}>{(order.status || 'unknown').toUpperCase()}</strong></p>
             {order.payment && (
               <>

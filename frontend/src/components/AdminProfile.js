@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { formatDate } from '../utils/format';
+import { clearSession, getToken } from '../utils/auth';
 
 const AdminProfile = () => {
   const [user, setUser] = useState(null);
@@ -9,8 +11,7 @@ const AdminProfile = () => {
 
   // Check authentication on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!getToken()) {
       navigate('/login');
       return;
     }
@@ -20,7 +21,7 @@ const AdminProfile = () => {
     axios.get('/api/user').then(res => setUser(res.data)).catch(err => {
       console.error('Failed to fetch user:', err);
       if (err.response?.status === 401) {
-        localStorage.removeItem('token');
+        clearSession();
         navigate('/login');
       }
     });
@@ -202,7 +203,7 @@ const AdminProfile = () => {
                   </div>
                   <div className="status-info">
                     <h4>Member Since</h4>
-                    <span>{user ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
+                    <span>{user ? formatDate(user.created_at) : 'N/A'}</span>
                   </div>
                 </div>
 
@@ -212,7 +213,7 @@ const AdminProfile = () => {
                   </div>
                   <div className="status-info">
                     <h4>Last Login</h4>
-                    <span>{user ? new Date(user.updated_at).toLocaleDateString() : 'N/A'}</span>
+                    <span>{user ? formatDate(user.updated_at) : 'N/A'}</span>
                   </div>
                 </div>
 

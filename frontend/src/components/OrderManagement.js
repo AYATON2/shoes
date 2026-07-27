@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { formatCurrency, formatDate } from '../utils/format';
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
@@ -134,7 +135,7 @@ const OrderManagement = () => {
                 <tr className="order-row" style={{ borderBottom: '1px solid #F5F5F5', cursor: 'pointer' }} onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
                   <td style={{ padding: '20px 24px' }}>
                     <div style={{ fontWeight: '700', fontSize: '14px' }}>#{o.id}</div>
-                    <div style={{ fontSize: '12px', color: '#999' }}>{new Date(o.created_at).toLocaleDateString()}</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>{formatDate(o.created_at)}</div>
                   </td>
                   <td style={{ padding: '20px 24px' }}>
                     <div style={{ fontWeight: '600', fontSize: '14px' }}>{o.user?.name || 'Guest'}</div>
@@ -147,7 +148,7 @@ const OrderManagement = () => {
                        color: o.status === 'delivered' ? '#2E7D32' : o.status === 'cancelled' ? '#C62828' : '#EF6C00'
                      }}>{o.status.replace('_', ' ')}</span>
                   </td>
-                  <td style={{ padding: '20px 24px', fontWeight: '700' }}>₱{parseFloat(o.total_amount || o.total).toFixed(2)}</td>
+                  <td style={{ padding: '20px 24px', fontWeight: '700' }}>{formatCurrency(o.total_amount || o.total)}</td>
                   <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                     <i className={`fas fa-chevron-${expandedOrder === o.id ? 'up' : 'down'}`} style={{ color: '#CCC' }} />
                   </td>
@@ -164,7 +165,7 @@ const OrderManagement = () => {
                                   <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: '#FFF', borderRadius: '16px', border: '1px solid #E5E5E5', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                                         <div style={{ width: '48px', height: '48px', background: '#F5F5F5', borderRadius: '10px', overflow: 'hidden' }}>
-                                           <img src={item.sku?.product?.image ? buildApiAssetUrl(`/storage/${item.sku.product.image}`) : ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                           <img src={buildStorageUrl(item.sku?.product?.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         </div>
                                         <div>
                                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>{item.sku?.product?.name}</div>
@@ -172,7 +173,7 @@ const OrderManagement = () => {
                                         </div>
                                      </div>
                                      <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#111' }}>₱{parseFloat(item.price).toFixed(2)}</div>
+                                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#111' }}>{formatCurrency(item.price)}</div>
                                         <div style={{ fontSize: '12px', color: '#999', fontWeight: '600' }}>Qty: {item.quantity}</div>
                                      </div>
                                   </div>
@@ -293,8 +294,8 @@ const OrderManagement = () => {
                                    <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px', fontWeight: '500' }}>Ref: <span style={{ color: '#111', fontWeight: '700' }}>{o.payment?.gcash_reference || 'N/A'}</span></p>
                                    
                                    {o.payment?.payment_screenshot && (
-                                      <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E5E5', marginBottom: '20px', cursor: 'pointer', position: 'relative' }} onClick={() => window.open(buildApiAssetUrl(`/storage/${o.payment.payment_screenshot}`))}>
-                                        <img src={buildApiAssetUrl(`/storage/${o.payment.payment_screenshot}`)} alt="Proof" style={{ width: '100%', display: 'block' }} />
+                                      <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E5E5', marginBottom: '20px', cursor: 'pointer', position: 'relative' }} onClick={() => window.open(buildStorageUrl(o.payment.payment_screenshot))}>
+                                        <img src={buildStorageUrl(o.payment.payment_screenshot)} alt="Proof" style={{ width: '100%', display: 'block' }} />
                                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
                                            <span style={{ background: '#FFF', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700' }}>View Full Image</span>
                                         </div>

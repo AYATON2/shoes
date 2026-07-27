@@ -25,7 +25,7 @@ class VoucherController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $voucher = Voucher::create($request->all());
@@ -49,7 +49,7 @@ class VoucherController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         $voucher->update($request->all());

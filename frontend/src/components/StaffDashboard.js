@@ -5,7 +5,9 @@ import Notification from './Notification';
 import OrderManagement from './OrderManagement';
 import ProductManager from './ProductManager';
 import SalesManager from './SalesManager';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { formatDate } from '../utils/format';
+import { applyAuthToken, clearSession } from '../utils/auth';
 
 const SIDEBAR_BG = 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)';
 
@@ -76,20 +78,18 @@ const StaffDashboard = () => {
       setStats({ pendingOrders: pending, qualityCheck: qc, readyForPickup: ready, deliveredOrders: delivered, totalSales: sales.toFixed(2) });
     } catch (error) {
       console.error('Failed to fetch staff data:', error);
-      if (error.response?.status === 401) { localStorage.removeItem('token'); window.location.href = '/login'; }
+      if (error.response?.status === 401) { clearSession(); window.location.href = '/login'; }
     } finally {
       if (showInitialLoader) setInitialLoading(false);
     }
   }, [navigate]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { navigate('/login'); return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (!applyAuthToken()) { navigate('/login'); return; }
     fetchData(true);
   }, [fetchData, navigate]);
 
-  const handleLogout = () => axios.post('/api/logout').finally(() => { localStorage.removeItem('token'); window.location.href = '/'; });
+  const handleLogout = () => axios.post('/api/logout').finally(() => { clearSession(); window.location.href = '/'; });
 
   // Product Manager Handlers
   const handleEditProductFromManager = (product) => {
@@ -97,7 +97,7 @@ const StaffDashboard = () => {
     setFormData({
       name: product.name || '', description: product.description || '', brand: product.brand || '', type: product.type || '',
       price: product.price != null ? String(product.price) : '', gender: product.gender || 'Men', image: null,
-      imagePreview: product.image ? buildApiAssetUrl(`/storage/${product.image}`) : null,
+      imagePreview: buildStorageUrl(product.image, null),
       skus: Array.isArray(product.skus) ? product.skus.map(s => ({ size: s.size || '', color: s.color || '', width: s.width || '', stock: parseInt(s.stock, 10) || 0 })) : []
     });
     setShowAddProductForm(true);
@@ -257,7 +257,7 @@ const StaffDashboard = () => {
                       <td style={{ padding: '16px 24px', fontWeight: 700 }}>#{o.id}</td>
                       <td style={{ padding: '16px 24px' }}>{o.user?.name}</td>
                       <td style={{ padding: '16px 24px' }}>{getStatusBadge(o.status)}</td>
-                      <td style={{ padding: '16px 24px', color: '#94a3b8', fontSize: 13 }}>{new Date(o.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: '16px 24px', color: '#94a3b8', fontSize: 13 }}>{formatDate(o.created_at)}</td>
                     </tr>
                   ))}
                   {orders.length === 0 && <tr><td colSpan="4" style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>No orders found</td></tr>}

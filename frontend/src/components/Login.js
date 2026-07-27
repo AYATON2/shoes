@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { storeSession } from '../utils/auth';
+import { dashboardPathForRole } from '../utils/roles';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -30,16 +32,8 @@ const Login = () => {
            throw new Error(`Incomplete Data from ${loginUrl}. Keys found: ${Object.keys(data).join(', ')}`);
         }
 
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        const role = user.role;
-        if (role === 'customer') navigate('/customer-dashboard');
-        else if (role === 'staff') navigate('/staff-dashboard');
-        else if (role === 'admin') navigate('/admin-dashboard');
-        else if (role === 'rider') navigate('/rider-dashboard');
-        else navigate('/dashboard');
+        storeSession(token, user);
+        navigate(dashboardPathForRole(user.role));
       })
       .catch(err => {
         console.error('Login Error details:', {

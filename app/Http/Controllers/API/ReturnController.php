@@ -34,7 +34,7 @@ class ReturnController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return $this->validationErrorResponse($validator, false);
         }
 
         $proof_path = null;
@@ -60,7 +60,7 @@ class ReturnController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return $this->validationErrorResponse($validator, false);
         }
 
         $return = ReturnProduct::findOrFail($id);

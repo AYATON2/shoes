@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Concerns\ApiResponses;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\User;
 use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class InvoiceController
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ApiResponses;
 
     /**
      * Get invoice for an order
@@ -51,7 +53,7 @@ class InvoiceController
         } else if ($user->role === 'admin') {
             $invoices = Invoice::with('order')->latest()->get();
         } else {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
 
         return response()->json(['invoices' => $invoices]);
@@ -67,17 +69,11 @@ class InvoiceController
 
         // Check authorization
         if ($user->role === 'customer' && $order->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
 
-        if ($user->role === 'seller') {
-            $isSellerOfProduct = $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
-                $q->where('seller_id', $user->id);
-            })->exists();
-
-            if (!$isSellerOfProduct && $user->role !== 'admin') {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
+        if ($user->role === 'seller' && !$this->sellsAnyItemIn($order, $user)) {
+            return $this->unauthorizedResponse();
         }
 
         return InvoiceService::downloadInvoice($invoice);
@@ -93,13 +89,8 @@ class InvoiceController
 
         // Only customer, seller of the order, or admin can email invoice
         if (!in_array($user->role, ['admin', 'customer'])) {
-            if ($user->role === 'seller') {
-                $isSellerOfProduct = $order->orderItems()->whereHas('sku.product', function ($q) use ($user) {
-                    $q->where('seller_id', $user->id);
-                })->exists();
-                if (!$isSellerOfProduct) {
-                    return response()->json(['message' => 'Unauthorized'], 403);
-                }
+            if ($user->role === 'seller' && !$this->sellsAnyItemIn($order, $user)) {
+                return $this->unauthorizedResponse();
             }
         }
 
@@ -143,5 +134,12 @@ class InvoiceController
             'message' => 'Invoice regenerated successfully',
             'invoice' => $invoice
         ]);
+    }
+
+    private function sellsAnyItemIn(Order $order, User $user): bool
+    {
+        return $order->orderItems()->whereHas('sku.product', function ($query) use ($user) {
+            $query->where('seller_id', $user->id);
+        })->exists();
     }
 }

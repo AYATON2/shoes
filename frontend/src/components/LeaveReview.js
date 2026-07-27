@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
 
 const LeaveReview = () => {
   const [searchParams] = useSearchParams();
@@ -98,7 +98,7 @@ const LeaveReview = () => {
                     style={{ padding: '16px', borderRadius: '20px', textAlign: 'center' }}
                   >
                     <div style={{ width: '80px', height: '80px', margin: '0 auto 12px', borderRadius: '12px', background: '#F8FAFC', overflow: 'hidden' }}>
-                      <img src={p.image ? buildApiAssetUrl(`/storage/${p.image}`) : ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={buildStorageUrl(p.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div style={{ fontSize: '13px', fontWeight: '700', color: isActive ? '#FA5400' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                   </div>

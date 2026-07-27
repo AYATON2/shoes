@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatCurrency } from '../utils/format';
 
 const ACCENT = '#111111';
 
@@ -111,7 +112,7 @@ const LogisticsManager = () => {
                 ) : logistics.map(item => (
                   <tr key={item.id} style={{ borderTop: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
                     <td style={{ padding: '14px 20px', fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{item.name}</td>
-                    <td style={{ padding: '14px 20px', fontSize: 14, fontWeight: 700, color: '#10b981' }}>₱{parseFloat(item.base_cost).toFixed(2)}</td>
+                    <td style={{ padding: '14px 20px', fontSize: 14, fontWeight: 700, color: '#10b981' }}>{formatCurrency(item.base_cost)}</td>
                     <td style={{ padding: '14px 20px' }}>
                       <span style={{
                         background: item.is_local ? '#e0f2fe' : '#fef3c7',

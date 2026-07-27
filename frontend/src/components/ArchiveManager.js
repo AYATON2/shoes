@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatCurrency, formatDate } from '../utils/format';
 
 const ArchiveManager = () => {
   const [archivedOrders, setArchivedOrders] = useState([]);
@@ -61,9 +62,9 @@ const ArchiveManager = () => {
                   {archivedOrders.map(order => (
                     <tr key={order.id} style={{ opacity: 0.8 }}>
                       <td style={{ fontWeight: 500 }}>#{order.id}</td>
-                      <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                      <td>{formatDate(order.created_at)}</td>
                       <td>{order.user?.name || 'Unknown User'}</td>
-                      <td>₱{parseFloat(order.total).toFixed(2)}</td>
+                      <td>{formatCurrency(order.total)}</td>
                       <td>
                         <span className="badge badge-secondary">{order.status}</span>
                       </td>

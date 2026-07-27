@@ -3,7 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Notification from './Notification';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
+import { applyAuthToken } from '../utils/auth';
+import { clearCart, getCart } from '../utils/cart';
+import { formatCurrency } from '../utils/format';
 
 // Agusan del Norte cities/municipalities
 const AGUSAN_CITIES = [
@@ -47,7 +50,7 @@ const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '700', marg
 const sectionStyle = { background: '#FFF', padding: '28px', borderRadius: '20px', border: '1px solid #EEE', marginBottom: '20px' };
 
 const Checkout = () => {
-  const [cart] = useState(JSON.parse(localStorage.getItem('cart') || '[]'));
+  const [cart] = useState(getCart());
   const [shippingAddress, setShippingAddress] = useState({
     name: '', phone: '', street: '', brgy: '', province: '', city: '', zip: '', country: 'Philippines'
   });
@@ -65,9 +68,7 @@ const Checkout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { navigate('/login'); return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (!applyAuthToken()) { navigate('/login'); return; }
     
     // Fetch user for name auto-population
     axios.get('/api/user').then(res => {
@@ -175,8 +176,7 @@ const Checkout = () => {
       }
 
       const res = await axios.post('/api/orders', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      localStorage.removeItem('cart');
-      window.dispatchEvent(new Event('cartUpdated'));
+      clearCart();
       setOrderSuccess(res.data);
       setShowGCashModal(false);
     } catch (err) {
@@ -306,7 +306,7 @@ const Checkout = () => {
                       <div style={{ fontWeight: '700', fontSize: '14px' }}>{l.name}</div>
                       <div style={{ fontSize: '12px', color: '#999' }}>{l.is_local ? 'Local delivery · Butuan area' : 'Nationwide courier'}</div>
                     </div>
-                    <span style={{ fontWeight: '800', fontSize: '14px' }}>₱{parseFloat(l.base_cost).toFixed(2)}</span>
+                    <span style={{ fontWeight: '800', fontSize: '14px' }}>{formatCurrency(l.base_cost)}</span>
                   </label>
                 ))}
               </div>
@@ -338,7 +338,7 @@ const Checkout = () => {
             background: (!shippingAddress.city || !selectedLogisticsId) ? '#CCC' : '#111',
             color: '#FFF', fontWeight: '700', fontSize: '16px', cursor: (!shippingAddress.city || !selectedLogisticsId) ? 'not-allowed' : 'pointer'
           }}>
-            {loading ? 'Processing...' : `Place Order · ₱${total.toFixed(2)}`}
+            {loading ? 'Processing...' : `Place Order · ${formatCurrency(total)}`}
           </button>
         </div>
 
@@ -351,13 +351,13 @@ const Checkout = () => {
               {cart.map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: '#F5F5F5', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={item.image ? buildApiAssetUrl(`/storage/${item.image}`) : ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={buildStorageUrl(item.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
                     <p style={{ margin: 0, fontSize: '11px', color: '#999' }}>Size {item.size} · Qty {item.quantity}</p>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>₱{(item.price * item.quantity).toFixed(2)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{formatCurrency(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
@@ -381,19 +381,19 @@ const Checkout = () => {
             {/* Totals */}
             <div style={{ display: 'grid', gap: '10px', fontSize: '14px', borderTop: '1px solid #F0F0F0', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}>
-                <span>Subtotal</span><span>₱{subtotal.toFixed(2)}</span>
+                <span>Subtotal</span><span>{formatCurrency(subtotal)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}>
                 <span>Shipping ({selectedCourier?.name || '—'})</span>
-                <span>₱{shippingFee.toFixed(2)}</span>
+                <span>{formatCurrency(shippingFee)}</span>
               </div>
               {discount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '600' }}>
-                  <span>Discount</span><span>-₱{discount.toFixed(2)}</span>
+                  <span>Discount</span><span>-{formatCurrency(discount)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: '800', borderTop: '2px solid #F0F0F0', paddingTop: '16px', marginTop: '4px' }}>
-                <span>Total</span><span>₱{total.toFixed(2)}</span>
+                <span>Total</span><span>{formatCurrency(total)}</span>
               </div>
             </div>
           </div>
@@ -406,7 +406,7 @@ const Checkout = () => {
           <div style={{ background: '#FFF', padding: '36px', borderRadius: '28px', maxWidth: '460px', width: '100%' }}>
             <h3 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px' }}>GCash Payment</h3>
             <p style={{ color: '#666', fontSize: '14px', marginBottom: '24px' }}>
-              Send <strong style={{ color: '#111', fontSize: '18px' }}>₱{total.toFixed(2)}</strong> to GCash:<br />
+              Send <strong style={{ color: '#111', fontSize: '18px' }}>{formatCurrency(total)}</strong> to GCash:<br />
               <strong style={{ fontSize: '20px', letterSpacing: '2px' }}>0912 345 6789</strong>
             </p>
             <div style={{ marginBottom: '16px' }}>

@@ -5,8 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Sku;
+use App\Services\ProductEnrichmentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -15,12 +15,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Product::with(['skus', 'sales' => function($q) {
-                $now = now();
-                $q->where('is_active', true)
-                  ->where('start_date', '<=', $now)
-                  ->where('end_date', '>=', $now);
-            }]);
+            $query = ProductEnrichmentService::withActiveSales();
 
             if ($request->has('include_archived') && $request->include_archived == 'true') {
                 // Keep all
@@ -48,11 +43,8 @@ class ProductController extends Controller
                 if ($request->special_filter == 'new') {
                     $query->orderBy('created_at', 'desc');
                 } else if ($request->special_filter == 'sale') {
-                    $now = now();
-                    $query->whereHas('sales', function($q) use ($now) {
-                        $q->where('is_active', true)
-                          ->where('start_date', '<=', $now)
-                          ->where('end_date', '>=', $now);
+                    $query->whereHas('sales', function($q) {
+                        $q->currentlyActive();
                     });
                 } else if ($request->special_filter == 'bestseller') {
                     // Use view_count as a proxy for bestsellers
@@ -79,104 +71,32 @@ class ProductController extends Controller
                 $result = $query->paginate($limit);
             }
             
-            // Mark products as trending based on recent orders (last 7 days)
-            $items = isset($result['data']) ? $result['data'] : $result->items();
-            foreach ($items as $product) {
-                try {
-                    // Count orders for this product in the last 7 days through SKUs
-                    $recentOrderCount = DB::table('order_items')
-                        ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                        ->join('skus', 'order_items.sku_id', '=', 'skus.id')
-                        ->where('skus.product_id', $product->id)
-                        ->where('orders.created_at', '>=', now()->subDays(7))
-                        ->count();
-                    
-                    // Mark as trending if 3+ orders in last 7 days
-                    $product->is_trending = $recentOrderCount >= 3;
-                    
-                    // Add store-wide sales that apply to all products of each seller
-                    $now = now();
-                    $storeWideSale = \App\Models\Sale::where('seller_id', $product->seller_id)
-                        ->whereNull('product_id')
-                        ->where('is_active', true)
-                        ->where('start_date', '<=', $now)
-                        ->where('end_date', '>=', $now)
-                        ->first();
-                    
-                    if ($storeWideSale) {
-                        // Add store-wide sale to the product's sales collection
-                        $product->sales->push($storeWideSale);
-                    }
-                } catch (\Exception $e) {
-                    // If trending calculation fails, just skip it
-                    Log::warning('Failed to calculate trending for product ' . $product->id . ': ' . $e->getMessage());
-                    $product->is_trending = false;
-                }
-            }
+            ProductEnrichmentService::enrich(isset($result['data']) ? $result['data'] : $result->items());
             
             return response()->json($result);
         } catch (\Exception $e) {
             Log::error('Product index error: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
-            return response()->json([
-                'error' => 'Failed to fetch products',
-                'message' => $e->getMessage()
-            ], 500);
+            return $this->failureResponse('Failed to fetch products', $e->getMessage());
         }
     }
 
     public function show($id)
     {
         try {
-            $product = Product::with(['skus', 'sales' => function($q) {
-                $now = now();
-                $q->where('is_active', true)
-                  ->where('start_date', '<=', $now)
-                  ->where('end_date', '>=', $now);
-            }])->findOrFail($id);
+            $product = ProductEnrichmentService::withActiveSales()->findOrFail($id);
             
             // Increment view count
             $product->increment('view_count');
             
-            // Check if trending based on recent orders through SKUs
-            try {
-                $recentOrderCount = DB::table('order_items')
-                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                    ->join('skus', 'order_items.sku_id', '=', 'skus.id')
-                    ->where('skus.product_id', $product->id)
-                    ->where('orders.created_at', '>=', now()->subDays(7))
-                    ->count();
-                $product->is_trending = $recentOrderCount >= 3;
-            } catch (\Exception $e) {
-                Log::warning('Failed to calculate trending for product ' . $product->id . ': ' . $e->getMessage());
-                $product->is_trending = false;
-            }
-            
-            // Check for store-wide sale
-            $now = now();
-            $storeWideSale = \App\Models\Sale::where('seller_id', $product->seller_id)
-                ->whereNull('product_id')
-                ->where('is_active', true)
-                ->where('start_date', '<=', $now)
-                ->where('end_date', '>=', $now)
-                ->first();
-            
-            if ($storeWideSale) {
-                $product->sales->push($storeWideSale);
-            }
+            ProductEnrichmentService::enrich($product);
             
             return response()->json($product);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'error' => 'Product not found',
-                'message' => 'The requested product does not exist.'
-            ], 404);
+            return $this->failureResponse('Product not found', 'The requested product does not exist.', 404);
         } catch (\Exception $e) {
             Log::error('Product show error: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Failed to fetch product',
-                'message' => $e->getMessage()
-            ], 500);
+            return $this->failureResponse('Failed to fetch product', $e->getMessage());
         }
     }
 
@@ -216,7 +136,7 @@ class ProductController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         // Create product
@@ -241,9 +161,8 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         
-        // Check authorization
-        if (!($request->user()->id === $product->seller_id || $request->user()->role === 'admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$this->canManageProduct($request, $product)) {
+            return $this->unauthorizedResponse();
         }
         
         // Parse SKUs from JSON string if needed (before validation)
@@ -261,20 +180,20 @@ class ProductController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
         
         // Validate SKUs separately
         if (!is_array($skus) || count($skus) < 1) {
-            return response()->json(['errors' => ['skus' => ['At least one SKU is required']]], 422);
+            return $this->errorsResponse(['skus' => ['At least one SKU is required']]);
         }
         
         foreach ($skus as $index => $sku) {
             if (empty($sku['size']) || empty($sku['color']) || !isset($sku['stock'])) {
-                return response()->json(['errors' => ['skus' => ['Each SKU must have size, color, and stock']]], 422);
+                return $this->errorsResponse(['skus' => ['Each SKU must have size, color, and stock']]);
             }
             if (!is_numeric($sku['stock']) || $sku['stock'] < 0) {
-                return response()->json(['errors' => ['skus' => ['Stock must be a positive number']]], 422);
+                return $this->errorsResponse(['skus' => ['Stock must be a positive number']]);
             }
         }
 
@@ -329,9 +248,8 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         
-        // Check authorization
-        if (!($request->user()->id === $product->seller_id || $request->user()->role === 'admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$this->canManageProduct($request, $product)) {
+            return $this->unauthorizedResponse();
         }
         
         $validator = Validator::make($request->all(), [
@@ -339,7 +257,7 @@ class ProductController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator);
         }
 
         // Update all SKUs to have this stock level
@@ -349,6 +267,11 @@ class ProductController extends Controller
             'message' => 'Stock updated successfully',
             'data' => $product->load('skus')
         ], 200);
+    }
+
+    private function canManageProduct(Request $request, Product $product): bool
+    {
+        return $request->user()->id === $product->seller_id || $request->user()->role === 'admin';
     }
 
     public function destroy($id)

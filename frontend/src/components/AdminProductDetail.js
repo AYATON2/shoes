@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ProductDetail from './ProductDetail';
 import axios from 'axios';
+import { clearSession } from '../utils/auth';
 
 const AdminProductDetail = () => {
   const navigate = useNavigate();
@@ -9,10 +10,10 @@ const AdminProductDetail = () => {
 
   const handleLogout = () => {
     axios.post('/api/logout').then(() => {
-      localStorage.removeItem('token');
+      clearSession();
       window.location.href = '/';
     }).catch(() => {
-      localStorage.removeItem('token');
+      clearSession();
       window.location.href = '/';
     });
   };

@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { buildApiAssetUrl } from '../utils/apiUrl';
+import { buildStorageUrl } from '../utils/apiUrl';
 import SalesManager from './SalesManager';
+import { formatCurrencyCompact } from '../utils/format';
 
 
 const EMPTY_FORM = {
@@ -152,20 +153,20 @@ const AdminProducts = () => {
             {filtered.map(p => (
               <div key={p.id} className="p-card" style={{ background: '#FFF', borderRadius: '28px', border: '1px solid #E2E8F0', overflow: 'hidden', position: 'relative' }}>
                 <div style={{ height: '220px', background: '#F8FAFC', position: 'relative' }}>
-                  <img src={p.image ? buildApiAssetUrl(`/storage/${p.image}`) : ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={buildStorageUrl(p.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   {p.is_archived && <div style={{ position: 'absolute', top: '16px', right: '16px', background: '#EF4444', color: '#FFF', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.5px' }}>ARCHIVED</div>}
                   {p.sales && p.sales.length > 0 && <div style={{ position: 'absolute', top: '16px', left: '16px', background: '#10B981', color: '#FFF', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.5px' }}>ON SALE</div>}
                 </div>
                 <div style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{p.brand}</span>
-                    <span style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A' }}>₱{parseFloat(p.price).toLocaleString()}</span>
+                    <span style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A' }}>{formatCurrencyCompact(p.price)}</span>
                   </div>
                   <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '800', color: '#0F172A', lineHeight: '1.4' }}>{p.name}</h3>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', gap: '10px' }}>
-                      <button onClick={() => { setEditingProduct(p); setFormData({ ...p, skus: p.skus || [], imagePreview: buildApiAssetUrl(`/storage/${p.image}`) }); setShowForm(true); }} style={{ flex: 1, padding: '12px', borderRadius: '14px', border: '1px solid #E2E8F0', background: '#FFF', fontWeight: '700', color: '#0F172A', cursor: 'pointer', fontSize: '13px' }}>Edit Details</button>
+                      <button onClick={() => { setEditingProduct(p); setFormData({ ...p, skus: p.skus || [], imagePreview: buildStorageUrl(p.image) }); setShowForm(true); }} style={{ flex: 1, padding: '12px', borderRadius: '14px', border: '1px solid #E2E8F0', background: '#FFF', fontWeight: '700', color: '#0F172A', cursor: 'pointer', fontSize: '13px' }}>Edit Details</button>
                       <button onClick={() => setPromotingProduct(p)} style={{ flex: 1, padding: '12px', borderRadius: '14px', border: 'none', background: '#6366F1', color: '#FFF', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>Promote</button>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
