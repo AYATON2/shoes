@@ -13,6 +13,12 @@ use Carbon\Carbon;
 
 class SaleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['auth:sanctum', 'role:admin,staff'])
+            ->only(['store', 'update', 'destroy', 'toggleActive']);
+    }
+
     // Get all sales (with filters)
     public function index(Request $request)
     {
